@@ -11,7 +11,7 @@ type item struct {
 	data string
 }
 
-func (i item) Name() string {
+func (i item) Key() string {
 	return i.name
 }
 

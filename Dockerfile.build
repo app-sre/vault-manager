@@ -2,4 +2,7 @@ FROM golang:1.10-alpine
 RUN apk add --no-cache ca-certificates
 WORKDIR /go/src/github.com/app-sre/vault-manager
 COPY . .
+# run unit tests
+RUN GOCACHE=off CGO_ENABLED=0 GOOS=linux go test ./...
+# run build
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo ./cmd/vault-manager
