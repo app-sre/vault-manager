@@ -121,7 +121,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 		// configure github mounts
 		for _, e := range entries {
-			if e.Type == "github" {
+			if e.Type != "github" {
 				if !vault.DataInSecret(e.GithubConfig, "auth/"+e.Path+"config", vault.ClientFromEnv()) {
 					_, err := vault.ClientFromEnv().Logical().Write("auth/"+e.Path+"config", e.GithubConfig)
 					if err != nil {
