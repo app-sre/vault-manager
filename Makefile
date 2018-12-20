@@ -20,4 +20,4 @@ build-test-container:
 	@docker build -t vault-manager-test -f tests/Dockerfile.tests .
 
 test: build build-test-container
-	@docker run -ti --rm --net=host -v /var/run/docker.sock:/var/run/docker.sock vault-manager-test
+	@docker run -t --rm --net=host -v /var/run/docker.sock:/var/run/docker.sock vault-manager-test
