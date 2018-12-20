@@ -1,0 +1,21 @@
+FROM centos:7
+
+ENV PACKAGES="jq git docker unzip wget"
+ENV BATS_VERSION="v0.4.0"
+
+RUN yum install -y epel-release && \
+    yum install -y $PACKAGES && \
+    rpm -q --queryformat "" $PACKAGES
+
+RUN git clone https://github.com/sstephenson/bats.git && \
+    git --git-dir=bats/.git checkout -b $BATS_VERSION $BATS_VERSION >/dev/null && \
+    bats/install.sh /usr/local
+
+RUN wget https://releases.hashicorp.com/vault/0.11.5/vault_0.11.5_linux_amd64.zip && unzip vault_0.11.5_linux_amd64.zip && mv vault /usr/bin
+
+COPY tests/ /tests/
+COPY vault-manager /bin/
+
+WORKDIR /tests
+
+CMD ["bats", "vault-manager.bats"]

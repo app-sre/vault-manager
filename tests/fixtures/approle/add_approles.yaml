@@ -1,0 +1,37 @@
+---
+auth:
+  - path: "approle/"
+    type: "approle"
+approle:
+  - name: "test-role-1"
+    options:
+      local_secret_ids: "false"
+      token_bound_cidrs: []
+      bound_cidr_list: []
+      secret_id_bound_cidrs: []
+      secret_id_num_uses: "0"
+      bind_secret_id: "true"
+      period: "0s"
+      secret_id_ttl: "0s"
+      token_num_uses: "1"
+      token_ttl: "30m"
+      token_max_ttl: "30m"
+      policies:
+        - default
+        - role-1
+  - name: "test-role-2"
+    options:
+      local_secret_ids: "false"
+      token_bound_cidrs: []
+      bound_cidr_list: []
+      secret_id_bound_cidrs: []
+      secret_id_num_uses: "0"
+      bind_secret_id: "true"
+      period: "0s"
+      secret_id_ttl: "10s"
+      token_num_uses: "100"
+      token_ttl: "300m"
+      token_max_ttl: "300m"
+      policies:
+        - default
+        - role-2

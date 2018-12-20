@@ -1,0 +1,5 @@
+FROM golang:1.10-alpine
+RUN apk add --no-cache ca-certificates
+WORKDIR /go/src/github.com/app-sre/vault-manager
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo ./cmd/vault-manager

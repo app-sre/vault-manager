@@ -1,0 +1,24 @@
+---
+auth:
+  - path: "approle-1/"
+    type: "approle"
+    description: "approle-1 auth backend"
+  - path: "approle-2/"
+    type: "approle"
+    description: "approle-2 auth backend"
+  - path: "github-test-1/"
+    type: "github"
+    description: "github-test-1 auth backend - updated"
+    github-config:
+      organization: "test-org-1-updated"
+      base_url: "base_url_test_1"
+      max_ttl: "777h"
+      ttl: "777m"
+  - path: "github-test-2/"
+    type: "github"
+    description: "github-test-2 auth backend - updated"
+    github-config:
+      organization: "test-org-2-updated"
+      base_url: "base_url_test_2"
+      max_ttl: "777s"
+      ttl: "12h30m26s"

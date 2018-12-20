@@ -1,0 +1,10 @@
+---
+audit:
+  - path: "file2/"
+    type: "file"
+    description: "second_logger"
+    options:
+      file_path: "/tmp/log2.log"
+      log_raw: "false"
+      mode: "0660"
+      format: "jsonx"

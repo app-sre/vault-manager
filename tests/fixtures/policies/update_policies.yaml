@@ -1,0 +1,20 @@
+---
+policies:
+  - name: "policy-test-1"
+    rules: |
+      path "secret-test1/*" {
+        capabilities = ["read", "list"]
+      }
+  - name: "policy-test-2"
+    rules: |
+      path "secret-test2/*" {
+        capabilities = ["list"]
+      }
+  - name: "policy-test-3"
+    rules: |
+      path "secret-test3/*" {
+        capabilities = ["create", "read", "list"]
+      }
+      path "secret-test3/secret/" {
+        capabilities = ["deny"]
+      }
