@@ -6,8 +6,97 @@ auth:
   - path: "github-test-2/"
     type: "github"
     description: "github-test-2 auth backend"
-    github-config:
+    config:
       organization: "test-org-2"
       base_url: ""
       max_ttl: "72h"
       ttl: "72h"
+  - path: "kubernetes-test-1/"
+    type: "kubernetes"
+    description: "kubernetes-test-1 auth backend"
+    config:
+      kubernetes_host: "https://192.168.99.100:8443"
+      pem_keys: []
+      kubernetes_ca_cert: |
+        -----BEGIN CERTIFICATE-----
+        MIICyDCCAbCgAwIBAgIBADANBgkqhkiG9w0BAQsFADAVMRMwEQYDVQQDEwprdWJl
+        cm5ldGVzMB4XDTE3MTAwNTA4MjExMloXDTI3MTAwMzA4MjExMlowFTETMBEGA1UE
+        AxMKa3ViZXJuZXRlczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMif
+        rGVyJI4LtDsAFQfuHjEi8KRnS+E4wypSsVrSLnibIXWuP8h2TsEwv9io+SKLrpSC
+        AUwyUaaZ2vZSPWTc5+Q7OZqTZ2+cYZu2O5mi+42kFQky57XRLC9yPTxqZ8nyagJy
+        ReH+Ot87nyjWDdNH878wjgfeyR4MBrTIr0hoA3Qy0qr8FR0IgMvxdnFr7+9Msooh
+        b1KEf47xlrMOCV+/HnYudAL67u3E1PnelsYNgXF3G7O0pfV0Vb/mNzHQLtQCVwBJ
+        H0Ene1xV3B1YFzIGzsOi829mi5FRAgJdwie5fIOgF9zdpl9i2dSeAnzm+O/E2bzK
+        NXEDq+XQ+GxMtOYeVeECAwEAAaMjMCEwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB
+        /wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJuWKuog2HlJ0cDjsaKayKBiGdoh
+        1lhhApRJW5X+aTz6mMJ+0Rh06zi/puWfb9ZxU0eNTXn1ukklxJ+pNU3HP3hjHDB6
+        AFis3GNBeLZLTXhLdRNvYQWURa6Dl7Ey8d9uRKPY6dewhIhHVhtTpAMxUsukNwro
+        JC+8DkqjGZnw/4drMElVJwEveieqUY/MsSq9KZjr6coXsYO5xgovoQKhLgQlMgEY
+        gqvKmwJK5Fd1HVZ+0HkWaTRYE54TPOvyroWGY9KZBLm4/cWZye5j7bKdS8NQGtyg
+        1yjONzXWrqzvmpx0tmPX3PFs8ySpZanvjz5kwZHZ/0Lht3jxtlydnepnOeQ=
+        -----END CERTIFICATE-----
+  - path: "alicloud-test-1/"
+    type: "alicloud"
+    description: "alicloud-test-1 auth backend"
+  - path: "aws-test-1/"
+    type: "aws"
+    description: "aws-test-1 auth backend"
+  - path: "azure-test-1/"
+    type: "azure"
+    description: "azure-test-1 auth backend"
+    config:
+      tenant_id: "azure-test-tenant-id"
+      resource: "https://vault.hashicorp.com"
+      client_id: "azure-test-client-id"
+      environment: ""
+  - path: "gcp-test-1/"
+    type: "gcp"
+    description: "gcp-test-1 auth backend"
+  - path: "jwt-test-1/"
+    type: "jwt"
+    description: "jwt-test-1 auth backend"
+    config:
+      bound_issuer: ""
+      jwt_validation_pubkeys: []
+      oidc_discovery_ca_pem: ""
+      oidc_discovery_url: "https://myco.auth0.com/"
+  - path: "ldap-test-1/"
+    type: "ldap"
+    description: "ldap-test-1 auth backend"
+    config:
+      binddn: "cn=vault,ou=users,dc=example,dc=com"
+      case_sensitive_names: "false"
+      certificate: ""
+      deny_null_bind: "true"
+      discoverdn: "false"
+      groupattr: "memberOf"
+      groupdn: "ou=Users,dc=example,dc=com"
+      groupfilter: "(&(objectClass=person)(uid={{.Username}}))"
+      insecure_tls: "false"
+      starttls: "true"
+      tls_max_version: "tls12"
+      tls_min_version: "tls12"
+      upndomain: ""
+      url: "ldap://ldap.example.com"
+      use_token_groups: "false"
+      userattr: "samaccountname"
+      userdn: "ou=Users,dc=example,dc=com"
+  - path: "okta-test-1/"
+    type: "okta"
+    description: "okta-test-1 auth backend"
+    config:
+      base_url: "okta.com"
+      organization: "test-okta-org"
+      org_name: "test-okta-org"
+      bypass_okta_mfa: "false"
+      max_ttl: "0s"
+      ttl: "0s"
+  - path: "radius-test-1/"
+    type: "radius"
+    description: "radius-test-1 auth backend"
+  - path: "cert-test-1/"
+    type: "cert"
+    description: "cert-test-1 auth backend"
+  - path: "userpass-test-1/"
+    type: "userpass"
+    description: "userpass-test-1 auth backend"

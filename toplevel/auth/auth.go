@@ -15,10 +15,10 @@ import (
 )
 
 type entry struct {
-	Path         string                 `yaml:"path"`
-	Type         string                 `yaml:"type"`
-	Description  string                 `yaml:"description"`
-	GithubConfig map[string]interface{} `yaml:"github-config"`
+	Path        string                 `yaml:"path"`
+	Type        string                 `yaml:"type"`
+	Description string                 `yaml:"description"`
+	Config      map[string]interface{} `yaml:"config"`
 }
 
 var _ vault.Item = entry{}
@@ -100,9 +100,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 		}
 
 		for _, e := range entries {
-			if e.Type == "github" {
-				if !vault.DataInSecret(e.GithubConfig, "auth/"+e.Path+"config", vault.ClientFromEnv()) {
-					logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written path='auth/%vconfig' config='%v'", e.Path, e.GithubConfig)
+			if e.Config != nil {
+				if !vault.DataInSecret(e.Config, "auth/"+e.Path+"config", vault.ClientFromEnv()) {
+					logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written path='auth/%vconfig' config='%v'", e.Path, e.Config)
 				}
 			}
 		}
@@ -121,9 +121,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 		// configure github mounts
 		for _, e := range entries {
-			if e.Type == "github" {
-				if !vault.DataInSecret(e.GithubConfig, "auth/"+e.Path+"config", vault.ClientFromEnv()) {
-					_, err := vault.ClientFromEnv().Logical().Write("auth/"+e.Path+"config", e.GithubConfig)
+			if e.Config != nil {
+				if !vault.DataInSecret(e.Config, "auth/"+e.Path+"config", vault.ClientFromEnv()) {
+					_, err := vault.ClientFromEnv().Logical().Write("auth/"+e.Path+"config", e.Config)
 					if err != nil {
 						log.Fatal(err)
 					}

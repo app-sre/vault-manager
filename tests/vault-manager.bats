@@ -139,6 +139,7 @@ rerun_check() {
     #
     export VAULT_MANAGER_CONFIG_FILE=/tests/fixtures/auth/enable_auth_backends.yaml
     run vault-manager
+
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"successfully enabled auth backend"*"path=approle-1/"*"type=approle"* ]]
@@ -163,6 +164,14 @@ rerun_check() {
     [[ "${output}" == *"ttl"*"72h"* ]]
     [[ "${output}" == *"max_ttl"*"72h"* ]]
     [[ "${output}" == *"base_url"*"n/a"* ]]
+    # check kubernetes-test-1 auth configuration
+    run vault read auth/kubernetes-test-1/config
+    [ "$status" -eq 0 ]
+    [[ "${output}" == *"kubernetes_host"*"https://192.168.99.100:8443"* ]]
+    [[ "${output}" == *"pem_keys"*"[]"* ]]
+    [[ "${output}" == *"kubernetes_ca_cert"*"b1KEf47xlrMOCV+/HnYudAL67u3E1PnelsYNgXF3G7O0pfV0Vb/mNzHQLtQCVwBJ"* ]]
+    [[ "${output}" == *"kubernetes_ca_cert"*"H0Ene1xV3B1YFzIGzsOi829mi5FRAgJdwie5fIOgF9zdpl9i2dSeAnzm+O/E2bzK"* ]]
+    [[ "${output}" == *"kubernetes_ca_cert"*"NXEDq+XQ+GxMtOYeVeECAwEAAaMjMCEwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB"* ]]
 
     rerun_check
 
