@@ -10,9 +10,9 @@ load helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully wrote AppRole"*"path=auth/approle/role/test-role-1"* ]]
-    [[ "${output}" == *"successfully wrote AppRole"*"path=auth/approle/role/test-role-2"* ]]
-    [[ "${output}" == *"successfully wrote AppRole"*"path=auth/approle-test-1/role/test-role-3"* ]]
+    [[ "${output}" == *"successfully wrote role"*"path=auth/approle/role/test-role-1"*"type=approle"* ]]
+    [[ "${output}" == *"successfully wrote role"*"path=auth/approle/role/test-role-2"*"type=approle"* ]]
+    [[ "${output}" == *"successfully wrote role"*"path=auth/approle-test-1/role/test-role-3"*"type=approle"* ]]
     # check approles created
     run vault list auth/approle/role
     [ "$status" -eq 0 ]
@@ -77,9 +77,9 @@ load helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully wrote AppRole"*"path=auth/approle/role/test-role-1"* ]]
-    [[ "${output}" == *"successfully wrote AppRole"*"path=auth/approle/role/test-role-2"* ]]
-    [[ "${output}" == *"successfully wrote AppRole"*"path=auth/approle-test-1/role/test-role-3"* ]]
+    [[ "${output}" == *"successfully wrote role"*"path=auth/approle/role/test-role-1"*"type=approle"* ]]
+    [[ "${output}" == *"successfully wrote role"*"path=auth/approle/role/test-role-2"*"type=approle"* ]]
+    [[ "${output}" == *"successfully wrote role"*"path=auth/approle-test-1/role/test-role-3"*"type=approle"* ]]
 
     # check approle config updated
     run vault read auth/approle/role/test-role-1
@@ -138,8 +138,8 @@ load helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully deleted AppRole from Vault instance"*"path=auth/approle/role/test-role-1"* ]]
-    [[ "${output}" == *"successfully deleted AppRole from Vault instance"*"path=auth/approle-test-1/role/test-role-3"* ]]
+    [[ "${output}" == *"successfully deleted role from Vault instance"*"path=auth/approle/role/test-role-1"*"type=approle"* ]]
+    [[ "${output}" == *"successfully deleted role from Vault instance"*"path=auth/approle-test-1/role/test-role-3"*"type=approle"* ]]
     # check approle removed
     run vault list auth/approle/role
     [ "$status" -eq 0 ]

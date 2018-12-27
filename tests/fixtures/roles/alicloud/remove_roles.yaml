@@ -1,24 +1,19 @@
 ---
 auth:
-  - path: "approle/"
-    type: "approle"
+  - path: "alicloud-test/"
+    type: "alicloud"
+    description: "alicloud test auth backend"
 roles:
-  - name: "test-role-2"
-    type: "approle"
+  - name: "alicloud-test-role-1"
+    type: "alicloud"
+    mount: "alicloud-test/"
     options:
-      local_secret_ids: "false"
-      token_bound_cidrs: []
-      bound_cidr_list: []
-      secret_id_bound_cidrs: []
-      secret_id_num_uses: "10"
-      bind_secret_id: "true"
-      period: "2h2m2s"
-      secret_id_ttl: "22h22m22s"
-      token_num_uses: "11"
-      token_ttl: "1800s"
-      token_max_ttl: "60m"
+      arn: "acs:ram::5138828231865461:role/dev-role"
+      ttl: "3h30m30s"
+      max_ttl: "11h11m11s"
+      period: "1h1m1s"
+      bound_cidrs: []
       policies:
         - default
-        - role-2
-        - role-3
-        - role-4
+        - dev
+        - prod

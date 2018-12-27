@@ -1,4 +1,4 @@
-// Package approle implements the application of a declarative configuration
+// Package role implements the application of a declarative configuration
 // for Vault App Roles.
 package role
 
@@ -50,18 +50,18 @@ func (e entry) Save(client *api.Client) {
 	}
 	_, err := client.Logical().Write(path, options)
 	if err != nil {
-		logrus.WithError(err).WithField("path", path).Fatal("failed to write AppRole to Vault instance")
+		logrus.WithError(err).WithField("path", path).WithField("type", e.Type).Fatalf("failed to write role to Vault instance")
 	}
-	logrus.WithField("path", path).Info("successfully wrote AppRole")
+	logrus.WithField("path", path).WithField("type", e.Type).Info("successfully wrote role")
 }
 
 func (e entry) Delete(client *api.Client) {
 	path := filepath.Join("auth", e.Mount, "role", e.Name)
 	_, err := client.Logical().Delete(path)
 	if err != nil {
-		logrus.WithError(err).WithField("path", path).Fatal("failed to delete AppRole from Vault instance")
+		logrus.WithError(err).WithField("path", path).WithField("type", e.Type).Fatal("failed to delete role from Vault instance")
 	}
-	logrus.WithField("path", path).Info("successfully deleted AppRole from Vault instance")
+	logrus.WithField("path", path).WithField("type", e.Type).Info("successfully deleted role from Vault instance")
 }
 
 type config struct{}
@@ -72,14 +72,14 @@ func init() {
 	toplevel.RegisterConfiguration("roles", config{})
 }
 
-// Apply ensures that an instance of Vault's AppRoles are configured exactly
+// Apply ensures that an instance of Vault's roles are configured exactly
 // as provided.
 //
 // This function exits the program if an error occurs.
 func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
-		logrus.WithError(err).Fatal("failed to decode AppRole configuration")
+		logrus.WithError(err).Fatal("failed to decode role configuration")
 	}
 
 	existingAuthBackends, err := vault.ClientFromEnv().Sys().ListAuth()
@@ -95,7 +95,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			path := filepath.Join("auth", authBackend, "role")
 			secret, err := vault.ClientFromEnv().Logical().List(path)
 			if err != nil {
-				logrus.WithError(err).Fatal("failed to list AppRoles from Vault instance")
+				logrus.WithError(err).Fatal("failed to list roles from Vault instance")
 			}
 
 			if secret != nil {
@@ -104,7 +104,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 					path := filepath.Join("auth", authBackend, "role", roleName.(string))
 					roleSecret, err := vault.ClientFromEnv().Logical().Read(path)
 					if err != nil {
-						logrus.WithError(err).WithField("path", path).Fatal("failed to read AppRole secret")
+						logrus.WithError(err).WithField("path", path).WithField("type", existingAuthBackends[authBackend].Type).Fatal("failed to read role secret")
 					}
 
 					existingRoles = append(existingRoles, entry{
@@ -123,10 +123,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	if dryRun == true {
 		for _, w := range entriesToBeWritten {
-			logrus.Infof("[Dry Run]\tpackage=approle\tentry to be written='%v'", w)
+			logrus.Infof("[Dry Run]\tpackage=role\tentry to be written='%v'", w)
 		}
 		for _, d := range entriesToBeDeleted {
-			logrus.Infof("[Dry Run]\tpackage=approle\tentry to be deleted='%v'", d)
+			logrus.Infof("[Dry Run]\tpackage=role\tentry to be deleted='%v'", d)
 		}
 	} else {
 		// Write any missing App Roles to the Vault instance.

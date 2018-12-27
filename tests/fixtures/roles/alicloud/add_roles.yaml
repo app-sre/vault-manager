@@ -1,40 +1,32 @@
 ---
 auth:
-  - path: "alicloud/"
+  - path: "alicloud-test/"
     type: "alicloud"
-    description: "alicloud auth backend"
+    description: "alicloud test auth backend"
 roles:
-  - name: "test-role-1"
-    type: "approle"
+  - name: "alicloud-test-role-1"
+    type: "alicloud"
+    mount: "alicloud-test/"
     options:
-      local_secret_ids: "false"
-      token_bound_cidrs: []
-      bound_cidr_list: []
-      secret_id_bound_cidrs: []
-      secret_id_num_uses: "0"
-      bind_secret_id: "true"
+      arn: "acs:ram::5138828231865461:role/dev-role"
+      ttl: "30m"
+      max_ttl: "30m"
       period: "0s"
-      secret_id_ttl: "0s"
-      token_num_uses: "1"
-      token_ttl: "30m"
-      token_max_ttl: "30m"
+      bound_cidrs: []
       policies:
         - default
-        - role-1
-  - name: "test-role-2"
-    type: "approle"
+        - dev
+        - prod
+  - name: "alicloud-test-role-2"
+    type: "alicloud"
+    mount: "alicloud-test/"
     options:
-      local_secret_ids: "false"
-      token_bound_cidrs: []
-      bound_cidr_list: []
-      secret_id_bound_cidrs: []
-      secret_id_num_uses: "0"
-      bind_secret_id: "true"
+      arn: "acs:ram::5138828231865461:role/dev-role"
+      ttl: "30m"
+      max_ttl: "30m"
       period: "0s"
-      secret_id_ttl: "10s"
-      token_num_uses: "100"
-      token_ttl: "300m"
-      token_max_ttl: "300m"
+      bound_cidrs: []
       policies:
         - default
-        - role-2
+        - dev
+        - prod
