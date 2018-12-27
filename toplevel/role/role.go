@@ -1,6 +1,6 @@
 // Package approle implements the application of a declarative configuration
 // for Vault App Roles.
-package approle
+package role
 
 import (
 	"path/filepath"
@@ -13,10 +13,10 @@ import (
 	"github.com/app-sre/vault-manager/toplevel"
 )
 
-const appRolePath = "auth/approle/role"
-
 type entry struct {
 	Name    string                 `yaml:"name"`
+	Type    string                 `yaml:"type"`
+	Mount   string                 `yaml:"mount"`
 	Options map[string]interface{} `yaml:"options"`
 }
 
@@ -32,15 +32,14 @@ func (e entry) Equals(i interface{}) bool {
 		return false
 	}
 
-	if e.Name != entry.Name {
-		return false
-	}
-
-	return vault.OptionsEqual(e.Options, entry.Options)
+	return e.Name == entry.Name &&
+		e.Type == entry.Type &&
+		e.Mount == entry.Mount &&
+		vault.OptionsEqual(e.Options, entry.Options)
 }
 
 func (e entry) Save(client *api.Client) {
-	path := filepath.Join(appRolePath, e.Name)
+	path := filepath.Join("auth", e.Mount, "role", e.Name)
 	options := make(map[string]interface{})
 	for k, v := range e.Options {
 		// local_secret_ids can not be changed after creation so we skip this option
@@ -57,7 +56,7 @@ func (e entry) Save(client *api.Client) {
 }
 
 func (e entry) Delete(client *api.Client) {
-	path := filepath.Join(appRolePath, e.Name)
+	path := filepath.Join("auth", e.Mount, "role", e.Name)
 	_, err := client.Logical().Delete(path)
 	if err != nil {
 		logrus.WithError(err).WithField("path", path).Fatal("failed to delete AppRole from Vault instance")
@@ -70,7 +69,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("approle", config{})
+	toplevel.RegisterConfiguration("roles", config{})
 }
 
 // Apply ensures that an instance of Vault's AppRoles are configured exactly
@@ -83,26 +82,39 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 		logrus.WithError(err).Fatal("failed to decode AppRole configuration")
 	}
 
-	// Get the secret with the existing App Roles.
-	secret, err := vault.ClientFromEnv().Logical().List(appRolePath)
+	existingAuthBackends, err := vault.ClientFromEnv().Sys().ListAuth()
 	if err != nil {
-		logrus.WithError(err).Fatal("failed to list AppRoles from Vault instance")
+		logrus.WithError(err).Fatal("failed to list authentication backends from Vault instance")
 	}
 
-	// Build a list of all the existing entries.
 	var existingRoles []entry
-	if secret != nil {
-		for _, roleName := range secret.Data["keys"].([]interface{}) {
-			path := filepath.Join(appRolePath, roleName.(string))
-			roleSecret, err := vault.ClientFromEnv().Logical().Read(path)
+
+	if existingAuthBackends != nil {
+		for authBackend := range existingAuthBackends {
+			// Get the secret with the existing App Roles.
+			path := filepath.Join("auth", authBackend, "role")
+			secret, err := vault.ClientFromEnv().Logical().List(path)
 			if err != nil {
-				logrus.WithError(err).WithField("path", path).Fatal("failed to read AppRole secret")
+				logrus.WithError(err).Fatal("failed to list AppRoles from Vault instance")
 			}
 
-			existingRoles = append(existingRoles, entry{
-				Name:    roleName.(string),
-				Options: roleSecret.Data,
-			})
+			if secret != nil {
+				// Build a list of all the existing entries.
+				for _, roleName := range secret.Data["keys"].([]interface{}) {
+					path := filepath.Join("auth", authBackend, "role", roleName.(string))
+					roleSecret, err := vault.ClientFromEnv().Logical().Read(path)
+					if err != nil {
+						logrus.WithError(err).WithField("path", path).Fatal("failed to read AppRole secret")
+					}
+
+					existingRoles = append(existingRoles, entry{
+						Name:    roleName.(string),
+						Type:    existingAuthBackends[authBackend].Type,
+						Mount:   authBackend,
+						Options: roleSecret.Data,
+					})
+				}
+			}
 		}
 	}
 

@@ -18,4 +18,4 @@ COPY vault-manager /bin/
 
 WORKDIR /tests
 
-CMD ["bats", "vault-manager.bats"]
+CMD ["bash", "run-tests.sh"]

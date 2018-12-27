@@ -2,25 +2,9 @@
 auth:
   - path: "approle/"
     type: "approle"
-approle:
-  - name: "test-role-1"
-    options:
-      local_secret_ids: "false"
-      token_bound_cidrs: []
-      bound_cidr_list: []
-      secret_id_bound_cidrs: []
-      secret_id_num_uses: "10"
-      bind_secret_id: "true"
-      period: "1h1m1s"
-      secret_id_ttl: "11h11m11s"
-      token_num_uses: "111"
-      token_ttl: "3h30m30s"
-      token_max_ttl: "333h"
-      policies:
-        - default
-        - role-1
-        - role-2
+roles:
   - name: "test-role-2"
+    type: "approle"
     options:
       local_secret_ids: "false"
       token_bound_cidrs: []

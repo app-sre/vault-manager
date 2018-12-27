@@ -1,9 +1,11 @@
 ---
 auth:
-  - path: "approle/"
-    type: "approle"
-approle:
+  - path: "alicloud/"
+    type: "alicloud"
+    description: "alicloud auth backend"
+roles:
   - name: "test-role-1"
+    type: "approle"
     options:
       local_secret_ids: "false"
       token_bound_cidrs: []
@@ -20,6 +22,7 @@ approle:
         - default
         - role-1
   - name: "test-role-2"
+    type: "approle"
     options:
       local_secret_ids: "false"
       token_bound_cidrs: []

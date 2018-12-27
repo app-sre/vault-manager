@@ -2,8 +2,12 @@
 auth:
   - path: "approle/"
     type: "approle"
-approle:
+  - path: "approle-test-1/"
+    type: "approle"
+roles:
   - name: "test-role-2"
+    type: "approle"
+    mount: "approle/"
     options:
       local_secret_ids: "false"
       token_bound_cidrs: []
