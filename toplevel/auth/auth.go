@@ -4,6 +4,7 @@ package auth
 
 import (
 	"log"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/vault/api"
@@ -101,8 +102,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 		for _, e := range entries {
 			if e.Config != nil {
-				if !vault.DataInSecret(e.Config, "auth/"+e.Path+"config", vault.ClientFromEnv()) {
-					logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written path='auth/%vconfig' config='%v'", e.Path, e.Config)
+				path := filepath.Join("auth", e.Path, "config")
+				if !vault.DataInSecret(e.Config, path, vault.ClientFromEnv()) {
+					logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written path='%v' config='%v'", path, e.Config)
 				}
 			}
 		}
@@ -122,12 +124,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 		// configure github mounts
 		for _, e := range entries {
 			if e.Config != nil {
-				if !vault.DataInSecret(e.Config, "auth/"+e.Path+"config", vault.ClientFromEnv()) {
-					_, err := vault.ClientFromEnv().Logical().Write("auth/"+e.Path+"config", e.Config)
+				path := filepath.Join("auth", e.Path, "config")
+				if !vault.DataInSecret(e.Config, path, vault.ClientFromEnv()) {
+					_, err := vault.ClientFromEnv().Logical().Write(path, e.Config)
 					if err != nil {
 						log.Fatal(err)
 					}
-					logrus.WithField("path", "auth/"+e.Path+"config").Info("github auth mount successfully configured")
+					logrus.WithField("path", path).Info("github auth mount successfully configured")
 				}
 			}
 		}
