@@ -121,7 +121,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			e.(entry).enable(vault.ClientFromEnv())
 		}
 
-		// configure github mounts
+		// configure auth mounts
 		for _, e := range entries {
 			if e.Config != nil {
 				path := filepath.Join("auth", e.Path, "config")
@@ -130,7 +130,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 					if err != nil {
 						log.Fatal(err)
 					}
-					logrus.WithField("path", path).Info("github auth mount successfully configured")
+					logrus.WithField("path", path).WithField("type", e.Type).Info("auth mount successfully configured")
 				}
 			}
 		}

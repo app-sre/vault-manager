@@ -15,8 +15,8 @@ load helpers
     [[ "${output}" == *"successfully enabled auth backend"*"path=approle-2/"*"type=approle"* ]]
     [[ "${output}" == *"successfully enabled auth backend"*"path=github-test-1/"*"type=github"* ]]
     [[ "${output}" == *"successfully enabled auth backend"*"path=github-test-2/"*"type=github"* ]]
-    [[ "${output}" == *"github auth mount successfully configured"*"path=auth/github-test-1/config"* ]]
-    [[ "${output}" == *"github auth mount successfully configured"*"path=auth/github-test-2/config"* ]]
+    [[ "${output}" == *"auth mount successfully configured"*"path=auth/github-test-1/config"* ]]
+    [[ "${output}" == *"auth mount successfully configured"*"path=auth/github-test-2/config"* ]]
     # check auth backends created
     run vault auth list
     [ "$status" -eq 0 ]
@@ -102,8 +102,8 @@ load helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"github auth mount successfully configured"*"path=auth/github-test-1/config"* ]]
-    [[ "${output}" == *"github auth mount successfully configured"*"path=auth/github-test-2/config"* ]]
+    [[ "${output}" == *"auth mount successfully configured"*"path=auth/github-test-1/config"* ]]
+    [[ "${output}" == *"auth mount successfully configured"*"path=auth/github-test-2/config"* ]]
     # check github-test-1 auth configuration
     run vault read auth/github-test-1/config
     [ "$status" -eq 0 ]
