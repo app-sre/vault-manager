@@ -16,7 +16,7 @@ load helpers
     run vault list auth/azure-test/role
     [ "$status" -eq 0 ]
     [[ "${output}" == *"azure-test-role-1"* ]]
-    [[ "${output}" == *"azure-test-role-1"* ]]
+    [[ "${output}" == *"azure-test-role-2"* ]]
     # check role config
     run vault read auth/azure-test/role/azure-test-role-1
     [ "$status" -eq 0 ]

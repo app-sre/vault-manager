@@ -16,7 +16,7 @@ load helpers
     run vault list auth/alicloud-test/role
     [ "$status" -eq 0 ]
     [[ "${output}" == *"alicloud-test-role-1"* ]]
-    [[ "${output}" == *"alicloud-test-role-1"* ]]
+    [[ "${output}" == *"alicloud-test-role-2"* ]]
     # check role config
     run vault read auth/alicloud-test/role/alicloud-test-role-1
     [ "$status" -eq 0 ]
