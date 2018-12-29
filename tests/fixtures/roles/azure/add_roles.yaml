@@ -3,11 +3,6 @@ auth:
   - path: "azure-test/"
     type: "azure"
     description: "azure-test-1 auth backend"
-    config:
-      tenant_id: "azure-test-tenant-id"
-      resource: "https://vault.hashicorp.com"
-      client_id: "azure-test-client-id"
-      environment: ""
 roles:
   - name: "azure-test-role-1"
     type: "azure"

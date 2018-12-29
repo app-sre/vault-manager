@@ -1,105 +1,85 @@
 ---
 auth:
-  - path: "approle-1/"
+  - path: "approle-test-1/"
     type: "approle"
-    description: "approle-1 auth backend"
-  - path: "approle-2/"
-    type: "approle"
-    description: "approle-2 auth backend"
-  - path: "github-test-1/"
-    type: "github"
-    description: "github-test-1 auth backend - updated"
-    config:
-      organization: "test-org-1-updated"
-      base_url: "base_url_test_1"
-      max_ttl: "777h"
-      ttl: "777m"
-  - path: "github-test-2/"
-    type: "github"
-    description: "github-test-2 auth backend - updated"
-    config:
-      organization: "test-org-2-updated"
-      base_url: "base_url_test_2"
-      max_ttl: "777s"
-      ttl: "12h30m26s"
-  - path: "kubernetes-test-1/"
-    type: "kubernetes"
-    description: "kubernetes-test-1 auth backend"
-    config:
-      kubernetes_host: "https://192.168.99.100:8443"
-      pem_keys: []
-      kubernetes_ca_cert: |
-        -----BEGIN CERTIFICATE-----
-        MIICUzCCAbwCCQDXb7wyKdyT+jANBgkqhkiG9w0BAQsFADBtMQswCQYDVQQGEwJV
-        UzENMAsGA1UECAwEdGVzdDENMAsGA1UEBwwEdGVzdDENMAsGA1UECgwEdGVzdDEN
-        MAsGA1UECwwEdGVzdDENMAsGA1UEAwwEdGVzdDETMBEGCSqGSIb3DQEJARYEdGVz
-        dDAgFw0xODEyMjcxMDAxNDZaGA8yMjk5MDUwODEwMDE0NlowbTELMAkGA1UEBhMC
-        VVMxDTALBgNVBAgMBHRlc3QxDTALBgNVBAcMBHRlc3QxDTALBgNVBAoMBHRlc3Qx
-        DTALBgNVBAsMBHRlc3QxDTALBgNVBAMMBHRlc3QxEzARBgkqhkiG9w0BCQEWBHRl
-        c3QwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMkMxHQJ8MaO4WbjdIZHotsy
-        KOZDA5EuA7v8azaFogTla6p+LnaqwvkjYLe0dgmoPOKZDSSU+Of9PsDc7eTKt88M
-        +wN8CDdnWkhxe3IUdx5AUAuzURfEz54xwv0IgzfIYABPfItlfSSsLeU76LH1ffwy
-        2UBM/lq7rd/WQwN0z3B/AgMBAAEwDQYJKoZIhvcNAQELBQADgYEADLn8pLutbsqf
-        sdIjnXVzje7E3Jhe/mdp63g1FHquvDxm5Jj/EQnlWsEK9Co+7Xb2CqM+x3/bGAJb
-        2aAjqNMCq1Cj4PWh79H6boL/REKq4ewQkHFBFURzTcUGzYzG3MhaRMBt+BdRULfz
-        CmufbYGTS/ugjqXRsqcmrIvMz8u0xCM=
-        -----END CERTIFICATE-----
+    description: "approle-test-1 auth backend"
   - path: "alicloud-test-1/"
     type: "alicloud"
     description: "alicloud-test-1 auth backend"
-  - path: "aws-test-1/"
-    type: "aws"
-    description: "aws-test-1 auth backend"
   - path: "azure-test-1/"
     type: "azure"
     description: "azure-test-1 auth backend"
-    config:
-      tenant_id: "azure-test-tenant-id"
-      resource: "https://vault.hashicorp.com"
-      client_id: "azure-test-client-id"
-      environment: ""
+    settings:
+      config:
+        tenant_id: "azure-test-tenant-id-updated"
+        resource: "https://vault.hashicorp-updated.com"
+        client_id: "azure-test-client-id-updated"
+        environment: ""
+  - path: "github-test-1/"
+    type: "github"
+    description: "github-test-1 auth backend"
+    settings:
+      config:
+        organization: "test-org-1-updated"
+        base_url: "base_url_test_1-updated"
+        max_ttl: "777h"
+        ttl: "12h57m"
   - path: "gcp-test-1/"
     type: "gcp"
     description: "gcp-test-1 auth backend"
   - path: "jwt-test-1/"
     type: "jwt"
     description: "jwt-test-1 auth backend"
-    config:
-      bound_issuer: ""
-      jwt_validation_pubkeys: []
-      oidc_discovery_ca_pem: ""
-      oidc_discovery_url: "https://myco.auth0.com/"
+    settings:
+      config:
+        bound_issuer: "updated"
+        jwt_validation_pubkeys: []
+        oidc_discovery_ca_pem: ""
+        oidc_discovery_url: "https://myco.auth0.com/"
+  - path: "kubernetes-test-1/"
+    type: "kubernetes"
+    description: "kubernetes-test-1 auth backend"
+    settings:
+      config:
+        kubernetes_host: "https://192.168.99.100-updated:8443"
+        pem_keys: []
+        kubernetes_ca_cert: |
+          -----BEGIN CERTIFICATE-----
+          dummy-cert-updated
+          -----END CERTIFICATE-----
   - path: "ldap-test-1/"
     type: "ldap"
     description: "ldap-test-1 auth backend"
-    config:
-      binddn: "cn=vault,ou=users,dc=example,dc=com"
-      case_sensitive_names: "false"
-      certificate: ""
-      deny_null_bind: "true"
-      discoverdn: "false"
-      groupattr: "memberOf"
-      groupdn: "ou=Users,dc=example,dc=com"
-      groupfilter: "(&(objectClass=person)(uid={{.Username}}))"
-      insecure_tls: "false"
-      starttls: "true"
-      tls_max_version: "tls12"
-      tls_min_version: "tls12"
-      upndomain: ""
-      url: "ldap://ldap.example.com"
-      use_token_groups: "false"
-      userattr: "samaccountname"
-      userdn: "ou=Users,dc=example,dc=com"
+    settings:
+      config:
+        binddn: "cn=vault-updated,ou=users,dc=example,dc=com"
+        case_sensitive_names: "false"
+        certificate: ""
+        deny_null_bind: "true"
+        discoverdn: "false"
+        groupattr: "memberOf"
+        groupdn: "ou=Users,dc=example,dc=com"
+        groupfilter: "(&(objectClass=person)(uid={{.Username}}))"
+        insecure_tls: "false"
+        starttls: "true"
+        tls_max_version: "tls12"
+        tls_min_version: "tls12"
+        upndomain: ""
+        url: "ldap://ldap.example-updated.com"
+        use_token_groups: "false"
+        userattr: "samaccountname"
+        userdn: "ou=Users,dc=example-updated,dc=com"
   - path: "okta-test-1/"
     type: "okta"
     description: "okta-test-1 auth backend"
-    config:
-      base_url: "okta.com"
-      organization: "test-okta-org"
-      org_name: "test-okta-org"
-      bypass_okta_mfa: "false"
-      max_ttl: "0s"
-      ttl: "0s"
+    settings:
+      config:
+        base_url: "okta-updated.com"
+        organization: "test-okta-org-updated"
+        org_name: "test-okta-org-updated"
+        bypass_okta_mfa: "false"
+        max_ttl: "777h"
+        ttl: "12h"
   - path: "radius-test-1/"
     type: "radius"
     description: "radius-test-1 auth backend"
@@ -109,3 +89,14 @@ auth:
   - path: "userpass-test-1/"
     type: "userpass"
     description: "userpass-test-1 auth backend"
+  - path: "aws-test-1/"
+    type: "aws"
+    description: "aws-test-1 auth backend"
+    settings:
+      config/client:
+        access_key: "access_key-updated"
+        endpoint: ""
+        iam_endpoint: ""
+        iam_server_id_header_value: ""
+        max_retries: "-1"
+        sts_endpoint: ""

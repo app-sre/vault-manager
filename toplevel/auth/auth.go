@@ -16,10 +16,10 @@ import (
 )
 
 type entry struct {
-	Path        string                 `yaml:"path"`
-	Type        string                 `yaml:"type"`
-	Description string                 `yaml:"description"`
-	Config      map[string]interface{} `yaml:"config"`
+	Path        string                            `yaml:"path"`
+	Type        string                            `yaml:"type"`
+	Description string                            `yaml:"description"`
+	Settings    map[string]map[string]interface{} `yaml:"settings"`
 }
 
 var _ vault.Item = entry{}
@@ -101,10 +101,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 		}
 
 		for _, e := range entries {
-			if e.Config != nil {
-				path := filepath.Join("auth", e.Path, "config")
-				if !vault.DataInSecret(e.Config, path, vault.ClientFromEnv()) {
-					logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written path='%v' config='%v'", path, e.Config)
+			if e.Settings != nil {
+				for name, cfg := range e.Settings {
+					path := filepath.Join("auth", e.Path, name)
+					if !vault.DataInSecret(cfg, path, vault.ClientFromEnv()) {
+						logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written path='%v' config='%v'", path, e.Settings)
+					}
 				}
 			}
 		}
@@ -123,14 +125,16 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 		// configure auth mounts
 		for _, e := range entries {
-			if e.Config != nil {
-				path := filepath.Join("auth", e.Path, "config")
-				if !vault.DataInSecret(e.Config, path, vault.ClientFromEnv()) {
-					_, err := vault.ClientFromEnv().Logical().Write(path, e.Config)
-					if err != nil {
-						log.Fatal(err)
+			if e.Settings != nil {
+				for name, cfg := range e.Settings {
+					path := filepath.Join("auth", e.Path, name)
+					if !vault.DataInSecret(cfg, path, vault.ClientFromEnv()) {
+						_, err := vault.ClientFromEnv().Logical().Write(path, cfg)
+						if err != nil {
+							log.Fatal(err)
+						}
+						logrus.WithField("path", path).WithField("type", e.Type).Info("auth mount successfully configured")
 					}
-					logrus.WithField("path", path).WithField("type", e.Type).Info("auth mount successfully configured")
 				}
 			}
 		}

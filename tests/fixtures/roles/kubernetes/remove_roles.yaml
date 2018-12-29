@@ -3,25 +3,6 @@ auth:
   - path: "kubernetes-test/"
     type: "kubernetes"
     description: "kubernetes-test auth backend"
-    config:
-      kubernetes_host: "https://192.168.99.100:8443"
-      pem_keys: []
-      kubernetes_ca_cert: |
-        -----BEGIN CERTIFICATE-----
-        MIICUzCCAbwCCQDXb7wyKdyT+jANBgkqhkiG9w0BAQsFADBtMQswCQYDVQQGEwJV
-        UzENMAsGA1UECAwEdGVzdDENMAsGA1UEBwwEdGVzdDENMAsGA1UECgwEdGVzdDEN
-        MAsGA1UECwwEdGVzdDENMAsGA1UEAwwEdGVzdDETMBEGCSqGSIb3DQEJARYEdGVz
-        dDAgFw0xODEyMjcxMDAxNDZaGA8yMjk5MDUwODEwMDE0NlowbTELMAkGA1UEBhMC
-        VVMxDTALBgNVBAgMBHRlc3QxDTALBgNVBAcMBHRlc3QxDTALBgNVBAoMBHRlc3Qx
-        DTALBgNVBAsMBHRlc3QxDTALBgNVBAMMBHRlc3QxEzARBgkqhkiG9w0BCQEWBHRl
-        c3QwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMkMxHQJ8MaO4WbjdIZHotsy
-        KOZDA5EuA7v8azaFogTla6p+LnaqwvkjYLe0dgmoPOKZDSSU+Of9PsDc7eTKt88M
-        +wN8CDdnWkhxe3IUdx5AUAuzURfEz54xwv0IgzfIYABPfItlfSSsLeU76LH1ffwy
-        2UBM/lq7rd/WQwN0z3B/AgMBAAEwDQYJKoZIhvcNAQELBQADgYEADLn8pLutbsqf
-        sdIjnXVzje7E3Jhe/mdp63g1FHquvDxm5Jj/EQnlWsEK9Co+7Xb2CqM+x3/bGAJb
-        2aAjqNMCq1Cj4PWh79H6boL/REKq4ewQkHFBFURzTcUGzYzG3MhaRMBt+BdRULfz
-        CmufbYGTS/ugjqXRsqcmrIvMz8u0xCM=
-        -----END CERTIFICATE-----
 roles:
   - name: "kubernetes-test-role-1"
     type: "kubernetes"

@@ -3,11 +3,6 @@ auth:
   - path: "jwt-test/"
     type: "jwt"
     description: "jwt-test-1 auth backend"
-    config:
-      bound_issuer: ""
-      jwt_validation_pubkeys: []
-      oidc_discovery_ca_pem: ""
-      oidc_discovery_url: "https://myco.auth0.com/"
 roles:
   - name: "jwt-test-role-1"
     type: "jwt"
