@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load helpers
+load ../helpers
 
 @test "test vault-manager manage jwt roles" {
     #

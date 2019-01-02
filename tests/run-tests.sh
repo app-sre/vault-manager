@@ -2,7 +2,7 @@
 
 set -e
 
-for test in $(ls bats/*.bats); do
+for test in $(find bats -type f | grep bats); do
     echo "running $test"
     bats --tap $test
 done

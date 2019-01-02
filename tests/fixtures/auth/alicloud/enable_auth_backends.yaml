@@ -1,0 +1,8 @@
+---
+auth:
+  - path: "alicloud-test-1/"
+    type: "alicloud"
+    description: "alicloud-test-1 auth backend"
+  - path: "alicloud-test-2/"
+    type: "alicloud"
+    description: "alicloud-test-2 auth backend"
