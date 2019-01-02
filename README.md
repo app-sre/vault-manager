@@ -89,14 +89,14 @@ policies:
       path "secret-test-2/*" {
         capabilities = ["create", "read", "update", "delete", "list"]
       }
-gh-policy-mappings:
+policies-mapping:
   - entity-name: "test-team-1"
-    gh-mount-name: "github"
-    entity-group: "teams"
+    auth-mount: "github"
+    entity-group: "map/teams"
     policies: "test-role-policy,test-policy-2"
   - entity-name: "test-user-1"
     gh-mount-name: "github"
-    entity-group: "users"
+    entity-group: "map/users"
     policies: "test-policy-2"
 ```
 </p>

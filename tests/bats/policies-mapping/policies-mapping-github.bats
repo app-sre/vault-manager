@@ -2,20 +2,20 @@
 
 load ../helpers
 
-@test "test vault-manager gh policy mappings" {
+@test "test vault-manager policies mapping github" {
     #
-    # CASE: map policy to gh users / teams
+    # CASE: map policies to github users / teams
     #
-    export VAULT_MANAGER_CONFIG_FILE=/tests/fixtures/gh-policy-mappings/add_gh_policy_mappings.yaml
+    export VAULT_MANAGER_CONFIG_FILE=/tests/fixtures/policies-mapping/github/add_policies_mapping.yaml
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully applied Vault policy to Github entity"*"path=/auth/github-test-1/map/teams/test-team-1"* ]]
-    [[ "${output}" == *"successfully applied Vault policy to Github entity"*"path=/auth/github-test-1/map/teams/test-team-2"* ]]
-    [[ "${output}" == *"successfully applied Vault policy to Github entity"*"path=/auth/github-test-1/map/users/test-user-1"* ]]
-    [[ "${output}" == *"successfully applied Vault policy to Github entity"*"path=/auth/github-test-1/map/users/test-user-2"* ]]
-    [[ "${output}" == *"successfully applied Vault policy to Github entity"*"path=/auth/github-test-2/map/teams/test-team-3"* ]]
-    [[ "${output}" == *"successfully applied Vault policy to Github entity"*"path=/auth/github-test-2/map/users/test-user-3"* ]]
+    [[ "${output}" == *"successfully applied Vault policy to entity"*"path=/auth/github-test-1/map/teams/test-team-1"* ]]
+    [[ "${output}" == *"successfully applied Vault policy to entity"*"path=/auth/github-test-1/map/teams/test-team-2"* ]]
+    [[ "${output}" == *"successfully applied Vault policy to entity"*"path=/auth/github-test-1/map/users/test-user-1"* ]]
+    [[ "${output}" == *"successfully applied Vault policy to entity"*"path=/auth/github-test-1/map/users/test-user-2"* ]]
+    [[ "${output}" == *"successfully applied Vault policy to entity"*"path=/auth/github-test-2/map/teams/test-team-3"* ]]
+    [[ "${output}" == *"successfully applied Vault policy to entity"*"path=/auth/github-test-2/map/users/test-user-3"* ]]
 
     # check mappings applied
     check_vault_secret "list" "auth/github-test-1/map/teams" "test-team-1"
@@ -36,15 +36,15 @@ load ../helpers
     rerun_check
 
     #
-    # CASE: update gh entities policies
+    # CASE: update github entities policies
     #
-    export VAULT_MANAGER_CONFIG_FILE=/tests/fixtures/gh-policy-mappings/update_gh_policy_mappings.yaml
+    export VAULT_MANAGER_CONFIG_FILE=/tests/fixtures/policies-mapping/github/update_policies_mapping.yaml
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully applied Vault policy to Github entity"*"path=/auth/github-test-1/map/teams/test-team-1"* ]]
-    [[ "${output}" == *"successfully applied Vault policy to Github entity"*"path=/auth/github-test-1/map/users/test-user-1"* ]]
-    [[ "${output}" == *"successfully applied Vault policy to Github entity"*"path=/auth/github-test-2/map/users/test-user-3"* ]]
+    [[ "${output}" == *"successfully applied Vault policy to entity"*"path=/auth/github-test-1/map/teams/test-team-1"* ]]
+    [[ "${output}" == *"successfully applied Vault policy to entity"*"path=/auth/github-test-1/map/users/test-user-1"* ]]
+    [[ "${output}" == *"successfully applied Vault policy to entity"*"path=/auth/github-test-2/map/users/test-user-3"* ]]
 
     # check policies updated
     check_vault_secret "read" "auth/github-test-1/map/teams/test-team-1" "policy-team-1-updated"
@@ -54,16 +54,16 @@ load ../helpers
     rerun_check
 
     #
-    # CASE: remove gh entities from vault
+    # CASE: remove github entities from vault
     #
-    export VAULT_MANAGER_CONFIG_FILE=/tests/fixtures/gh-policy-mappings/remove_gh_policy_mappings.yaml
+    export VAULT_MANAGER_CONFIG_FILE=/tests/fixtures/policies-mapping/github/remove_policies_mapping.yaml
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully deleted GitHub entity from Vault instance"*"path=/auth/github-test-1/map/teams/test-team-1"* ]]
-    [[ "${output}" == *"successfully deleted GitHub entity from Vault instance"*"path=/auth/github-test-1/map/users/test-user-2"* ]]
-    [[ "${output}" == *"successfully deleted GitHub entity from Vault instance"*"path=/auth/github-test-2/map/teams/test-team-3"* ]]
-    [[ "${output}" == *"successfully deleted GitHub entity from Vault instance"*"path=/auth/github-test-2/map/users/test-user-3"* ]]
+    [[ "${output}" == *"successfully deleted entity from Vault instance"*"path=/auth/github-test-1/map/teams/test-team-1"* ]]
+    [[ "${output}" == *"successfully deleted entity from Vault instance"*"path=/auth/github-test-1/map/users/test-user-2"* ]]
+    [[ "${output}" == *"successfully deleted entity from Vault instance"*"path=/auth/github-test-2/map/teams/test-team-3"* ]]
+    [[ "${output}" == *"successfully deleted entity from Vault instance"*"path=/auth/github-test-2/map/users/test-user-3"* ]]
 
     # check entities removed
     check_vault_secret_not_exist "list" "auth/github-test-1/map/teams" "test-team-1"

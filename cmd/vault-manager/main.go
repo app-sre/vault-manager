@@ -13,7 +13,7 @@ import (
 	// Register top-level configurations.
 	_ "github.com/app-sre/vault-manager/toplevel/audit"
 	_ "github.com/app-sre/vault-manager/toplevel/auth"
-	_ "github.com/app-sre/vault-manager/toplevel/githubpolicy"
+	_ "github.com/app-sre/vault-manager/toplevel/policies-mapping"
 	_ "github.com/app-sre/vault-manager/toplevel/policy"
 	_ "github.com/app-sre/vault-manager/toplevel/role"
 	_ "github.com/app-sre/vault-manager/toplevel/secretsengine"
@@ -116,7 +116,7 @@ func resolveConfigPriority(s string) int {
 		priority = 4
 	case "roles":
 		priority = 5
-	case "gh-policy-mappings":
+	case "policies-mapping":
 		priority = 6
 	default:
 		priority = 0
