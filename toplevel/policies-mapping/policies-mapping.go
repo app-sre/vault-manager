@@ -2,12 +2,13 @@ package policies_mapping
 
 import (
 	"github.com/app-sre/vault-manager/pkg/vault"
+	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"path/filepath"
-
-	"github.com/app-sre/vault-manager/toplevel"
+	"reflect"
+	"strings"
 )
 
 type config struct{}
@@ -21,6 +22,7 @@ func init() {
 type entry struct {
 	EntityName  string `yaml:"entity-name"`
 	EntityGroup string `yaml:"entity-group"`
+	AuthType    string `yaml:"auth-type"`
 	AuthMount   string `yaml:"auth-mount"`
 	Policies    string `yaml:"policies"`
 }
@@ -56,26 +58,58 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	}
 
 	// Build a list of all existing GH entities
-	var existingEntities []entry
-
-	for mount, backend := range existingAuthMounts {
-		if backend.Type == "github" {
-			for _, entityPath := range []string{"map/teams", "map/users"} {
-				// Get list of entities from vault
-				path := filepath.Join("/auth", mount, entityPath)
-				entitiesList, err := vault.ClientFromEnv().Logical().List(path)
-				if err != nil {
-					logrus.WithError(err).WithField("path", path).Fatal("failed to read entities list from Vault instance")
+	existingEntities := make([]entry, 0)
+	if existingAuthMounts != nil {
+		for mount, backend := range existingAuthMounts {
+			if backend.Type == "github" || backend.Type == "ldap" || backend.Type == "okta" || backend.Type == "radius" {
+				var entityPaths []string
+				var dataKey string
+				switch backend.Type {
+				case "github":
+					entityPaths = []string{"map/teams", "map/users"}
+					dataKey = "value"
+				case "okta":
+					entityPaths = []string{"groups", "users"}
+					dataKey = "policies"
+				case "ldap":
+					entityPaths = []string{"groups", "users"}
+					dataKey = "policies"
+				case "radius":
+					entityPaths = []string{"users"}
+					dataKey = "policies"
+				default:
+					dataKey = "value"
 				}
-				if entitiesList != nil {
-					for _, entity := range entitiesList.Data["keys"].([]interface{}) {
-						path := filepath.Join("/auth/", mount, entityPath, entity.(string))
-						policies, err := vault.ClientFromEnv().Logical().Read(path)
-						if err != nil {
-							logrus.WithError(err).WithField("path", path).Fatal("failed to read secret")
-						}
 
-						existingEntities = append(existingEntities, entry{EntityName: entity.(string), EntityGroup: entityPath, AuthMount: mount, Policies: policies.Data["value"].(string)})
+				for _, entityPath := range entityPaths {
+					// Get list of entities from vault
+					path := filepath.Join("/auth", mount, entityPath)
+					entitiesList, err := vault.ClientFromEnv().Logical().List(path)
+					if err != nil {
+						logrus.WithError(err).WithField("path", path).Fatal("failed to read entities list from Vault instance")
+					}
+					if entitiesList != nil {
+						for _, entity := range entitiesList.Data["keys"].([]interface{}) {
+							path := filepath.Join("/auth/", mount, entityPath, entity.(string))
+							policiesSecret, err := vault.ClientFromEnv().Logical().Read(path)
+							if err != nil {
+								logrus.WithError(err).WithField("path", path).Fatal("failed to read secret")
+							}
+
+							var policies string
+							switch reflect.TypeOf(policiesSecret.Data[dataKey]).Kind() {
+							case reflect.String:
+								policies = policiesSecret.Data[dataKey].(string)
+							case reflect.Slice:
+								p := make([]string, len(policiesSecret.Data[dataKey].([]interface{})))
+								for k, v := range policiesSecret.Data[dataKey].([]interface{}) {
+									p[k] = v.(string)
+								}
+								policies = strings.Join(p, ",")
+							}
+
+							existingEntities = append(existingEntities, entry{EntityName: entity.(string), EntityGroup: entityPath, AuthType: backend.Type, AuthMount: mount, Policies: policies})
+						}
 					}
 				}
 			}
@@ -106,9 +140,23 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 }
 
 func (e entry) writeEntiry(client *api.Client) {
+	var dataKey string
+	switch e.AuthType {
+	case "github":
+		dataKey = "value"
+	case "okta":
+		dataKey = "policies"
+	case "ldap":
+		dataKey = "policies"
+	case "radius":
+		dataKey = "policies"
+	default:
+		dataKey = "value"
+	}
+
 	path := filepath.Join("/auth", e.AuthMount, e.EntityGroup, e.EntityName)
 	var data = make(map[string]interface{})
-	data["value"] = e.Policies
+	data[dataKey] = e.Policies
 
 	if _, err := client.Logical().Write(path, data); err != nil {
 		logrus.WithError(err).WithField("path", path).Fatal("failed to apply Vault policy to entity")

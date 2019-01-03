@@ -85,12 +85,14 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	// Build a list of all the existing entries.
 	existingBackends := make([]entry, 0)
-	for path, backend := range existingAuthMounts {
-		existingBackends = append(existingBackends, entry{
-			Path:        path,
-			Type:        backend.Type,
-			Description: backend.Description,
-		})
+	if existingAuthMounts != nil {
+		for path, backend := range existingAuthMounts {
+			existingBackends = append(existingBackends, entry{
+				Path:        path,
+				Type:        backend.Type,
+				Description: backend.Description,
+			})
+		}
 	}
 
 	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingBackends))

@@ -91,11 +91,13 @@ policies:
       }
 policies-mapping:
   - entity-name: "test-team-1"
+    auth-type: "github"
     auth-mount: "github"
     entity-group: "map/teams"
     policies: "test-role-policy,test-policy-2"
   - entity-name: "test-user-1"
-    gh-mount-name: "github"
+    auth-type: "github"
+    auth-mount: "github"
     entity-group: "map/users"
     policies: "test-policy-2"
 ```

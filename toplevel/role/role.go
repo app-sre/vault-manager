@@ -87,7 +87,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 		logrus.WithError(err).Fatal("failed to list authentication backends from Vault instance")
 	}
 
-	var existingRoles []entry
+	existingRoles := make([]entry, 0)
 
 	if existingAuthBackends != nil {
 		for authBackend := range existingAuthBackends {

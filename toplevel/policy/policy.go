@@ -53,12 +53,14 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	// Build a list of all the existing entries.
 	existingPolicies := make([]entry, 0)
-	for _, name := range existingPolicyNames {
-		policy, err := vault.ClientFromEnv().Sys().GetPolicy(name)
-		if err != nil {
-			logrus.WithError(err).WithField("name", name).Fatal("failed to get existing policy from Vault instance")
+	if existingPolicies != nil {
+		for _, name := range existingPolicyNames {
+			policy, err := vault.ClientFromEnv().Sys().GetPolicy(name)
+			if err != nil {
+				logrus.WithError(err).WithField("name", name).Fatal("failed to get existing policy from Vault instance")
+			}
+			existingPolicies = append(existingPolicies, entry{Name: name, Rules: policy})
 		}
-		existingPolicies = append(existingPolicies, entry{Name: name, Rules: policy})
 	}
 
 	// Diff the local configuration with the Vault instance.

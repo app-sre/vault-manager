@@ -1,0 +1,24 @@
+---
+auth:
+  - path: "okta-test-1/"
+    type: "okta"
+    description: "okta-test-1 auth backend"
+    settings:
+      config:
+        base_url: "okta.com"
+        organization: "test-okta-org"
+        org_name: "test-okta-org"
+        bypass_okta_mfa: "false"
+        max_ttl: "0s"
+        ttl: "0s"
+policies-mapping:
+  - entity-name: "test-team-1"
+    auth-type: "okta"
+    auth-mount: "okta-test-1"
+    entity-group: "groups"
+    policies: "policy-team-1-1-updated,policy-team-1-2-updated"
+  - entity-name: "test-user-1"
+    auth-type: "okta"
+    auth-mount: "okta-test-1"
+    entity-group: "users"
+    policies: "policy-user-1-1-updated,policy-user-1-2-updated"
