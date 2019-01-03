@@ -1,0 +1,27 @@
+---
+auth:
+  - path: "approle/"
+    type: "approle"
+  - path: "approle-test-1/"
+    type: "approle"
+roles:
+  - name: "test-role-2"
+    type: "approle"
+    mount: "approle/"
+    options:
+      local_secret_ids: "false"
+      token_bound_cidrs: []
+      bound_cidr_list: []
+      secret_id_bound_cidrs: []
+      secret_id_num_uses: "10"
+      bind_secret_id: "true"
+      period: "2h2m2s"
+      secret_id_ttl: "22h22m22s"
+      token_num_uses: "11"
+      token_ttl: "1800s"
+      token_max_ttl: "60m"
+      policies:
+        - default
+        - role-2
+        - role-3
+        - role-4

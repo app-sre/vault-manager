@@ -1,0 +1,20 @@
+---
+auth:
+  - path: "azure-test-1/"
+    type: "azure"
+    description: "azure-test-1 auth backend"
+    settings:
+      config:
+        tenant_id: "azure-test-tenant-id-updated"
+        resource: "https://vault.hashicorp-updated.com"
+        client_id: "azure-test-client-id-updated"
+        environment: ""
+  - path: "azure-test-2/"
+    type: "azure"
+    description: "azure-test-2 auth backend"
+    settings:
+      config:
+        tenant_id: "azure-test-tenant-id-updated"
+        resource: "https://vault.hashicorp-updated.com"
+        client_id: "azure-test-client-id-updated"
+        environment: ""

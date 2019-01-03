@@ -1,0 +1,24 @@
+---
+auth:
+  - path: "okta-test-1/"
+    type: "okta"
+    description: "okta-test-1 auth backend"
+    settings:
+      config:
+        base_url: "okta-updated.com"
+        organization: "test-okta-org-updated"
+        org_name: "test-okta-org-updated"
+        bypass_okta_mfa: "false"
+        max_ttl: "777h"
+        ttl: "12h"
+  - path: "okta-test-2/"
+    type: "okta"
+    description: "okta-test-2 auth backend"
+    settings:
+      config:
+        base_url: "okta-updated.com"
+        organization: "test-okta-org-updated"
+        org_name: "test-okta-org-updated"
+        bypass_okta_mfa: "false"
+        max_ttl: "777h"
+        ttl: "12h"

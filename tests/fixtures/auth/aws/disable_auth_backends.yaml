@@ -1,0 +1,13 @@
+---
+auth:
+  - path: "aws-test-1/"
+    type: "aws"
+    description: "aws-test-1 auth backend"
+    settings:
+      config/client:
+        access_key: "access_key-updated"
+        endpoint: ""
+        iam_endpoint: ""
+        iam_server_id_header_value: ""
+        max_retries: "-1"
+        sts_endpoint: ""

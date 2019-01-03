@@ -1,0 +1,24 @@
+---
+auth:
+  - path: "ldap-test-1/"
+    type: "ldap"
+    description: "ldap-test-1 auth backend"
+    settings:
+      config:
+        binddn: "cn=vault-updated,ou=users,dc=example,dc=com"
+        case_sensitive_names: "false"
+        certificate: ""
+        deny_null_bind: "true"
+        discoverdn: "false"
+        groupattr: "memberOf"
+        groupdn: "ou=Users,dc=example,dc=com"
+        groupfilter: "(&(objectClass=person)(uid={{.Username}}))"
+        insecure_tls: "false"
+        starttls: "true"
+        tls_max_version: "tls12"
+        tls_min_version: "tls12"
+        upndomain: ""
+        url: "ldap://ldap.example-updated.com"
+        use_token_groups: "false"
+        userattr: "samaccountname"
+        userdn: "ou=Users,dc=example-updated,dc=com"

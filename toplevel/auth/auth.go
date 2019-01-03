@@ -4,6 +4,7 @@ package auth
 
 import (
 	"log"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/vault/api"
@@ -15,10 +16,10 @@ import (
 )
 
 type entry struct {
-	Path         string                 `yaml:"path"`
-	Type         string                 `yaml:"type"`
-	Description  string                 `yaml:"description"`
-	GithubConfig map[string]interface{} `yaml:"github-config"`
+	Path        string                            `yaml:"path"`
+	Type        string                            `yaml:"type"`
+	Description string                            `yaml:"description"`
+	Settings    map[string]map[string]interface{} `yaml:"settings"`
 }
 
 var _ vault.Item = entry{}
@@ -84,12 +85,14 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	// Build a list of all the existing entries.
 	existingBackends := make([]entry, 0)
-	for path, backend := range existingAuthMounts {
-		existingBackends = append(existingBackends, entry{
-			Path:        path,
-			Type:        backend.Type,
-			Description: backend.Description,
-		})
+	if existingAuthMounts != nil {
+		for path, backend := range existingAuthMounts {
+			existingBackends = append(existingBackends, entry{
+				Path:        path,
+				Type:        backend.Type,
+				Description: backend.Description,
+			})
+		}
 	}
 
 	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingBackends))
@@ -100,9 +103,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 		}
 
 		for _, e := range entries {
-			if e.Type == "github" {
-				if !vault.DataInSecret(e.GithubConfig, "auth/"+e.Path+"config", vault.ClientFromEnv()) {
-					logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written path='auth/%vconfig' config='%v'", e.Path, e.GithubConfig)
+			if e.Settings != nil {
+				for name, cfg := range e.Settings {
+					path := filepath.Join("auth", e.Path, name)
+					if !vault.DataInSecret(cfg, path, vault.ClientFromEnv()) {
+						logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written path='%v' config='%v'", path, e.Settings)
+					}
 				}
 			}
 		}
@@ -119,15 +125,18 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			e.(entry).enable(vault.ClientFromEnv())
 		}
 
-		// configure github mounts
+		// configure auth mounts
 		for _, e := range entries {
-			if e.Type == "github" {
-				if !vault.DataInSecret(e.GithubConfig, "auth/"+e.Path+"config", vault.ClientFromEnv()) {
-					_, err := vault.ClientFromEnv().Logical().Write("auth/"+e.Path+"config", e.GithubConfig)
-					if err != nil {
-						log.Fatal(err)
+			if e.Settings != nil {
+				for name, cfg := range e.Settings {
+					path := filepath.Join("auth", e.Path, name)
+					if !vault.DataInSecret(cfg, path, vault.ClientFromEnv()) {
+						_, err := vault.ClientFromEnv().Logical().Write(path, cfg)
+						if err != nil {
+							log.Fatal(err)
+						}
+						logrus.WithField("path", path).WithField("type", e.Type).Info("auth mount successfully configured")
 					}
-					logrus.WithField("path", "auth/"+e.Path+"config").Info("github auth mount successfully configured")
 				}
 			}
 		}

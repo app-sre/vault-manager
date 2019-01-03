@@ -1,0 +1,16 @@
+---
+auth:
+  - path: "radius-test-1/"
+    type: "radius"
+    description: "radius-test-1 auth backend"
+policies-mapping:
+  - entity-name: "test-user-1"
+    auth-type: "radius"
+    auth-mount: "radius-test-1"
+    entity-group: "users"
+    policies: "policy-user-1-1,policy-user-1-2"
+  - entity-name: "test-user-2"
+    auth-type: "radius"
+    auth-mount: "radius-test-1"
+    entity-group: "users"
+    policies: "policy-user-2-1,policy-user-2-2"

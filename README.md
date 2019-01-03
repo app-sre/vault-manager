@@ -29,27 +29,30 @@ By default vault-manager will fail if any top-level configuration entry is empty
 
 ---
 audit:
-  - path: "file1/"
+  - path: "file-test/"
     type: "file"
-    description: "first_logger"
+    description: "test_logger"
     options:
-      file_path: "/tmp/log1.log"
+      file_path: "/tmp/test-log.log"
       log_raw: "false"
       mode: "0600"
       format: "json"
-  - path: "approle-1/"
+auth:
+  - path: "approle-test/"
     type: "approle"
-    description: "approle-1 auth backend"
-  - path: "github-test-1/"
+    description: "approle-test auth backend"
+  - path: "github-test/"
     type: "github"
-    description: "github-test-1 auth backend"
-    github-config:
-      organization: "test-org-1"
+    description: "github-test auth backend"
+    config:
+      organization: "test-org"
       base_url: ""
       max_ttl: "72h"
       ttl: "72h"
-approle:
-  - name: "test-role-1"
+roles:
+  - name: "test-role"
+    type: "approle"
+    mount: "approle-test/"
     options:
       local_secret_ids: "false"
       token_bound_cidrs: []
@@ -63,8 +66,9 @@ approle:
       token_ttl: "30m"
       token_max_ttl: "30m"
       policies:
-        - policy-test-1
-        - policy-test-2
+        - default
+        - test-role-policy
+        - test-policy-2
 secrets-engines:
   - path: "secrets-test-1/"
     type: "kv"
@@ -75,25 +79,27 @@ secrets-engines:
     options:
       version: "2"
 policies:
-  - name: "policy-test-1"
+  - name: "test-role-policy"
     rules: |
-      path "secret-test1/*" {
+      path "secret-test-1/*" {
         capabilities = ["create", "read", "update", "delete", "list"]
       }
-  - name: "policy-test-2"
+  - name: "test-policy-2"
     rules: |
-      path "secret-test2/*" {
+      path "secret-test-2/*" {
         capabilities = ["create", "read", "update", "delete", "list"]
       }
-gh-policy-mappings:
+policies-mapping:
   - entity-name: "test-team-1"
-    gh-mount-name: "github"
-    entity-group: "teams"
-    policies: "policy-test-1,policy-test-2"
+    auth-type: "github"
+    auth-mount: "github"
+    entity-group: "map/teams"
+    policies: "test-role-policy,test-policy-2"
   - entity-name: "test-user-1"
-    gh-mount-name: "github"
-    entity-group: "users"
-    policies: "policy-test-1"
+    auth-type: "github"
+    auth-mount: "github"
+    entity-group: "map/users"
+    policies: "test-policy-2"
 ```
 </p>
 </details>

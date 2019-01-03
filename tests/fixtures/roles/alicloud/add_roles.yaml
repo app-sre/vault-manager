@@ -1,0 +1,32 @@
+---
+auth:
+  - path: "alicloud-test/"
+    type: "alicloud"
+    description: "alicloud test auth backend"
+roles:
+  - name: "alicloud-test-role-1"
+    type: "alicloud"
+    mount: "alicloud-test/"
+    options:
+      arn: "acs:ram::5138828231865461:role/dev-role"
+      ttl: "30m"
+      max_ttl: "30m"
+      period: "0s"
+      bound_cidrs: []
+      policies:
+        - default
+        - dev
+        - prod
+  - name: "alicloud-test-role-2"
+    type: "alicloud"
+    mount: "alicloud-test/"
+    options:
+      arn: "acs:ram::5138828231865461:role/dev-role"
+      ttl: "30m"
+      max_ttl: "30m"
+      period: "0s"
+      bound_cidrs: []
+      policies:
+        - default
+        - dev
+        - prod

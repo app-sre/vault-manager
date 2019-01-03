@@ -1,0 +1,8 @@
+---
+auth:
+  - path: "radius-test-1/"
+    type: "radius"
+    description: "radius-test-1 auth backend"
+  - path: "radius-test-2/"
+    type: "radius"
+    description: "radius-test-2 auth backend"

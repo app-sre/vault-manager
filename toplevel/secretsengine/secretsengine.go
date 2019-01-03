@@ -93,13 +93,15 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	// Build a list of all the existing entries.
 	existingSecretsEngines := make([]entry, 0)
-	for path, engine := range existingMounts {
-		existingSecretsEngines = append(existingSecretsEngines, entry{
-			Path:        path,
-			Type:        engine.Type,
-			Description: engine.Description,
-			Options:     engine.Options,
-		})
+	if existingSecretsEngines != nil {
+		for path, engine := range existingMounts {
+			existingSecretsEngines = append(existingSecretsEngines, entry{
+				Path:        path,
+				Type:        engine.Type,
+				Description: engine.Description,
+				Options:     engine.Options,
+			})
+		}
 	}
 
 	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingSecretsEngines))

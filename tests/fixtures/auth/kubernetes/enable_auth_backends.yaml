@@ -1,0 +1,24 @@
+---
+auth:
+  - path: "kubernetes-test-1/"
+    type: "kubernetes"
+    description: "kubernetes-test-1 auth backend"
+    settings:
+      config:
+        kubernetes_host: "https://192.168.99.100:8443"
+        pem_keys: []
+        kubernetes_ca_cert: |
+          -----BEGIN CERTIFICATE-----
+          dummy-cert
+          -----END CERTIFICATE-----
+  - path: "kubernetes-test-2/"
+    type: "kubernetes"
+    description: "kubernetes-test-2 auth backend"
+    settings:
+      config:
+        kubernetes_host: "https://192.168.99.100:8443"
+        pem_keys: []
+        kubernetes_ca_cert: |
+          -----BEGIN CERTIFICATE-----
+          dummy-cert
+          -----END CERTIFICATE-----
