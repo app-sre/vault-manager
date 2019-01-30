@@ -3,7 +3,7 @@ setup() {
   export VAULT_TOKEN=root
   export VAULT_AUTHTYPE=token
 
-  docker run -d --name="vault-dev-server" --cap-add=IPC_LOCK -e 'VAULT_DEV_ROOT_TOKEN_ID=root' -p 8200:8200 vault:0.11.1
+  docker run -d --name="vault-dev-server" --cap-add=IPC_LOCK -e 'VAULT_DEV_ROOT_TOKEN_ID=root' -p 8200:8200 vault:1.0.1
   until $(curl --output /dev/null --silent --head --fail http://127.0.0.1:8200); do
     printf '.'
     sleep 1

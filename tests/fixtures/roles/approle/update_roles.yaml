@@ -20,6 +20,7 @@ roles:
       token_num_uses: "111"
       token_ttl: "3h30m30s"
       token_max_ttl: "333h"
+      token_type: "default"
       policies:
         - default
         - role-1
@@ -39,6 +40,7 @@ roles:
       token_num_uses: "11"
       token_ttl: "1800s"
       token_max_ttl: "60m"
+      token_type: "default"
       policies:
         - default
         - role-2
@@ -59,6 +61,7 @@ roles:
       token_num_uses: "11"
       token_ttl: "1800s"
       token_max_ttl: "60m"
+      token_type: "default"
       policies:
         - default
         - role-2
