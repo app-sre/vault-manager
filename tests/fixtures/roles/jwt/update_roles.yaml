@@ -18,6 +18,7 @@ roles:
       max_ttl: "11h11m11s"
       period: "1h1m1s"
       num_uses: "0"
+      groups_claim_delimiter_pattern: ""
       policies:
         - default
         - dev
@@ -37,6 +38,7 @@ roles:
       num_uses: "0"
       period: "0s"
       ttl: "30m"
+      groups_claim_delimiter_pattern: ""
       policies:
         - default
         - dev

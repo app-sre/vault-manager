@@ -20,6 +20,7 @@ roles:
       token_num_uses: "1"
       token_ttl: "30m"
       token_max_ttl: "30m"
+      token_type: "default"
       policies:
         - default
         - role-1
@@ -38,6 +39,7 @@ roles:
       token_num_uses: "100"
       token_ttl: "300m"
       token_max_ttl: "300m"
+      token_type: "default"
       policies:
         - default
         - role-2
@@ -56,6 +58,7 @@ roles:
       token_num_uses: "100"
       token_ttl: "300m"
       token_max_ttl: "300m"
+      token_type: "default"
       policies:
         - default
         - role-2

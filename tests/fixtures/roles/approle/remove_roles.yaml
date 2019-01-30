@@ -20,6 +20,7 @@ roles:
       token_num_uses: "11"
       token_ttl: "1800s"
       token_max_ttl: "60m"
+      token_type: "default"
       policies:
         - default
         - role-2
