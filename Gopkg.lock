@@ -86,6 +86,12 @@
   version = "v1.0.1"
 
 [[projects]]
+  name = "github.com/machinebox/graphql"
+  packages = ["."]
+  revision = "05b17f3157491bbfa5d6fc2006443a272d960d15"
+  version = "v0.2.2"
+
+[[projects]]
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "ae18d6b8b3205b561c79e8e5f69bff09736185f4"
@@ -202,6 +208,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9ab4f034304cf81880c619d0fae95ddd0a6aa25c08fa7b30bc51d03113451488"
+  inputs-digest = "cc91c0dd63d77d55285609f4a43c30f55a4b835f6491fbb433085bac310040aa"
   solver-name = "gps-cdcl"
   solver-version = 1

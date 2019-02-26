@@ -3,11 +3,10 @@
 package policy
 
 import (
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
-
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 type config struct{}
@@ -15,7 +14,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("policies", config{})
+	toplevel.RegisterConfiguration("vault_policies", config{})
 }
 
 type entry struct {

@@ -16,10 +16,16 @@ import (
 )
 
 type entry struct {
-	Path        string                            `yaml:"path"`
-	Type        string                            `yaml:"type"`
-	Description string                            `yaml:"description"`
-	Settings    map[string]map[string]interface{} `yaml:"settings"`
+	Path           string                            `yaml:"path_ugly"`
+	Type           string                            `yaml:"type"`
+	Description    string                            `yaml:"description"`
+	Settings       map[string]map[string]interface{} `yaml:"settings"`
+	PolicyMappings []PolicyMapping                   `yaml:"policy_mappings"`
+}
+
+type PolicyMapping struct {
+	GithubTeam map[string]interface{}   `yaml:"github_team"`
+	Policies   []map[string]interface{} `yaml:"policies"`
 }
 
 var _ vault.Item = entry{}
@@ -63,7 +69,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("auth", config{})
+	toplevel.RegisterConfiguration("vault_auth_backends", config{})
 }
 
 // Apply ensures that an instance of Vault's authentication backends are
@@ -97,40 +103,49 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingBackends))
 
-	if dryRun == true {
-		for _, w := range toBeWritten {
-			logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written='%v'", w)
-		}
+	enableAuth(toBeWritten, dryRun)
 
-		for _, e := range entries {
-			if e.Settings != nil {
-				for name, cfg := range e.Settings {
-					path := filepath.Join("auth", e.Path, name)
-					if !vault.DataInSecret(cfg, path, vault.ClientFromEnv()) {
-						logrus.Infof("[Dry Run]\tpackage=auth\tentry to be written path='%v' config='%v'", path, e.Settings)
-					}
+	configureAuthMounts(entries,dryRun)
+
+	disableAuth(toBeDeleted,dryRun)
+
+	// apply policy mappings
+	for _, e := range entries {
+		if e.PolicyMappings != nil {
+			for _, policyMapping := range e.PolicyMappings {
+				var policies []string
+				for _, policy := range policyMapping.Policies {
+					policies = append(policies, policy["name"].(string))
 				}
+				path := filepath.Join("/auth", e.Path, "map/teams", policyMapping.GithubTeam["team"].(string))
+				data := map[string]interface{}{"key": policyMapping.GithubTeam["team"], "value": strings.Join(policies, ",")}
+				writeMapping(path, data, dryRun)
 			}
 		}
+	}
+}
 
-		for _, d := range toBeDeleted {
-			if d.Key() == "token/" {
-				continue
-			}
-			logrus.Infof("[Dry Run]\tpackage=auth\tentry to be deleted='%v'", d)
-		}
-	} else {
-		// TODO(riuvshin): implement auth tuning
-		for _, e := range toBeWritten {
+func enableAuth(toBeWritten []vault.Item, dryRun bool) {
+	// TODO(riuvshin): implement auth tuning
+	for _, e := range toBeWritten {
+		if dryRun == true {
+			logrus.Infof("[Dry Run]\tpackage=auth\tauth to be enabled='%v'", e.(entry))
+		} else {
 			e.(entry).enable(vault.ClientFromEnv())
 		}
+	}
+}
 
-		// configure auth mounts
-		for _, e := range entries {
-			if e.Settings != nil {
-				for name, cfg := range e.Settings {
-					path := filepath.Join("auth", e.Path, name)
-					if !vault.DataInSecret(cfg, path, vault.ClientFromEnv()) {
+func configureAuthMounts(entries []entry, dryRun bool) {
+	// configure auth mounts
+	for _, e := range entries {
+		if e.Settings != nil {
+			for name, cfg := range e.Settings {
+				path := filepath.Join("auth", e.Path, name)
+				if !vault.DataInSecret(cfg, path, vault.ClientFromEnv()) {
+					if dryRun == true {
+						logrus.Infof("[Dry Run]\tpackage=auth\tauth config to be written path='%v' config='%v'", path, e.Settings)
+					} else {
 						_, err := vault.ClientFromEnv().Logical().Write(path, cfg)
 						if err != nil {
 							log.Fatal(err)
@@ -140,13 +155,33 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 				}
 			}
 		}
+	}
+}
 
-		for _, e := range toBeDeleted {
-			ent := e.(entry)
-			if strings.HasPrefix(ent.Path, "token/") {
-				continue
-			}
+func disableAuth(toBeDeleted []vault.Item, dryRun bool)  {
+	for _, e := range toBeDeleted {
+		ent := e.(entry)
+		if strings.HasPrefix(ent.Path, "token/") {
+			continue
+		}
+		if dryRun == true {
+			logrus.Infof("[Dry Run]\tpackage=auth\tauth to be disabled='%v'", ent.Path)
+		} else {
 			ent.disable(vault.ClientFromEnv())
+		}
+	}
+}
+
+func writeMapping(path string, data map[string]interface{}, dryRun bool) {
+	if !vault.DataInSecret(data, path, vault.ClientFromEnv()) {
+		if dryRun == true {
+			logrus.Infof("[Dry Run]\tpackage=auth\tpolicies mapping to be written path='%v' policies='%v'", path, data["value"])
+		} else {
+			_, err := vault.ClientFromEnv().Logical().Write(path, data)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			logrus.WithField("path", path).WithField("policies", data["value"]).Info("policy mapping is successfully written")
 		}
 	}
 }

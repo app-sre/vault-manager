@@ -69,7 +69,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("roles", config{})
+	toplevel.RegisterConfiguration("vault_roles", config{})
 }
 
 // Apply ensures that an instance of Vault's roles are configured exactly

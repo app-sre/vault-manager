@@ -12,7 +12,7 @@ import (
 )
 
 type entry struct {
-	Path        string            `yaml:"path"`
+	Path        string            `yaml:"path_ugly"`
 	Type        string            `yaml:"type"`
 	Description string            `yaml:"description"`
 	Options     map[string]string `yaml:"options"`
@@ -67,7 +67,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("audit", config{})
+	toplevel.RegisterConfiguration("vault_audit_backends", config{})
 }
 
 // Apply ensures that an instance of Vault's Audit Devices are configured
