@@ -86,7 +86,7 @@ func getConfig() (config, error) {
 
 	// read graphql query from file
 	query, err := ioutil.ReadFile(graphqlQueryFile)
-    if err != nil {
+	if err != nil {
 		logrus.WithField("path", graphqlQueryFile).Fatal("failed to read graphql query file")
 	}
 
