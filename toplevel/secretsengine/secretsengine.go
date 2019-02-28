@@ -16,7 +16,7 @@ import (
 )
 
 type entry struct {
-	Path        string            `yaml:"path_ugly"`
+	Path        string            `yaml:"_path"`
 	Type        string            `yaml:"type"`
 	Description string            `yaml:"description"`
 	Options     map[string]string `yaml:"options"`

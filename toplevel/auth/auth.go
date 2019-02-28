@@ -16,7 +16,7 @@ import (
 )
 
 type entry struct {
-	Path           string                            `yaml:"path_ugly"`
+	Path           string                            `yaml:"_path"`
 	Type           string                            `yaml:"type"`
 	Description    string                            `yaml:"description"`
 	Settings       map[string]map[string]interface{} `yaml:"settings"`
@@ -105,9 +105,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	enableAuth(toBeWritten, dryRun)
 
-	configureAuthMounts(entries,dryRun)
+	configureAuthMounts(entries, dryRun)
 
-	disableAuth(toBeDeleted,dryRun)
+	disableAuth(toBeDeleted, dryRun)
 
 	// apply policy mappings
 	for _, e := range entries {
@@ -158,7 +158,7 @@ func configureAuthMounts(entries []entry, dryRun bool) {
 	}
 }
 
-func disableAuth(toBeDeleted []vault.Item, dryRun bool)  {
+func disableAuth(toBeDeleted []vault.Item, dryRun bool) {
 	for _, e := range toBeDeleted {
 		ent := e.(entry)
 		if strings.HasPrefix(ent.Path, "token/") {

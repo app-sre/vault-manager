@@ -85,7 +85,7 @@ func getConfig() (config, error) {
 	{
 	  vault_audit_backends {
 		type
-		path_ugly
+		_path
 		description
 		options {
           ... on VaultAuditOptionsFile_v1 {
@@ -94,7 +94,7 @@ func getConfig() (config, error) {
 		}
 	  }
       vault_auth_backends {
-        path_ugly
+        _path
         type
         description
         settings {
@@ -117,7 +117,7 @@ func getConfig() (config, error) {
 		}
       }
       vault_secret_engines {
-        path_ugly
+        _path
         type
         description
         options {
