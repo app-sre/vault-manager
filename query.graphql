@@ -59,8 +59,8 @@
         token_type
         bound_cidr_list
         policies
-          secret_id_bound_cidrs
-          token_bound_cidrs
+        secret_id_bound_cidrs
+        token_bound_cidrs
       }
     }
   }
