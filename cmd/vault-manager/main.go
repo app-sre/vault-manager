@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"os"
 	"sort"
 
@@ -38,9 +39,7 @@ func (a ByPriority) Swap(i, j int) {
 
 func main() {
 	var dryRun bool
-	var force bool
 	flag.BoolVar(&dryRun, "dry-run", false, "If true, will only print planned actions")
-	flag.BoolVar(&force, "force", false, "If true, will force potentially unsafe write actions")
 	flag.Parse()
 
 	cfg, err := getConfig()
@@ -77,83 +76,22 @@ func getConfig() (config, error) {
 		graphqlServer = "http://localhost:4000/graphql"
 	}
 
+	graphqlQueryFile := os.Getenv("GRAPHQL_QUERY_FILE")
+	if graphqlQueryFile == "" {
+		graphqlQueryFile = "query.graphql"
+	}
+
 	// create a graphql client
 	client := graphql.NewClient(graphqlServer)
 
-	// make a request
-	req := graphql.NewRequest(`
-	{
-	  vault_audit_backends {
-		type
-		_path
-		description
-		options {
-          ... on VaultAuditOptionsFile_v1 {
-            file_path
-    	  }
-		}
-	  }
-      vault_auth_backends {
-        _path
-        type
-        description
-        settings {
-          config {
-            ... on VaultAuthConfigGithub_v1 {
-              organization
-              base_url
-              max_ttl
-              ttl
-            }
-          }
-        }
-		policy_mappings {
-		  github_team {
-			team
-		  }
-		  policies {
-			name
-		  }
-		}
-      }
-      vault_secret_engines {
-        _path
-        type
-        description
-        options {
-          ... on VaultSecretEngineOptionsKV_v1 {
-            version
-          }
-        }
-      }
-	  vault_roles {
-		name
-		type
-		mount
-		options {
-		  ... on VaultApproleOptions_v1 {
-			bind_secret_id
-			local_secret_ids
-			period
-			secret_id_num_uses
-			secret_id_ttl
-			token_max_ttl
-			token_num_uses
-			token_ttl
-			token_type
-			bound_cidr_list
-			policies
-			  secret_id_bound_cidrs
-			  token_bound_cidrs
-		  }
-		}
-	  }
-      vault_policies {
-		name
-		rules
-	  }
+	// read graphql query from file
+	query, err := ioutil.ReadFile(graphqlQueryFile)
+    if err != nil {
+		logrus.WithField("path", graphqlQueryFile).Fatal("failed to read graphql query file")
 	}
-	`)
+
+	// make a request
+	req := graphql.NewRequest(string(query))
 
 	// define a Context for the request
 	ctx := context.Background()
