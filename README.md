@@ -5,8 +5,10 @@ vault-manager is an automation tool for managing [hashicorp vault](https://githu
 ```bash
 docker run --rm -t \
            -v <PATH_TO_FILE_WITH_GRAPHQL_QUERY>:/query.graphql \
+           -e GRAPHQL_QUERY_FILE=/query.graphql \
            -e GRAPHQL_SERVER=<GRAPHQL_SERVER_URL> \
-           -e GRAPHQL_QUERY_FILE=query.graphql \
+           -e GRAPHQL_USERNAME=<GRAPHQL_USERNAME> \
+           -e GRAPHQL_PASSWORD=<GRAPHQL_PASSWORD> \
            -e VAULT_ADDR=<VAULT_INSTANCE_URL> \
            -e VAULT_AUTHTYPE=approle \
            -e VAULT_ROLE_ID=<APPROLE_ROLE_ID> \

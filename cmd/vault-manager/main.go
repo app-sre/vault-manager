@@ -79,12 +79,12 @@ func getConfig() (config, error) {
 
 	graphqlQueryFile := os.Getenv("GRAPHQL_QUERY_FILE")
 	if graphqlQueryFile == "" {
-		graphqlQueryFile = "query.graphql"
+		graphqlQueryFile = "/query.graphql"
 	}
 
-	graphqlUsername := os.Getenv("USERNAME")
+	graphqlUsername := os.Getenv("GRAPHQL_USERNAME")
 
-	graphqlPassword := os.Getenv("PASSWORD")
+	graphqlPassword := os.Getenv("GRAPHQL_PASSWORD")
 
 	// create a graphql client
 	client := graphql.NewClient(graphqlServer)
