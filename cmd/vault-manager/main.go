@@ -1,19 +1,21 @@
 package main
 
 import (
+	"context"
+	"encoding/base64"
 	"flag"
+	"github.com/app-sre/vault-manager/toplevel"
+	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"os"
 	"sort"
-
-	"github.com/app-sre/vault-manager/toplevel"
 
 	// Register top-level configurations.
 	_ "github.com/app-sre/vault-manager/toplevel/audit"
 	_ "github.com/app-sre/vault-manager/toplevel/auth"
-	_ "github.com/app-sre/vault-manager/toplevel/policies-mapping"
 	_ "github.com/app-sre/vault-manager/toplevel/policy"
 	_ "github.com/app-sre/vault-manager/toplevel/role"
 	_ "github.com/app-sre/vault-manager/toplevel/secretsengine"
@@ -38,26 +40,12 @@ func (a ByPriority) Swap(i, j int) {
 
 func main() {
 	var dryRun bool
-	var force bool
 	flag.BoolVar(&dryRun, "dry-run", false, "If true, will only print planned actions")
-	flag.BoolVar(&force, "force", false, "If true, will force potentially unsafe write actions")
 	flag.Parse()
 
-	cfg, err := readConfig()
+	cfg, err := getConfig()
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to parse config")
-	}
-
-	for t, e := range cfg {
-		if force == false {
-			if e == nil {
-				logrus.Fatalf("top-level configuration key '%v' does not have any entry, this will lead to removing all existing configurations of this top-level key in vault, use -force to force this operation", t)
-			}
-		} else {
-			if e == nil {
-				logrus.Warningf("top-level configuration key '%v' does not have any entry, this will lead to removing all existing configurations of this top-level key in vault", t)
-			}
-		}
 	}
 
 	topLevelConfigs := []TopLevelConfig{}
@@ -81,43 +69,66 @@ func main() {
 	}
 }
 
-type configFile map[string]interface{}
+type config map[string]interface{}
 
-func readConfig() (configFile, error) {
-	configPath := os.Getenv("VAULT_MANAGER_CONFIG_FILE")
-	if configPath == "" {
-		configPath = "vault-manager.yaml"
+func getConfig() (config, error) {
+	graphqlServer := os.Getenv("GRAPHQL_SERVER")
+	if graphqlServer == "" {
+		graphqlServer = "http://localhost:4000/graphql"
 	}
 
-	f, err := os.Open(os.ExpandEnv(configPath))
+	graphqlQueryFile := os.Getenv("GRAPHQL_QUERY_FILE")
+	if graphqlQueryFile == "" {
+		graphqlQueryFile = "/query.graphql"
+	}
+
+	graphqlUsername := os.Getenv("GRAPHQL_USERNAME")
+
+	graphqlPassword := os.Getenv("GRAPHQL_PASSWORD")
+
+	// create a graphql client
+	client := graphql.NewClient(graphqlServer)
+
+	// read graphql query from file
+	query, err := ioutil.ReadFile(graphqlQueryFile)
 	if err != nil {
-		return configFile{}, errors.Wrap(err, "failed to open configuration file")
-	}
-	defer f.Close()
-
-	var cfg configFile
-	if err := yaml.NewDecoder(f).Decode(&cfg); err != nil {
-		return configFile{}, errors.Wrap(err, "failed to decode configuration file")
+		logrus.WithField("path", graphqlQueryFile).Fatal("failed to read graphql query file")
 	}
 
-	return cfg, nil
+	// make a request
+	req := graphql.NewRequest(string(query))
+
+	// set basic auth header
+	if graphqlUsername != "" && graphqlPassword != "" {
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(graphqlUsername+":"+graphqlPassword)))
+	}
+
+	// define a Context for the request
+	ctx := context.Background()
+
+	var response map[string]interface{}
+
+	// execute query and capture the response
+	if err := client.Run(ctx, req, &response); err != nil {
+		return config{}, errors.Wrap(err, "failed to query graphql server")
+	}
+
+	return response, nil
 }
 
 func resolveConfigPriority(s string) int {
 	var priority int
 	switch s {
-	case "policies":
+	case "vault_policies":
 		priority = 1
-	case "audit":
+	case "vault_audit_backends":
 		priority = 2
-	case "secrets-engines":
+	case "vault_secret_engines":
 		priority = 3
-	case "auth":
+	case "vault_auth_backends":
 		priority = 4
-	case "roles":
+	case "vault_roles":
 		priority = 5
-	case "policies-mapping":
-		priority = 6
 	default:
 		priority = 0
 	}

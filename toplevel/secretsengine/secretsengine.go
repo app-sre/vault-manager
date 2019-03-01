@@ -16,7 +16,7 @@ import (
 )
 
 type entry struct {
-	Path        string            `yaml:"path"`
+	Path        string            `yaml:"_path"`
 	Type        string            `yaml:"type"`
 	Description string            `yaml:"description"`
 	Options     map[string]string `yaml:"options"`
@@ -71,7 +71,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("secrets-engines", config{})
+	toplevel.RegisterConfiguration("vault_secret_engines", config{})
 }
 
 // Apply ensures that an instance of Vault's secrets engine are configured
