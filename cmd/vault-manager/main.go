@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"flag"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
@@ -81,6 +82,10 @@ func getConfig() (config, error) {
 		graphqlQueryFile = "query.graphql"
 	}
 
+	graphqlUsername := os.Getenv("USERNAME")
+
+	graphqlPassword := os.Getenv("PASSWORD")
+
 	// create a graphql client
 	client := graphql.NewClient(graphqlServer)
 
@@ -92,6 +97,11 @@ func getConfig() (config, error) {
 
 	// make a request
 	req := graphql.NewRequest(string(query))
+
+	// set basic auth header
+	if graphqlUsername != "" && graphqlPassword != "" {
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(graphqlUsername+":"+graphqlPassword)))
+	}
 
 	// define a Context for the request
 	ctx := context.Background()
