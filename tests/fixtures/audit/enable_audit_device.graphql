@@ -1,0 +1,12 @@
+{
+    vault_audit_backends {
+        type
+        _path
+        description
+        options {
+            ... on VaultAuditOptionsFile_v1 {
+                file_path
+            }
+        }
+    }
+}

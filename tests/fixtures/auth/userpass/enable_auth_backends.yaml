@@ -1,8 +1,0 @@
----
-auth:
-  - path: "userpass-test-1/"
-    type: "userpass"
-    description: "userpass-test-1 auth backend"
-  - path: "userpass-test-2/"
-    type: "userpass"
-    description: "userpass-test-2 auth backend"

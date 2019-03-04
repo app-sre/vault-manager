@@ -1,5 +1,0 @@
----
-auth:
-  - path: "approle-test-1/"
-    type: "approle"
-    description: "approle-test-1 auth backend"

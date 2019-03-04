@@ -1,0 +1,47 @@
+{
+    vault_auth_backends {
+        _path
+        type
+        description
+        settings {
+            config {
+                ... on VaultAuthConfigGithub_v1 {
+                    organization
+                    base_url
+                    max_ttl
+                    ttl
+                }
+            }
+        }
+        policy_mappings {
+            github_team {
+                team
+            }
+            policies {
+                name
+            }
+        }
+    }
+    vault_roles {
+        name
+        type
+        mount
+        options {
+            ... on VaultApproleOptions_v1 {
+                bind_secret_id
+                local_secret_ids
+                period
+                secret_id_num_uses
+                secret_id_ttl
+                token_max_ttl
+                token_num_uses
+                token_ttl
+                token_type
+                bound_cidr_list
+                policies
+                secret_id_bound_cidrs
+                token_bound_cidrs
+            }
+        }
+    }
+}
