@@ -1,5 +1,0 @@
----
-auth:
-  - path: "gcp-test-1/"
-    type: "gcp"
-    description: "gcp-test-1 auth backend"

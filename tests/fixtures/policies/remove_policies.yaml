@@ -1,7 +1,0 @@
----
-policies:
-  - name: "policy-test-1"
-    rules: |
-      path "secret-test1/*" {
-        capabilities = ["read", "list"]
-      }

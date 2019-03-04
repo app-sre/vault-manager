@@ -4,4 +4,4 @@
 make build
 
 # run e2e tests
-#make test
+make test

@@ -1,0 +1,6 @@
+{
+    vault_policies {
+        name
+        rules
+    }
+}

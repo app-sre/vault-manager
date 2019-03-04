@@ -1,5 +1,0 @@
----
-auth:
-  - path: "cert-test-1/"
-    type: "cert"
-    description: "cert-test-1 auth backend"
