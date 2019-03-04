@@ -8,6 +8,7 @@ load ../helpers
     #
     export GRAPHQL_QUERY_FILE=/tests/fixtures/audit/enable_audit_device.graphql
     run vault-manager
+    decho ${output}
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"audit successfully enabled"*"path=file/"* ]]
