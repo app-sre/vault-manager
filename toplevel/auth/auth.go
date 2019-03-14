@@ -3,12 +3,11 @@
 package auth
 
 import (
-	"log"
 	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
@@ -49,9 +48,9 @@ func (e entry) enable(client *api.Client) {
 		Type:        e.Type,
 		Description: e.Description,
 	}); err != nil {
-		logrus.WithError(err).WithField("path", e.Path).Fatal("failed to enable auth backend")
+		log.WithField("package", "auth").WithError(err).WithField("path", e.Path).WithField("type", e.Type).Fatal("failed to enable auth backend")
 	}
-	logrus.WithFields(logrus.Fields{
+	log.WithField("package", "auth").WithFields(log.Fields{
 		"path": e.Path,
 		"type": e.Type,
 	}).Info("successfully enabled auth backend")
@@ -59,9 +58,9 @@ func (e entry) enable(client *api.Client) {
 
 func (e entry) disable(client *api.Client) {
 	if err := client.Sys().DisableAuth(e.Path); err != nil {
-		logrus.WithError(err).WithField("path", e.Path).Fatal("failed to disable auth backend")
+		log.WithField("package", "auth").WithError(err).WithField("path", e.Path).WithField("type", e.Type).Fatal("failed to disable auth backend")
 	}
-	logrus.WithField("path", e.Path).Info("successfully disabled auth backend")
+	log.WithField("package", "auth").WithField("path", e.Path).WithField("type", e.Type).Info("successfully disabled auth backend")
 }
 
 type config struct{}
@@ -80,13 +79,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	// Unmarshal the list of configured auth backends.
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
-		logrus.WithError(err).Fatal("failed to decode authentication backend configuration")
+		log.WithField("package", "auth").WithError(err).Fatal("failed to decode auth backend configuration")
 	}
 
 	// Get the existing enabled auth backends.
 	existingAuthMounts, err := vault.ClientFromEnv().Sys().ListAuth()
 	if err != nil {
-		logrus.WithError(err).Fatal("failed to list authentication backends from Vault instance")
+		log.WithField("package", "auth").WithError(err).Fatal("failed to list auth backends from Vault instance")
 	}
 
 	// Build a list of all the existing entries.
@@ -129,7 +128,7 @@ func enableAuth(toBeWritten []vault.Item, dryRun bool) {
 	// TODO(riuvshin): implement auth tuning
 	for _, e := range toBeWritten {
 		if dryRun == true {
-			logrus.Infof("[Dry Run]\tpackage=auth\tauth to be enabled='%v'", e.(entry))
+			log.WithField("package", "auth").WithField("path", e.(entry).Path).WithField("type", e.(entry).Type).Info("[Dry Run] auth backend to be enabled")
 		} else {
 			e.(entry).enable(vault.ClientFromEnv())
 		}
@@ -144,13 +143,13 @@ func configureAuthMounts(entries []entry, dryRun bool) {
 				path := filepath.Join("auth", e.Path, name)
 				if !vault.DataInSecret(cfg, path, vault.ClientFromEnv()) {
 					if dryRun == true {
-						logrus.Infof("[Dry Run]\tpackage=auth\tauth config to be written path='%v' config='%v'", path, e.Settings)
+						log.WithField("package", "auth").WithField("path", path).WithField("type", e.Type).Info("[Dry Run] auth backend configuration to be written")
 					} else {
 						_, err := vault.ClientFromEnv().Logical().Write(path, cfg)
 						if err != nil {
-							log.Fatal(err)
+							log.WithField("package", "auth").Fatal(err)
 						}
-						logrus.WithField("path", path).WithField("type", e.Type).Info("auth mount successfully configured")
+						log.WithField("package", "auth").WithField("path", path).WithField("type", e.Type).Info("auth backend successfully configured")
 					}
 				}
 			}
@@ -165,7 +164,7 @@ func disableAuth(toBeDeleted []vault.Item, dryRun bool) {
 			continue
 		}
 		if dryRun == true {
-			logrus.Infof("[Dry Run]\tpackage=auth\tauth to be disabled='%v'", ent.Path)
+			log.WithField("package", "auth").WithField("path", ent.Path).WithField("type", ent.Type).Info("[Dry Run] auth backend to be disabled")
 		} else {
 			ent.disable(vault.ClientFromEnv())
 		}
@@ -175,13 +174,13 @@ func disableAuth(toBeDeleted []vault.Item, dryRun bool) {
 func writeMapping(path string, data map[string]interface{}, dryRun bool) {
 	if !vault.DataInSecret(data, path, vault.ClientFromEnv()) {
 		if dryRun == true {
-			logrus.Infof("[Dry Run]\tpackage=auth\tpolicies mapping to be written path='%v' policies='%v'", path, data["value"])
+			log.WithField("package", "auth").WithField("path", path).WithField("policies", data["value"]).Infof("[Dry Run] policies mapping to be applied")
 		} else {
 			_, err := vault.ClientFromEnv().Logical().Write(path, data)
 			if err != nil {
-				logrus.Fatal(err)
+				log.WithField("package", "auth").Fatal(err)
 			}
-			logrus.WithField("path", path).WithField("policies", data["value"]).Info("policy mapping is successfully written")
+			log.WithField("package", "auth").WithField("path", path).WithField("policies", data["value"]).Info("policies mapping is successfully applied")
 		}
 	}
 }

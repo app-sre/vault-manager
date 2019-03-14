@@ -4,7 +4,7 @@ package audit
 
 import (
 	"github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
@@ -50,16 +50,16 @@ func (e entry) enable(client *api.Client) {
 		Description: e.Description,
 		Options:     e.Options,
 	}); err != nil {
-		logrus.WithField("path", e.Path).Fatal("failed to enable audit device")
+		log.WithField("package", "audit").WithField("path", e.Path).Fatal("failed to enable audit device")
 	}
-	logrus.WithField("path", e.Path).Info("audit successfully enabled")
+	log.WithField("package", "audit").WithField("path", e.Path).Info("audit device successfully enabled")
 }
 
 func (e entry) disable(client *api.Client) {
 	if err := client.Sys().DisableAudit(e.Path); err != nil {
-		logrus.WithField("path", e.Path).Fatal("failed to disable audit")
+		log.WithField("package", "audit").WithField("path", e.Path).Fatal("failed to disable audit device")
 	}
-	logrus.WithField("path", e.Path).Info("audit successfully disabled")
+	log.WithField("package", "audit").WithField("path", e.Path).Info("audit device successfully disabled")
 }
 
 type config struct{}
@@ -77,13 +77,13 @@ func init() {
 func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
-		logrus.WithError(err).Fatal("failed to decode Audit Devices configuration")
+		log.WithField("package", "audit").WithError(err).Fatal("failed to decode audit device configuration")
 	}
 
 	// Get the existing enabled Audits Devices.
 	enabledAudits, err := vault.ClientFromEnv().Sys().ListAudit()
 	if err != nil {
-		logrus.WithError(err).Fatal("failed to list Audit Devices from Vault instance")
+		log.WithField("package", "audit").WithError(err).Fatal("failed to list audit devices from Vault instance")
 	}
 
 	// Build a list of all the existing entries.
@@ -104,10 +104,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	if dryRun == true {
 		for _, w := range toBeWritten {
-			logrus.Infof("[Dry Run]\tpackage=audit\tentry to be written='%v'", w)
+			log.WithField("package", "audit").WithField("path", w.Key()).Infof("[Dry Run] audit-device to be enabled")
 		}
 		for _, d := range toBeDeleted {
-			logrus.Infof("[Dry Run]\tpackage=audit\tentry to be deleted='%v'", d)
+			log.WithField("package", "audit").WithField("path", d.Key()).Infof("[Dry Run] audit device to be disabled")
 		}
 	} else {
 		// Write any missing Audit Devices to the Vault instance.

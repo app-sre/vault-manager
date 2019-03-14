@@ -3,7 +3,7 @@ package vault
 import (
 	"fmt"
 	"github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
 )
@@ -109,7 +109,7 @@ func DataInSecret(data map[string]interface{}, path string, client *api.Client) 
 	// read desired secret
 	secret, err := client.Logical().Read(path)
 	if err != nil {
-		logrus.WithError(err).Fatal("failed to get vault secret")
+		log.WithError(err).Fatal("failed to get vault secret")
 	}
 	if secret == nil {
 		return false
@@ -118,7 +118,7 @@ func DataInSecret(data map[string]interface{}, path string, client *api.Client) 
 		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
 			dur, err := time.ParseDuration(v.(string))
 			if err != nil {
-				logrus.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
+				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
 			}
 			v = int64(dur.Seconds())
 		}

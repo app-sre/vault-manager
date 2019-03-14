@@ -7,7 +7,7 @@ import (
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -28,6 +28,13 @@ type TopLevelConfig struct {
 
 type ByPriority []TopLevelConfig
 
+func init() {
+	log.SetFormatter(&log.TextFormatter{
+		DisableTimestamp: true,
+		DisableColors:    true,
+	})
+	log.SetOutput(os.Stdout)
+}
 func (a ByPriority) Len() int {
 	return len(a)
 }
@@ -45,7 +52,7 @@ func main() {
 
 	cfg, err := getConfig()
 	if err != nil {
-		logrus.WithError(err).Fatal("failed to parse config")
+		log.WithError(err).Fatal("failed to parse config")
 	}
 
 	topLevelConfigs := []TopLevelConfig{}
@@ -63,7 +70,7 @@ func main() {
 		// unmarshaled into a specific type in the application.
 		dataBytes, err := yaml.Marshal(cfg[config.Name])
 		if err != nil {
-			logrus.WithField("name", config.Name).Fatal("failed to remarshal configuration")
+			log.WithField("name", config.Name).Fatal("failed to remarshal configuration")
 		}
 		toplevel.Apply(config.Name, dataBytes, dryRun)
 	}
@@ -92,7 +99,7 @@ func getConfig() (config, error) {
 	// read graphql query from file
 	query, err := ioutil.ReadFile(graphqlQueryFile)
 	if err != nil {
-		logrus.WithField("path", graphqlQueryFile).Fatal("failed to read graphql query file")
+		log.WithField("path", graphqlQueryFile).Fatal("failed to read graphql query file")
 	}
 
 	// make a request

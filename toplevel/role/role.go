@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
@@ -50,18 +50,18 @@ func (e entry) Save(client *api.Client) {
 	}
 	_, err := client.Logical().Write(path, options)
 	if err != nil {
-		logrus.WithError(err).WithField("path", path).WithField("type", e.Type).Fatalf("failed to write role to Vault instance")
+		log.WithField("package", "role").WithError(err).WithField("path", path).WithField("type", e.Type).Fatalf("failed to write role to Vault instance")
 	}
-	logrus.WithField("path", path).WithField("type", e.Type).Info("successfully wrote role")
+	log.WithField("path", path).WithField("type", e.Type).Info("role is successfully written")
 }
 
 func (e entry) Delete(client *api.Client) {
 	path := filepath.Join("auth", e.Mount, "role", e.Name)
 	_, err := client.Logical().Delete(path)
 	if err != nil {
-		logrus.WithError(err).WithField("path", path).WithField("type", e.Type).Fatal("failed to delete role from Vault instance")
+		log.WithField("package", "role").WithError(err).WithField("path", path).WithField("type", e.Type).Fatal("failed to delete role from Vault instance")
 	}
-	logrus.WithField("path", path).WithField("type", e.Type).Info("successfully deleted role from Vault instance")
+	log.WithField("package", "role").WithField("path", path).WithField("type", e.Type).Info("role is successfully deleted from Vault instance")
 }
 
 type config struct{}
@@ -79,12 +79,12 @@ func init() {
 func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
-		logrus.WithError(err).Fatal("failed to decode role configuration")
+		log.WithField("package", "role").WithError(err).Fatal("failed to decode role configuration")
 	}
 
 	existingAuthBackends, err := vault.ClientFromEnv().Sys().ListAuth()
 	if err != nil {
-		logrus.WithError(err).Fatal("failed to list authentication backends from Vault instance")
+		log.WithField("package", "role").WithError(err).Fatal("failed to list auth backends from Vault instance")
 	}
 
 	existingRoles := make([]entry, 0)
@@ -95,23 +95,23 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			path := filepath.Join("auth", authBackend, "role")
 			secret, err := vault.ClientFromEnv().Logical().List(path)
 			if err != nil {
-				logrus.WithError(err).Fatal("failed to list roles from Vault instance")
+				log.WithField("package", "role").WithError(err).Fatal("failed to list roles from Vault instance")
 			}
 
 			if secret != nil {
 				// Build a list of all the existing entries.
 				for _, roleName := range secret.Data["keys"].([]interface{}) {
 					path := filepath.Join("auth", authBackend, "role", roleName.(string))
-					roleSecret, err := vault.ClientFromEnv().Logical().Read(path)
+					role, err := vault.ClientFromEnv().Logical().Read(path)
 					if err != nil {
-						logrus.WithError(err).WithField("path", path).WithField("type", existingAuthBackends[authBackend].Type).Fatal("failed to read role secret")
+						log.WithField("package", "role").WithError(err).WithField("path", path).WithField("type", existingAuthBackends[authBackend].Type).Fatal("failed to read role")
 					}
 
 					existingRoles = append(existingRoles, entry{
 						Name:    roleName.(string),
 						Type:    existingAuthBackends[authBackend].Type,
 						Mount:   authBackend,
-						Options: roleSecret.Data,
+						Options: role.Data,
 					})
 				}
 			}
@@ -123,10 +123,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	if dryRun == true {
 		for _, w := range entriesToBeWritten {
-			logrus.Infof("[Dry Run]\tpackage=role\tentry to be written='%v'", w)
+			log.WithField("package", "role").WithField("name", w.Key()).WithField("type", w.(entry).Type).Info("[Dry Run] role to be written")
 		}
 		for _, d := range entriesToBeDeleted {
-			logrus.Infof("[Dry Run]\tpackage=role\tentry to be deleted='%v'", d)
+			log.WithField("package", "role").WithField("name", d.Key()).WithField("type", d.(entry).Type).Info("[Dry Run] role to be deleted")
 		}
 	} else {
 		// Write any missing App Roles to the Vault instance.
