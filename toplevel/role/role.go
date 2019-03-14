@@ -52,7 +52,7 @@ func (e entry) Save(client *api.Client) {
 	if err != nil {
 		log.WithField("package", "role").WithError(err).WithField("path", path).WithField("type", e.Type).Fatalf("failed to write role to Vault instance")
 	}
-	log.WithField("path", path).WithField("type", e.Type).Info("role is successfully written")
+	log.WithField("package", "role").WithField("path", path).WithField("type", e.Type).Info("role is successfully written")
 }
 
 func (e entry) Delete(client *api.Client) {
