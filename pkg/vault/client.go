@@ -19,7 +19,7 @@ func Client() *api.Client {
 	vaultCFG := api.DefaultConfig()
 	vaultCFG.Address = mustGetenv("VAULT_ADDR")
 	var clientToken string
-    var client *api.Client
+	var client *api.Client
 
 	if clientToken == "" {
 		var err error
