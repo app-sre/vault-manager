@@ -38,7 +38,7 @@ load ../helpers
     # check approle config
     run vault read auth/approle/role/vault_manager
     [ "$status" -eq 0 ]
-    [[ "${output}" == *"token_num_uses"*"1"* ]]
+    [[ "${output}" == *"token_num_uses"*"0"* ]]
     [[ "${output}" == *"token_ttl"*"30m"* ]]
     [[ "${output}" == *"token_max_ttl"*"30m"* ]]
     [[ "${output}" == *"policies"*"[vault-manager-policy]"* ]]

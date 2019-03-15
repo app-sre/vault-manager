@@ -81,7 +81,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	}
 
 	// Get the existing enabled Audits Devices.
-	enabledAudits, err := vault.ClientFromEnv().Sys().ListAudit()
+	enabledAudits, err := vault.Client().Sys().ListAudit()
 	if err != nil {
 		log.WithField("package", "audit").WithError(err).Fatal("failed to list audit devices from Vault instance")
 	}
@@ -112,12 +112,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	} else {
 		// Write any missing Audit Devices to the Vault instance.
 		for _, e := range toBeWritten {
-			e.(entry).enable(vault.ClientFromEnv())
+			e.(entry).enable(vault.Client())
 		}
 
 		// Delete any Audit Devices from the Vault instance.
 		for _, e := range toBeDeleted {
-			e.(entry).disable(vault.ClientFromEnv())
+			e.(entry).disable(vault.Client())
 		}
 	}
 }

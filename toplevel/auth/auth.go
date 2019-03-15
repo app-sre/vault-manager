@@ -111,7 +111,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	}
 
 	// Get the existing enabled auth backends.
-	existingAuthMounts, err := vault.ClientFromEnv().Sys().ListAuth()
+	existingAuthMounts, err := vault.Client().Sys().ListAuth()
 	if err != nil {
 		log.WithField("package", "auth").WithError(err).Fatal("failed to list auth backends from Vault instance")
 	}
@@ -184,7 +184,7 @@ func enableAuth(toBeWritten []vault.Item, dryRun bool) {
 		if dryRun == true {
 			log.WithField("package", "auth").WithField("path", e.(entry).Path).WithField("type", e.(entry).Type).Info("[Dry Run] auth backend to be enabled")
 		} else {
-			e.(entry).enable(vault.ClientFromEnv())
+			e.(entry).enable(vault.Client())
 		}
 	}
 }
@@ -217,7 +217,7 @@ func disableAuth(toBeDeleted []vault.Item, dryRun bool) {
 		if dryRun == true {
 			log.WithField("package", "auth").WithField("path", ent.Path).WithField("type", ent.Type).Info("[Dry Run] auth backend to be disabled")
 		} else {
-			ent.disable(vault.ClientFromEnv())
+			ent.disable(vault.Client())
 		}
 	}
 }

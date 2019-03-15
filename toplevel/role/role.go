@@ -76,7 +76,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 		log.WithField("package", "role").WithError(err).Fatal("failed to decode role configuration")
 	}
 
-	existingAuthBackends, err := vault.ClientFromEnv().Sys().ListAuth()
+	existingAuthBackends, err := vault.Client().Sys().ListAuth()
 	if err != nil {
 		log.WithField("package", "role").WithError(err).Fatal("failed to list auth backends from Vault instance")
 	}
@@ -117,12 +117,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	} else {
 		// Write any missing App Roles to the Vault instance.
 		for _, e := range entriesToBeWritten {
-			e.(entry).Save(vault.ClientFromEnv())
+			e.(entry).Save(vault.Client())
 		}
 
 		// Delete any App Roles from the Vault instance.
 		for _, e := range entriesToBeDeleted {
-			e.(entry).Delete(vault.ClientFromEnv())
+			e.(entry).Delete(vault.Client())
 		}
 	}
 }

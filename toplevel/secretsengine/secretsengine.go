@@ -86,7 +86,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	}
 
 	// List the existing secrets engines.
-	existingMounts, err := vault.ClientFromEnv().Sys().ListMounts()
+	existingMounts, err := vault.Client().Sys().ListMounts()
 	if err != nil {
 		log.WithField("package", "secrets-engine").WithError(err).Fatal("failed to list Mounts from Vault instance")
 	}
@@ -118,13 +118,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	} else {
 		// TODO(riuvshin): implement tuning
 		for _, e := range toBeWritten {
-			e.(entry).enable(vault.ClientFromEnv())
+			e.(entry).enable(vault.Client())
 		}
 
 		for _, e := range toBeDeleted {
 			ent := e.(entry)
 			if !isDefaultMount(ent.Path) {
-				ent.disable(vault.ClientFromEnv())
+				ent.disable(vault.Client())
 			}
 		}
 	}
