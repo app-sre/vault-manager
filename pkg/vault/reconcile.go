@@ -2,8 +2,6 @@ package vault
 
 import (
 	"fmt"
-	"github.com/hashicorp/vault/api"
-	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
 )
@@ -102,32 +100,6 @@ func ttlEqual(x, y string) bool {
 // EqualPathNames determines if two paths are the same.
 func EqualPathNames(x, y string) bool {
 	return strings.Trim(x, "/") == strings.Trim(y, "/")
-}
-
-// DataInSecret compare given data with data stored in the vault secret
-func DataInSecret(data map[string]interface{}, path string, client *api.Client) bool {
-	// read desired secret
-	secret, err := client.Logical().Read(path)
-	if err != nil {
-		log.WithError(err).Fatal("failed to get vault secret")
-	}
-	if secret == nil {
-		return false
-	}
-	for k, v := range data {
-		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
-			dur, err := time.ParseDuration(v.(string))
-			if err != nil {
-				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
-			}
-			v = int64(dur.Seconds())
-		}
-		if fmt.Sprintf("%v", secret.Data[k]) == fmt.Sprintf("%v", v) {
-			continue
-		}
-		return false
-	}
-	return true
 }
 
 // ParseDuration parses a string duration from Vault.

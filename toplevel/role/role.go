@@ -48,10 +48,7 @@ func (e entry) Save(client *api.Client) {
 		}
 		options[k] = v
 	}
-	_, err := client.Logical().Write(path, options)
-	if err != nil {
-		log.WithField("package", "role").WithError(err).WithField("path", path).WithField("type", e.Type).Fatalf("failed to write role to Vault instance")
-	}
+	vault.WriteSecret(path, options)
 	log.WithField("package", "role").WithField("path", path).WithField("type", e.Type).Info("role is successfully written")
 }
 
@@ -102,16 +99,11 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 				// Build a list of all the existing entries.
 				for _, roleName := range secret.Data["keys"].([]interface{}) {
 					path := filepath.Join("auth", authBackend, "role", roleName.(string))
-					role, err := vault.ClientFromEnv().Logical().Read(path)
-					if err != nil {
-						log.WithField("package", "role").WithError(err).WithField("path", path).WithField("type", existingAuthBackends[authBackend].Type).Fatal("failed to read role")
-					}
-
 					existingRoles = append(existingRoles, entry{
 						Name:    roleName.(string),
 						Type:    existingAuthBackends[authBackend].Type,
 						Mount:   authBackend,
-						Options: role.Data,
+						Options: vault.ReadSecret(path).Data,
 					})
 				}
 			}
