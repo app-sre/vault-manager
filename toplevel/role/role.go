@@ -54,10 +54,7 @@ func (e entry) Save(client *api.Client) {
 
 func (e entry) Delete(client *api.Client) {
 	path := filepath.Join("auth", e.Mount, "role", e.Name)
-	_, err := client.Logical().Delete(path)
-	if err != nil {
-		log.WithField("package", "role").WithError(err).WithField("path", path).WithField("type", e.Type).Fatal("failed to delete role from Vault instance")
-	}
+	vault.DeleteSecret(path)
 	log.WithField("package", "role").WithField("path", path).WithField("type", e.Type).Info("role is successfully deleted from Vault instance")
 }
 
@@ -90,10 +87,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 		for authBackend := range existingAuthBackends {
 			// Get the secret with the existing App Roles.
 			path := filepath.Join("auth", authBackend, "role")
-			secret, err := vault.ClientFromEnv().Logical().List(path)
-			if err != nil {
-				log.WithField("package", "role").WithError(err).Fatal("failed to list roles from Vault instance")
-			}
+			secret := vault.ListSecrets(path)
 
 			if secret != nil {
 				// Build a list of all the existing entries.

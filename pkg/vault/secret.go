@@ -1,11 +1,8 @@
 package vault
 
 import (
-	"fmt"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
-	"strings"
-	"time"
 )
 
 // write secret to vault
@@ -42,27 +39,4 @@ func DeleteSecret(secretPath string) {
 	if err != nil {
 		log.WithField("package", "vault").WithError(err).WithField("path", secretPath).Fatal("failed to delete Vault secret")
 	}
-}
-
-// DataInSecret compare given data with data stored in the vault secret
-func DataInSecret(data map[string]interface{}, path string) bool {
-	// read desired secret
-	secret := ReadSecret(path)
-	if secret == nil {
-		return false
-	}
-	for k, v := range data {
-		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
-			dur, err := time.ParseDuration(v.(string))
-			if err != nil {
-				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
-			}
-			v = int64(dur.Seconds())
-		}
-		if fmt.Sprintf("%v", secret.Data[k]) == fmt.Sprintf("%v", v) {
-			continue
-		}
-		return false
-	}
-	return true
 }

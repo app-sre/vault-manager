@@ -156,6 +156,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			}
 
 			policiesMappingsToBeApplied, policiesMappingsToBeDeleted := vault.DiffItems(policyMappingsAsItems(e.PolicyMappings), policyMappingsAsItems(existingPolicyMappings))
+
 			// apply policy mappings
 			for _, pm := range policiesMappingsToBeApplied {
 				var policies []string
@@ -222,13 +223,11 @@ func disableAuth(toBeDeleted []vault.Item, dryRun bool) {
 }
 
 func writeMapping(path string, data map[string]interface{}, dryRun bool) {
-	if !vault.DataInSecret(data, path) {
-		if dryRun == true {
-			log.WithField("package", "auth").WithField("path", path).WithField("policies", data["value"]).Info("[Dry Run] policies mapping to be applied")
-		} else {
-			vault.WriteSecret(path, data)
-			log.WithField("package", "auth").WithField("path", path).WithField("policies", data["value"]).Info("policies mapping is successfully applied")
-		}
+	if dryRun == true {
+		log.WithField("package", "auth").WithField("path", path).WithField("policies", data["value"]).Info("[Dry Run] policies mapping to be applied")
+	} else {
+		vault.WriteSecret(path, data)
+		log.WithField("package", "auth").WithField("path", path).WithField("policies", data["value"]).Info("policies mapping is successfully applied")
 	}
 }
 
