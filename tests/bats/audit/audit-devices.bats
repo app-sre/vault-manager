@@ -10,7 +10,7 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"audit device successfully enabled"*"package=audit"*"path=file/"* ]]
+    [[ "${output}" == *"[Vault Audit] audit device is successfully enabled"*"path=file/"* ]]
     run vault audit list --detailed
     [ "$status" -eq 0 ]
     # check file/ is enabled

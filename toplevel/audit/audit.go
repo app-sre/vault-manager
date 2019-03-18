@@ -43,24 +43,6 @@ func (e entry) ambiguousOptions() map[string]interface{} {
 	return opts
 }
 
-func (e entry) enable(client *api.Client) {
-	if err := client.Sys().EnableAuditWithOptions(e.Path, &api.EnableAuditOptions{
-		Type:        e.Type,
-		Description: e.Description,
-		Options:     e.Options,
-	}); err != nil {
-		log.WithField("package", "audit").WithField("path", e.Path).Fatal("failed to enable audit device")
-	}
-	log.WithField("package", "audit").WithField("path", e.Path).Info("audit device successfully enabled")
-}
-
-func (e entry) disable(client *api.Client) {
-	if err := client.Sys().DisableAudit(e.Path); err != nil {
-		log.WithField("package", "audit").WithField("path", e.Path).Fatal("failed to disable audit device")
-	}
-	log.WithField("package", "audit").WithField("path", e.Path).Info("audit device successfully disabled")
-}
-
 type config struct{}
 
 var _ toplevel.Configuration = config{}
@@ -76,14 +58,10 @@ func init() {
 func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
-		log.WithField("package", "audit").WithError(err).Fatal("failed to decode audit device configuration")
+		log.WithError(err).Fatal("[Vault Audit] failed to decode audit device configuration")
 	}
 
-	// Get the existing enabled Audits Devices.
-	enabledAudits, err := vault.Client().Sys().ListAudit()
-	if err != nil {
-		log.WithField("package", "audit").WithError(err).Fatal("failed to list audit devices from Vault instance")
-	}
+	enabledAudits := vault.ListAuditDevices()
 
 	// Build a list of all the existing entries.
 	existingAudits := make([]entry, 0)
@@ -103,20 +81,25 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	if dryRun == true {
 		for _, w := range toBeWritten {
-			log.WithField("package", "audit").WithField("path", w.Key()).Infof("[Dry Run] audit-device to be enabled")
+			log.WithField("path", w.Key()).Infof("[Dry Run] [Vault Audit] audit device to be enabled")
 		}
 		for _, d := range toBeDeleted {
-			log.WithField("package", "audit").WithField("path", d.Key()).Infof("[Dry Run] audit device to be disabled")
+			log.WithField("path", d.Key()).Infof("[Dry Run] [Vault Audit] audit device to be disabled")
 		}
 	} else {
 		// Write any missing Audit Devices to the Vault instance.
 		for _, e := range toBeWritten {
-			e.(entry).enable(vault.Client())
+			ent := e.(entry)
+			vault.EnableAduitDevice(ent.Path, &api.EnableAuditOptions{
+				Type:        ent.Type,
+				Description: ent.Description,
+				Options:     ent.Options,
+			})
 		}
 
 		// Delete any Audit Devices from the Vault instance.
 		for _, e := range toBeDeleted {
-			e.(entry).disable(vault.Client())
+			vault.DisableAuditDevice(e.(entry).Path)
 		}
 	}
 }
