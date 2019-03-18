@@ -36,13 +36,13 @@ func getClient() *api.Client {
 				"secret_id": secretID,
 			})
 			if err != nil {
-				log.WithError(err).WithField("package", "vault").Fatal("failed to login to Vault with AppRole")
+				log.WithError(err).Fatal("[Vault Client] failed to login to Vault with AppRole")
 			}
 			clientToken = secret.Auth.ClientToken
 		case "token":
 			clientToken = mustGetenv("VAULT_TOKEN")
 		default:
-			log.WithField("authType", authType).Fatal("unsuported auth type")
+			log.WithField("authType", authType).Fatal("[Vault Client] unsupported auth type")
 		}
 	}
 
@@ -55,7 +55,7 @@ func WriteSecret(secretPath string, secretData map[string]interface{}) {
 	if !DataInSecret(secretData, secretPath) {
 		_, err := getClient().Logical().Write(secretPath, secretData)
 		if err != nil {
-			log.WithField("package", "vault").WithError(err).WithField("path", secretPath).Fatalf("failed to write Vault secret ")
+			log.WithError(err).WithField("path", secretPath).Fatalf("[Vault Client] failed to write Vault secret ")
 		}
 	}
 }
@@ -64,7 +64,7 @@ func WriteSecret(secretPath string, secretData map[string]interface{}) {
 func ReadSecret(secretPath string) *api.Secret {
 	secret, err := getClient().Logical().Read(secretPath)
 	if err != nil {
-		log.WithField("package", "vault").WithError(err).WithField("path", secretPath).Fatal("failed to read Vault secret")
+		log.WithError(err).WithField("path", secretPath).Fatal("[Vault Client] failed to read Vault secret")
 	}
 	return secret
 }
@@ -73,7 +73,7 @@ func ReadSecret(secretPath string) *api.Secret {
 func ListSecrets(path string) *api.Secret {
 	secretsList, err := getClient().Logical().List(path)
 	if err != nil {
-		log.WithField("package", "vault").WithError(err).WithField("path", path).Fatal("failed to list Vault secrets")
+		log.WithError(err).WithField("path", path).Fatal("[Vault Client] failed to list Vault secrets")
 	}
 	return secretsList
 }
@@ -82,7 +82,7 @@ func ListSecrets(path string) *api.Secret {
 func DeleteSecret(secretPath string) {
 	_, err := getClient().Logical().Delete(secretPath)
 	if err != nil {
-		log.WithField("package", "vault").WithError(err).WithField("path", secretPath).Fatal("failed to delete Vault secret")
+		log.WithError(err).WithField("path", secretPath).Fatal("[Vault Client] failed to delete Vault secret")
 	}
 }
 
@@ -90,7 +90,7 @@ func DeleteSecret(secretPath string) {
 func ListAuditDevices() map[string]*api.Audit {
 	enabledAuditDevices, err := getClient().Sys().ListAudit()
 	if err != nil {
-		log.WithField("package", "vault").WithError(err).Fatal("failed to list audit devices")
+		log.WithError(err).Fatal("[Vault Audit] failed to list audit devices")
 	}
 	return enabledAuditDevices
 }
@@ -98,7 +98,7 @@ func ListAuditDevices() map[string]*api.Audit {
 // enable audit device with options
 func EnableAduitDevice(path string, options *api.EnableAuditOptions) {
 	if err := getClient().Sys().EnableAuditWithOptions(path, options); err != nil {
-		log.WithField("package", "vault").WithField("path", path).Fatal("[Vault Audit] failed to enable audit device")
+		log.WithField("path", path).Fatal("[Vault Audit] failed to enable audit device")
 	}
 	log.WithField("path", path).Info("[Vault Audit] audit device is successfully enabled")
 }
@@ -106,7 +106,7 @@ func EnableAduitDevice(path string, options *api.EnableAuditOptions) {
 // disable audit device
 func DisableAuditDevice(path string) {
 	if err := getClient().Sys().DisableAudit(path); err != nil {
-		log.WithField("package", "vault").WithField("path", path).Fatal("[Vault Audit] failed to disable audit device")
+		log.WithField("path", path).Fatal("[Vault Audit] failed to disable audit device")
 	}
 	log.WithField("path", path).Info("[Vault Audit] audit device is successfully disabled")
 }
@@ -115,7 +115,7 @@ func DisableAuditDevice(path string) {
 func ListAuthBackends() map[string]*api.AuthMount {
 	existingAuthMounts, err := getClient().Sys().ListAuth()
 	if err != nil {
-		log.WithField("package", "auth").WithError(err).Fatal("failed to list auth backends from Vault instance")
+		log.WithError(err).Fatal("[Vault Auth] failed to list auth backends from Vault instance")
 	}
 	return existingAuthMounts
 }
@@ -178,7 +178,7 @@ func DeleteVaultPolicy(name string) {
 func ListSecretsEngines() map[string]*api.MountOutput {
 	existingMounts, err := getClient().Sys().ListMounts()
 	if err != nil {
-		log.WithField("package", "secrets-engine").WithError(err).Fatal("[Vault Secrets engine] failed to list Vault secrets engines")
+		log.WithError(err).Fatal("[Vault Secrets engine] failed to list Vault secrets engines")
 	}
 	return existingMounts
 }
