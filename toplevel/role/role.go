@@ -3,11 +3,11 @@
 package role
 
 import (
-	"path/filepath"
-
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+	"path/filepath"
+	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
@@ -88,18 +88,25 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			// Get the secret with the existing App Roles.
 			path := filepath.Join("auth", authBackend, "role")
 			secret := vault.ListSecrets(path)
-
 			if secret != nil {
-				// Build a list of all the existing entries.
-				for _, roleName := range secret.Data["keys"].([]interface{}) {
-					path := filepath.Join("auth", authBackend, "role", roleName.(string))
-					existingRoles = append(existingRoles, entry{
-						Name:    roleName.(string),
-						Type:    existingAuthBackends[authBackend].Type,
-						Mount:   authBackend,
-						Options: vault.ReadSecret(path).Data,
-					})
+				roles := secret.Data["keys"].([]interface{})
+				var wg sync.WaitGroup
+				sliceLen := len(roles)
+				wg.Add(sliceLen)
+				// fill existing policies array in parallel
+				for i := 0; i < sliceLen; i++ {
+					go func(i int) {
+						defer wg.Done()
+						path := filepath.Join("auth", authBackend, "role", roles[i].(string))
+						existingRoles = append(existingRoles, entry{
+							Name:    roles[i].(string),
+							Type:    existingAuthBackends[authBackend].Type,
+							Mount:   authBackend,
+							Options: vault.ReadSecret(path).Data,
+						})
+					}(i)
 				}
+				wg.Wait()
 			}
 		}
 	}

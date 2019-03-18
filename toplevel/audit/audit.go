@@ -3,12 +3,11 @@
 package audit
 
 import (
+	"github.com/app-sre/vault-manager/pkg/vault"
+	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-
-	"github.com/app-sre/vault-manager/pkg/vault"
-	"github.com/app-sre/vault-manager/toplevel"
 )
 
 type entry struct {

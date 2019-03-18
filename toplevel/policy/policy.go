@@ -7,6 +7,7 @@ import (
 	"github.com/app-sre/vault-manager/toplevel"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+	"sync"
 )
 
 type config struct{}
@@ -52,15 +53,25 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	// Build a list of all the existing entries.
 	existingPolicies := make([]entry, 0)
-	if existingPolicies != nil {
-		for _, name := range existingPolicyNames {
-			policy, err := vault.Client().Sys().GetPolicy(name)
-			if err != nil {
-				log.WithField("package", "policy").WithError(err).WithField("name", name).Fatal("failed to get existing policy from Vault instance")
-			}
-			existingPolicies = append(existingPolicies, entry{Name: name, Rules: policy})
+	if existingPolicyNames != nil {
+		var wg sync.WaitGroup
+		sliceLen := len(existingPolicyNames)
+		wg.Add(sliceLen)
+		// fill existing policies array in parallel
+		for i := 0; i < sliceLen; i++ {
+			go func(i int) {
+				defer wg.Done()
+				name := existingPolicyNames[i]
+				policy, err := vault.Client().Sys().GetPolicy(name)
+				if err != nil {
+					log.WithField("package", "policy").WithError(err).WithField("name", name).Fatal("failed to get existing policy from Vault instance")
+				}
+				existingPolicies = append(existingPolicies, entry{Name: name, Rules: policy})
+			}(i)
 		}
+		wg.Wait()
 	}
+
 	// Diff the local configuration with the Vault instance.
 	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingPolicies))
 

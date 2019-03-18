@@ -3,12 +3,12 @@
 package auth
 
 import (
-	"path/filepath"
-	"strings"
-
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+	"path/filepath"
+	"strings"
+	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
@@ -143,16 +143,26 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			existingPolicyMappings := make([]policyMapping, 0)
 			entitiesList := vault.ListSecrets(filepath.Join("/auth", e.Path, "map/teams"))
 			if entitiesList != nil {
-				for _, entity := range entitiesList.Data["keys"].([]interface{}) {
-					policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", entity.(string))
-					policiesMappedToEntity := vault.ReadSecret(policyMappingPath).Data["value"].(string)
-					policies := make([]map[string]interface{}, 0)
-					for _, policy := range strings.Split(policiesMappedToEntity, ",") {
-						policies = append(policies, map[string]interface{}{"name": policy})
-					}
-					existingPolicyMappings = append(existingPolicyMappings,
-						policyMapping{GithubTeam: map[string]interface{}{"team": entity}, Policies: policies})
+				entities := entitiesList.Data["keys"].([]interface{})
+				var wg sync.WaitGroup
+				sliceLen := len(entities)
+				wg.Add(sliceLen)
+				// fill existing policy mappings array in parallel
+				for i := 0; i < sliceLen; i++ {
+					go func(i int) {
+						defer wg.Done()
+						policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", entities[i].(string))
+						policiesMappedToEntity := vault.ReadSecret(policyMappingPath).Data["value"].(string)
+						policies := make([]map[string]interface{}, 0)
+						for _, policy := range strings.Split(policiesMappedToEntity, ",") {
+							policies = append(policies, map[string]interface{}{"name": policy})
+						}
+						existingPolicyMappings = append(existingPolicyMappings,
+							policyMapping{GithubTeam: map[string]interface{}{"team": entities[i]}, Policies: policies})
+
+					}(i)
 				}
+				wg.Wait()
 			}
 
 			policiesMappingsToBeApplied, policiesMappingsToBeDeleted := vault.DiffItems(policyMappingsAsItems(e.PolicyMappings), policyMappingsAsItems(existingPolicyMappings))
