@@ -10,6 +10,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var clientToken string
+var client *api.Client
+
 //  Client initializes a Vault client using the environment variables:
 // VAULT_ADDR, VAULT_ROLE_ID, VAULT_SECRET_ID, VAULT_TOKEN.
 //
@@ -18,8 +21,6 @@ import (
 func Client() *api.Client {
 	vaultCFG := api.DefaultConfig()
 	vaultCFG.Address = mustGetenv("VAULT_ADDR")
-	var clientToken string
-	var client *api.Client
 
 	if clientToken == "" {
 		var err error
