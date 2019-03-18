@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -54,7 +54,7 @@ func Apply(name string, cfg []byte, dryRun bool) {
 	defer configsM.RUnlock()
 	c, ok := configs[name]
 	if !ok {
-		logrus.WithField("name", name).Fatal("failed to find top-level configuration")
+		log.WithField("name", name).Fatal("failed to find top-level configuration")
 	}
 	c.Apply(cfg, dryRun)
 }

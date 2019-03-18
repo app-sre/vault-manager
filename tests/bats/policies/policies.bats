@@ -10,8 +10,8 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully wrote policy to Vault instance"*"name=app-sre-policy"* ]]
-    [[ "${output}" == *"successfully wrote policy to Vault instance"*"name=app-interface-approle-policy"* ]]
+    [[ "${output}" == *"policy successfully written to Vault instance"*"package=policy"*"name=app-sre-policy"* ]]
+    [[ "${output}" == *"policy successfully written to Vault instance"*"package=policy"*"name=app-interface-approle-policy"* ]]
 
     # check policies created
     run vault policy list

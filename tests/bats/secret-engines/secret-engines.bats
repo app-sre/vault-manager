@@ -10,8 +10,8 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully enabled mount"*"path=app-interface/"* ]]
-    [[ "${output}" == *"successfully enabled mount"*"path=app-sre/"* ]]
+    [[ "${output}" == *"successfully enabled secrets-engine"*"package=secrets-engine"*"path=app-interface/"* ]]
+    [[ "${output}" == *"successfully enabled secrets-engine"*"package=secrets-engine"*"path=app-sre/"* ]]
     # check secrets engines enabled
     run vault secrets  list -detailed
     [ "$status" -eq 0 ]

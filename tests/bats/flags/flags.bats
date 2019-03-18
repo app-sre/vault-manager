@@ -10,7 +10,7 @@ load ../helpers
     run vault-manager -dry-run
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"[Dry Run]"*"package=audit"*"entry to be written="*"file/"* ]]
+    [[ "${output}" == *"[Dry Run] audit-device to be enabled"*"package=audit"*"path=file/"* ]]
 
     run vault audit list --detailed
     [ "$status" -eq 0 ]
@@ -20,5 +20,11 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"audit successfully enabled"*"path=file/"* ]]
+    [[ "${output}" == *"audit device successfully enabled"*"package=audit"*"path=file/"* ]]
+
+    run vault audit list --detailed
+    [ "$status" -eq 0 ]
+    # check file/ is enabled
+    [[ "${output}" == *"file/"* ]]
+    [[ "${output}" == *"file_path=/var/log/vault/vault_audit.log"* ]]
 }

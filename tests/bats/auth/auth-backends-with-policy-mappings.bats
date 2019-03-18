@@ -10,10 +10,10 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully enabled auth backend"*"path=approle/"*"type=approle"* ]]
-    [[ "${output}" == *"successfully enabled auth backend"*"path=github/"*"type=github"* ]]
-    [[ "${output}" == *"auth mount successfully configured"*"path=auth/github/config"*"type=github"* ]]
-    [[ "${output}" == *"policy mapping is successfully written"*"path=/auth/github/map/teams/vault-app-sre"*"policies=app-sre-policy"* ]]
+    [[ "${output}" == *"successfully enabled auth backend"*"package=auth"*"path=approle/"*"type=approle"* ]]
+    [[ "${output}" == *"successfully enabled auth backend"*"package=auth"*"path=github/"*"type=github"* ]]
+    [[ "${output}" == *"auth backend successfully configured"*"package=auth"*"path=auth/github/config"*"type=github"* ]]
+    [[ "${output}" == *"policies mapping is successfully applied"*"package=auth"*"path=/auth/github/map/teams/vault-app-sre"*"policies=app-sre-policy"* ]]
 
     # check auth backends created
     run vault auth list

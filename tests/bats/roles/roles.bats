@@ -10,8 +10,8 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"successfully wrote role"*"path=auth/approle/role/app-interface"*"type=approle"* ]]
-    [[ "${output}" == *"successfully wrote role"*"path=auth/approle/role/vault_manager"*"type=approle"* ]]
+    [[ "${output}" == *"role is successfully written"*"package=role"*"path=auth/approle/role/app-interface"*"type=approle"* ]]
+    [[ "${output}" == *"role is successfully written"*"package=role"*"path=auth/approle/role/vault_manager"*"type=approle"* ]]
 
     # check approles created
     run vault list auth/approle/role
@@ -22,7 +22,7 @@ load ../helpers
     # check approle config
     run vault read auth/approle/role/app-interface
     [ "$status" -eq 0 ]
-    [[ "${output}" == *"token_num_uses"*"1"* ]]
+    [[ "${output}" == *"token_num_uses"*"0"* ]]
     [[ "${output}" == *"token_ttl"*"30m"* ]]
     [[ "${output}" == *"token_max_ttl"*"30m"* ]]
     [[ "${output}" == *"policies"*"[app-interface-approle-policy]"* ]]
@@ -38,7 +38,7 @@ load ../helpers
     # check approle config
     run vault read auth/approle/role/vault_manager
     [ "$status" -eq 0 ]
-    [[ "${output}" == *"token_num_uses"*"1"* ]]
+    [[ "${output}" == *"token_num_uses"*"0"* ]]
     [[ "${output}" == *"token_ttl"*"30m"* ]]
     [[ "${output}" == *"token_max_ttl"*"30m"* ]]
     [[ "${output}" == *"policies"*"[vault-manager-policy]"* ]]

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
@@ -54,16 +54,16 @@ func (e entry) enable(client *api.Client) {
 		Description: e.Description,
 		Options:     e.Options,
 	}); err != nil {
-		logrus.WithError(err).WithField("path", e.Path).Fatal("failed to enable mount")
+		log.WithField("package", "secrets-engine").WithError(err).WithField("path", e.Path).WithField("type", e.Type).Fatal("failed to enable secrets-engine")
 	}
-	logrus.WithField("path", e.Path).Info("successfully enabled mount")
+	log.WithField("package", "secrets-engine").WithField("path", e.Path).WithField("type", e.Type).Info("successfully enabled secrets-engine")
 }
 
 func (e entry) disable(client *api.Client) {
 	if err := client.Sys().Unmount(e.Path); err != nil {
-		logrus.WithError(err).WithField("path", e.Path).Fatal("failed to disable mount")
+		log.WithField("package", "secrets-engine").WithError(err).WithField("path", e.Path).WithField("type", e.Type).Fatal("failed to disable secrets-engine")
 	}
-	logrus.WithField("path", e.Path).Info("successfully disabled mount")
+	log.WithField("package", "secrets-engine").WithField("path", e.Path).WithField("type", e.Type).Info("successfully disabled secrets-engine")
 }
 
 type config struct{}
@@ -82,13 +82,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	// Unmarshal the list of configured secrets engines.
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
-		logrus.WithError(err).Fatal("failed to decode secrets engines configuration")
+		log.WithField("package", "secrets-engine").WithError(err).Fatal("failed to decode secrets engines configuration")
 	}
 
 	// List the existing secrets engines.
-	existingMounts, err := vault.ClientFromEnv().Sys().ListMounts()
+	existingMounts, err := vault.Client().Sys().ListMounts()
 	if err != nil {
-		logrus.WithError(err).Fatal("failed to list Mounts from Vault instance")
+		log.WithField("package", "secrets-engine").WithError(err).Fatal("failed to list Mounts from Vault instance")
 	}
 
 	// Build a list of all the existing entries.
@@ -108,23 +108,23 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	if dryRun == true {
 		for _, w := range toBeWritten {
-			logrus.Infof("[Dry Run]\tpackage=secrets-engine\tentry to be written='%v'", w)
+			log.WithField("package", "secrets-engine").WithField("path", w.Key()).WithField("type", w.(entry).Type).Info("[Dry Run] secrets-engine to be enabled")
 		}
 		for _, d := range toBeDeleted {
 			if !isDefaultMount(d.Key()) {
-				logrus.Infof("[Dry Run]\tpackage=secrets-engine\tentry to be deleted='%v'", d)
+				log.WithField("package", "secrets-engine").WithField("path", d.Key()).WithField("type", d.(entry).Type).Infof("[Dry Run] secrets-engine to be disabled")
 			}
 		}
 	} else {
 		// TODO(riuvshin): implement tuning
 		for _, e := range toBeWritten {
-			e.(entry).enable(vault.ClientFromEnv())
+			e.(entry).enable(vault.Client())
 		}
 
 		for _, e := range toBeDeleted {
 			ent := e.(entry)
 			if !isDefaultMount(ent.Path) {
-				ent.disable(vault.ClientFromEnv())
+				ent.disable(vault.Client())
 			}
 		}
 	}

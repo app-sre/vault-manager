@@ -2,8 +2,7 @@ package vault
 
 import (
 	"fmt"
-	"github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
 )
@@ -104,32 +103,6 @@ func EqualPathNames(x, y string) bool {
 	return strings.Trim(x, "/") == strings.Trim(y, "/")
 }
 
-// DataInSecret compare given data with data stored in the vault secret
-func DataInSecret(data map[string]interface{}, path string, client *api.Client) bool {
-	// read desired secret
-	secret, err := client.Logical().Read(path)
-	if err != nil {
-		logrus.WithError(err).Fatal("failed to get vault secret")
-	}
-	if secret == nil {
-		return false
-	}
-	for k, v := range data {
-		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
-			dur, err := time.ParseDuration(v.(string))
-			if err != nil {
-				logrus.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
-			}
-			v = int64(dur.Seconds())
-		}
-		if fmt.Sprintf("%v", secret.Data[k]) == fmt.Sprintf("%v", v) {
-			continue
-		}
-		return false
-	}
-	return true
-}
-
 // ParseDuration parses a string duration from Vault.
 // Defaults to seconds if no unit is found at the end of the string.
 func ParseDuration(duration string) (time.Duration, error) {
@@ -139,4 +112,27 @@ func ParseDuration(duration string) (time.Duration, error) {
 	}
 
 	return time.ParseDuration(duration)
+}
+
+// DataInSecret compare given data with data stored in the vault secret
+func DataInSecret(data map[string]interface{}, path string) bool {
+	// read desired secret
+	secret := ReadSecret(path)
+	if secret == nil {
+		return false
+	}
+	for k, v := range data {
+		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
+			dur, err := time.ParseDuration(v.(string))
+			if err != nil {
+				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
+			}
+			v = int64(dur.Seconds())
+		}
+		if fmt.Sprintf("%v", secret.Data[k]) == fmt.Sprintf("%v", v) {
+			continue
+		}
+		return false
+	}
+	return true
 }
