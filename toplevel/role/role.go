@@ -99,9 +99,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 					go func(i int) {
 
+						path := filepath.Join("auth", authBackend, "role", roles[i].(string))
+
 						mutex.Lock()
 
-						path := filepath.Join("auth", authBackend, "role", roles[i].(string))
 						existingRoles = append(existingRoles, entry{
 							Name:    roles[i].(string),
 							Type:    existingAuthBackends[authBackend].Type,

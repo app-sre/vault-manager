@@ -64,10 +64,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 			go func(i int) {
 
+				name := existingPolicyNames[i]
+
+				policy := vault.GetVaultPolicy(name)
+
 				mutex.Lock()
 
-				name := existingPolicyNames[i]
-				policy := vault.GetVaultPolicy(name)
 				existingPolicies = append(existingPolicies, entry{Name: name, Rules: policy})
 
 				defer bwg.Done()

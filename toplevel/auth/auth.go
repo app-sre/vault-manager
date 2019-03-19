@@ -151,14 +151,18 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 					go func(i int) {
 
-						mutex.Lock()
-
 						policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", entities[i].(string))
+
 						policiesMappedToEntity := vault.ReadSecret(policyMappingPath).Data["value"].(string)
+
 						policies := make([]map[string]interface{}, 0)
+
 						for _, policy := range strings.Split(policiesMappedToEntity, ",") {
 							policies = append(policies, map[string]interface{}{"name": policy})
 						}
+
+						mutex.Lock()
+
 						existingPolicyMappings = append(existingPolicyMappings,
 							policyMapping{GithubTeam: map[string]interface{}{"team": entities[i]}, Policies: policies})
 
