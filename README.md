@@ -21,3 +21,6 @@ remove this flag to make changes enter into effect
 ## Flags
 - `-dry-run`, default=false<br>
 runs vault-manager in dry-run mode and only print planned actions
+- `-thread-pool-size`, default=10<br>
+Some operations are running in parallel to achieve the best performance,
+so `-thread-pool-size` determine how many threads can be utilized
