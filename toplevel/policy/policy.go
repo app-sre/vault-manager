@@ -3,6 +3,7 @@
 package policy
 
 import (
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	log "github.com/sirupsen/logrus"
@@ -38,7 +39,7 @@ func (e entry) Equals(i interface{}) bool {
 	return e.Name == entry.Name && e.Rules == entry.Rules
 }
 
-func (c config) Apply(entriesBytes []byte, dryRun bool) {
+func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	// Unmarshal the list of configured secrets engines.
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
@@ -51,20 +52,31 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 	// Build a list of all the existing entries.
 	existingPolicies := make([]entry, 0)
 	if existingPolicyNames != nil {
-		var wg sync.WaitGroup
-		existingPolicyNamesLen := len(existingPolicyNames)
-		wg.Add(existingPolicyNamesLen)
+
+		var mutex = &sync.Mutex{}
+
+		bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
 		// fill existing policies array in parallel
-		for i := 0; i < existingPolicyNamesLen; i++ {
+		for i := range existingPolicyNames {
+
+			bwg.Add(1)
+
 			go func(i int) {
-				defer wg.Done()
+
+				mutex.Lock()
+
 				name := existingPolicyNames[i]
 				policy := vault.GetVaultPolicy(name)
 				existingPolicies = append(existingPolicies, entry{Name: name, Rules: policy})
+
+				defer bwg.Done()
+				defer mutex.Unlock()
 			}(i)
 		}
-		wg.Wait()
+		bwg.Wait()
 	}
+
 	// Diff the local configuration with the Vault instance.
 	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingPolicies))
 

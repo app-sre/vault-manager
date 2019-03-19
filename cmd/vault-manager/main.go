@@ -47,7 +47,10 @@ func (a ByPriority) Swap(i, j int) {
 
 func main() {
 	var dryRun bool
+	var threadPoolSize int
 	flag.BoolVar(&dryRun, "dry-run", false, "If true, will only print planned actions")
+	flag.IntVar(&threadPoolSize, "thread-pool-size", 10, "Some operations are running in parallel"+
+		" to achieve the best performance, so -thread-pool-size determine how many threads can be utilized, default is 10")
 	flag.Parse()
 
 	cfg, err := getConfig()
@@ -72,7 +75,7 @@ func main() {
 		if err != nil {
 			log.WithField("name", config.Name).Fatal("failed to remarshal configuration")
 		}
-		toplevel.Apply(config.Name, dataBytes, dryRun)
+		toplevel.Apply(config.Name, dataBytes, dryRun, threadPoolSize)
 	}
 }
 

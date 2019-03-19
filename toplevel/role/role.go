@@ -3,13 +3,13 @@
 package role
 
 import (
+	"github.com/app-sre/vault-manager/pkg/utils"
+	"github.com/app-sre/vault-manager/pkg/vault"
+	"github.com/app-sre/vault-manager/toplevel"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"path/filepath"
 	"sync"
-
-	"github.com/app-sre/vault-manager/pkg/vault"
-	"github.com/app-sre/vault-manager/toplevel"
 )
 
 type entry struct {
@@ -69,7 +69,7 @@ func init() {
 // as provided.
 //
 // This function exits the program if an error occurs.
-func (c config) Apply(entriesBytes []byte, dryRun bool) {
+func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Role] failed to decode role configuration")
@@ -87,13 +87,20 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			secret := vault.ListSecrets(path)
 			if secret != nil {
 				roles := secret.Data["keys"].([]interface{})
-				var wg sync.WaitGroup
-				sliceLen := len(roles)
-				wg.Add(sliceLen)
+
+				var mutex = &sync.Mutex{}
+
+				bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
 				// fill existing policies array in parallel
-				for i := 0; i < sliceLen; i++ {
+				for i := range roles {
+
+					bwg.Add(1)
+
 					go func(i int) {
-						defer wg.Done()
+
+						mutex.Lock()
+
 						path := filepath.Join("auth", authBackend, "role", roles[i].(string))
 						existingRoles = append(existingRoles, entry{
 							Name:    roles[i].(string),
@@ -101,9 +108,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 							Mount:   authBackend,
 							Options: vault.ReadSecret(path).Data,
 						})
+
+						defer bwg.Done()
+						defer mutex.Unlock()
 					}(i)
 				}
-				wg.Wait()
+				bwg.Wait()
 			}
 		}
 	}

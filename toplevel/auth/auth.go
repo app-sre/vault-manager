@@ -3,15 +3,15 @@
 package auth
 
 import (
+	"github.com/app-sre/vault-manager/pkg/utils"
+	"github.com/app-sre/vault-manager/pkg/vault"
+	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"github.com/app-sre/vault-manager/pkg/vault"
-	"github.com/app-sre/vault-manager/toplevel"
 )
 
 type entry struct {
@@ -83,7 +83,7 @@ func init() {
 // configured exactly as provided.
 //
 // This function exits the program if an error occurs.
-func (c config) Apply(entriesBytes []byte, dryRun bool) {
+func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	// Unmarshal the list of configured auth backends.
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
@@ -95,14 +95,31 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	// Build a array of all the existing entries.
 	existingBackends := make([]entry, 0)
+
 	if existingAuthMounts != nil {
+
+		var mutex = &sync.Mutex{}
+
+		bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
 		for path, backend := range existingAuthMounts {
-			existingBackends = append(existingBackends, entry{
-				Path:        path,
-				Type:        backend.Type,
-				Description: backend.Description,
-			})
+			bwg.Add(1)
+
+			go func(path string, backend *api.AuthMount) {
+
+				mutex.Lock()
+
+				existingBackends = append(existingBackends, entry{
+					Path:        path,
+					Type:        backend.Type,
+					Description: backend.Description,
+				})
+
+				defer bwg.Done()
+				defer mutex.Unlock()
+			}(path, backend)
 		}
+		bwg.Wait()
 	}
 
 	toBeWritten, toBeDeleted := vault.DiffItems(entriesAsItems(entries), entriesAsItems(existingBackends))
@@ -120,14 +137,22 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			existingPolicyMappings := make([]policyMapping, 0)
 			entitiesList := vault.ListSecrets(filepath.Join("/auth", e.Path, "map/teams"))
 			if entitiesList != nil {
+
+				var mutex = &sync.Mutex{}
+
 				entities := entitiesList.Data["keys"].([]interface{})
-				var wg sync.WaitGroup
-				sliceLen := len(entities)
-				wg.Add(sliceLen)
+
+				bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
 				// fill existing policy mappings array in parallel
-				for i := 0; i < sliceLen; i++ {
+				for i := range entities {
+
+					bwg.Add(1)
+
 					go func(i int) {
-						defer wg.Done()
+
+						mutex.Lock()
+
 						policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", entities[i].(string))
 						policiesMappedToEntity := vault.ReadSecret(policyMappingPath).Data["value"].(string)
 						policies := make([]map[string]interface{}, 0)
@@ -137,9 +162,11 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 						existingPolicyMappings = append(existingPolicyMappings,
 							policyMapping{GithubTeam: map[string]interface{}{"team": entities[i]}, Policies: policies})
 
+						defer bwg.Done()
+						defer mutex.Unlock()
 					}(i)
 				}
-				wg.Wait()
+				bwg.Wait()
 			}
 
 			policiesMappingsToBeApplied, policiesMappingsToBeDeleted := vault.DiffItems(policyMappingsAsItems(e.PolicyMappings), policyMappingsAsItems(existingPolicyMappings))

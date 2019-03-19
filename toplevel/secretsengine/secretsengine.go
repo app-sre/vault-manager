@@ -5,6 +5,7 @@
 package secretsengine
 
 import (
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
+	"sync"
 )
 
 type entry struct {
@@ -59,7 +61,7 @@ func init() {
 // exactly as provided.
 //
 // This function exits the program if an error occurs.
-func (c config) Apply(entriesBytes []byte, dryRun bool) {
+func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	// Unmarshal the list of configured secrets engines.
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
@@ -71,15 +73,33 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	// Build a list of all the existing entries.
 	existingSecretsEngines := make([]entry, 0)
+
 	if existingSecretsEngines != nil {
+
+		var mutex = &sync.Mutex{}
+
+		bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
 		for path, engine := range existingMounts {
-			existingSecretsEngines = append(existingSecretsEngines, entry{
-				Path:        path,
-				Type:        engine.Type,
-				Description: engine.Description,
-				Options:     engine.Options,
-			})
+
+			bwg.Add(1)
+
+			go func(path string, engine *api.MountOutput) {
+
+				mutex.Lock()
+
+				existingSecretsEngines = append(existingSecretsEngines, entry{
+					Path:        path,
+					Type:        engine.Type,
+					Description: engine.Description,
+					Options:     engine.Options,
+				})
+
+				defer bwg.Done()
+				defer mutex.Unlock()
+			}(path, engine)
 		}
+		bwg.Wait()
 	}
 
 	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingSecretsEngines))

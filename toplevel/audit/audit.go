@@ -3,11 +3,13 @@
 package audit
 
 import (
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+	"sync"
 )
 
 type entry struct {
@@ -55,7 +57,7 @@ func init() {
 // exactly as provided.
 //
 // This function exits the program if an error occurs.
-func (c config) Apply(entriesBytes []byte, dryRun bool) {
+func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Audit] failed to decode audit device configuration")
@@ -65,15 +67,34 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	// Build a list of all the existing entries.
 	existingAudits := make([]entry, 0)
+
 	if enabledAudits != nil {
-		for _, audit := range enabledAudits {
-			existingAudits = append(existingAudits, entry{
-				Path:        audit.Path,
-				Type:        audit.Type,
-				Description: audit.Description,
-				Options:     audit.Options,
-			})
+
+		var mutex = &sync.Mutex{}
+
+		bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
+		// fill existing audits array in parallel
+		for k := range enabledAudits {
+
+			bwg.Add(1)
+
+			go func(k string) {
+
+				mutex.Lock()
+
+				existingAudits = append(existingAudits, entry{
+					Path:        enabledAudits[k].Path,
+					Type:        enabledAudits[k].Type,
+					Description: enabledAudits[k].Description,
+					Options:     enabledAudits[k].Options,
+				})
+
+				defer bwg.Done()
+				defer mutex.Unlock()
+			}(k)
 		}
+		bwg.Wait()
 	}
 
 	// Diff the local configuration with the Vault instance.
