@@ -10,8 +10,8 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"role is successfully written"*"package=role"*"path=auth/approle/role/app-interface"*"type=approle"* ]]
-    [[ "${output}" == *"role is successfully written"*"package=role"*"path=auth/approle/role/vault_manager"*"type=approle"* ]]
+    [[ "${output}" == *"[Vault Role] role is successfully written"*"path=auth/approle/role/app-interface"*"type=approle"* ]]
+    [[ "${output}" == *"[Vault Role] role is successfully written"*"path=auth/approle/role/vault_manager"*"type=approle"* ]]
 
     # check approles created
     run vault list auth/approle/role

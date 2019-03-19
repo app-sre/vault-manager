@@ -3,14 +3,13 @@
 package role
 
 import (
-	"path/filepath"
-
-	"github.com/hashicorp/vault/api"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
-
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
+	"path/filepath"
+	"sync"
 )
 
 type entry struct {
@@ -38,7 +37,7 @@ func (e entry) Equals(i interface{}) bool {
 		vault.OptionsEqual(e.Options, entry.Options)
 }
 
-func (e entry) Save(client *api.Client) {
+func (e entry) Save() {
 	path := filepath.Join("auth", e.Mount, "role", e.Name)
 	options := make(map[string]interface{})
 	for k, v := range e.Options {
@@ -49,13 +48,13 @@ func (e entry) Save(client *api.Client) {
 		options[k] = v
 	}
 	vault.WriteSecret(path, options)
-	log.WithField("package", "role").WithField("path", path).WithField("type", e.Type).Info("role is successfully written")
+	log.WithField("path", path).WithField("type", e.Type).Info("[Vault Role] role is successfully written")
 }
 
-func (e entry) Delete(client *api.Client) {
+func (e entry) Delete() {
 	path := filepath.Join("auth", e.Mount, "role", e.Name)
 	vault.DeleteSecret(path)
-	log.WithField("package", "role").WithField("path", path).WithField("type", e.Type).Info("role is successfully deleted from Vault instance")
+	log.WithField("path", path).WithField("type", e.Type).Info("[Vault Role] role is successfully deleted from Vault instance")
 }
 
 type config struct{}
@@ -70,16 +69,14 @@ func init() {
 // as provided.
 //
 // This function exits the program if an error occurs.
-func (c config) Apply(entriesBytes []byte, dryRun bool) {
+func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
-		log.WithField("package", "role").WithError(err).Fatal("failed to decode role configuration")
+		log.WithError(err).Fatal("[Vault Role] failed to decode role configuration")
 	}
 
-	existingAuthBackends, err := vault.Client().Sys().ListAuth()
-	if err != nil {
-		log.WithField("package", "role").WithError(err).Fatal("failed to list auth backends from Vault instance")
-	}
+	// Get the existing auth backends
+	existingAuthBackends := vault.ListAuthBackends()
 
 	existingRoles := make([]entry, 0)
 
@@ -88,18 +85,36 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			// Get the secret with the existing App Roles.
 			path := filepath.Join("auth", authBackend, "role")
 			secret := vault.ListSecrets(path)
-
 			if secret != nil {
-				// Build a list of all the existing entries.
-				for _, roleName := range secret.Data["keys"].([]interface{}) {
-					path := filepath.Join("auth", authBackend, "role", roleName.(string))
-					existingRoles = append(existingRoles, entry{
-						Name:    roleName.(string),
-						Type:    existingAuthBackends[authBackend].Type,
-						Mount:   authBackend,
-						Options: vault.ReadSecret(path).Data,
-					})
+				roles := secret.Data["keys"].([]interface{})
+
+				var mutex = &sync.Mutex{}
+
+				bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
+				// fill existing policies array in parallel
+				for i := range roles {
+
+					bwg.Add(1)
+
+					go func(i int) {
+
+						path := filepath.Join("auth", authBackend, "role", roles[i].(string))
+
+						mutex.Lock()
+
+						existingRoles = append(existingRoles, entry{
+							Name:    roles[i].(string),
+							Type:    existingAuthBackends[authBackend].Type,
+							Mount:   authBackend,
+							Options: vault.ReadSecret(path).Data,
+						})
+
+						defer bwg.Done()
+						defer mutex.Unlock()
+					}(i)
 				}
+				bwg.Wait()
 			}
 		}
 	}
@@ -109,20 +124,20 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 
 	if dryRun == true {
 		for _, w := range entriesToBeWritten {
-			log.WithField("package", "role").WithField("name", w.Key()).WithField("type", w.(entry).Type).Info("[Dry Run] role to be written")
+			log.WithField("name", w.Key()).WithField("type", w.(entry).Type).Info("[Dry Run] [Vault Role] role to be written")
 		}
 		for _, d := range entriesToBeDeleted {
-			log.WithField("package", "role").WithField("name", d.Key()).WithField("type", d.(entry).Type).Info("[Dry Run] role to be deleted")
+			log.WithField("name", d.Key()).WithField("type", d.(entry).Type).Info("[Dry Run] [Vault Role] role to be deleted")
 		}
 	} else {
 		// Write any missing App Roles to the Vault instance.
 		for _, e := range entriesToBeWritten {
-			e.(entry).Save(vault.Client())
+			e.(entry).Save()
 		}
 
 		// Delete any App Roles from the Vault instance.
 		for _, e := range entriesToBeDeleted {
-			e.(entry).Delete(vault.Client())
+			e.(entry).Delete()
 		}
 	}
 }

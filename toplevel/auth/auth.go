@@ -3,15 +3,15 @@
 package auth
 
 import (
-	"path/filepath"
-	"strings"
-
+	"github.com/app-sre/vault-manager/pkg/utils"
+	"github.com/app-sre/vault-manager/pkg/vault"
+	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-
-	"github.com/app-sre/vault-manager/pkg/vault"
-	"github.com/app-sre/vault-manager/toplevel"
+	"path/filepath"
+	"strings"
+	"sync"
 )
 
 type entry struct {
@@ -71,26 +71,6 @@ func comparePolicies(xpolicies, ypolicies []map[string]interface{}) bool {
 	return true
 }
 
-func (e entry) enable(client *api.Client) {
-	if err := client.Sys().EnableAuthWithOptions(e.Path, &api.EnableAuthOptions{
-		Type:        e.Type,
-		Description: e.Description,
-	}); err != nil {
-		log.WithField("package", "auth").WithError(err).WithField("path", e.Path).WithField("type", e.Type).Fatal("failed to enable auth backend")
-	}
-	log.WithField("package", "auth").WithFields(log.Fields{
-		"path": e.Path,
-		"type": e.Type,
-	}).Info("successfully enabled auth backend")
-}
-
-func (e entry) disable(client *api.Client) {
-	if err := client.Sys().DisableAuth(e.Path); err != nil {
-		log.WithField("package", "auth").WithError(err).WithField("path", e.Path).WithField("type", e.Type).Fatal("failed to disable auth backend")
-	}
-	log.WithField("package", "auth").WithField("path", e.Path).WithField("type", e.Type).Info("successfully disabled auth backend")
-}
-
 type config struct{}
 
 var _ toplevel.Configuration = config{}
@@ -103,29 +83,43 @@ func init() {
 // configured exactly as provided.
 //
 // This function exits the program if an error occurs.
-func (c config) Apply(entriesBytes []byte, dryRun bool) {
+func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	// Unmarshal the list of configured auth backends.
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
-		log.WithField("package", "auth").WithError(err).Fatal("failed to decode auth backend configuration")
+		log.WithError(err).Fatal("[Vault Auth] failed to decode auth backend configuration")
 	}
 
-	// Get the existing enabled auth backends.
-	existingAuthMounts, err := vault.Client().Sys().ListAuth()
-	if err != nil {
-		log.WithField("package", "auth").WithError(err).Fatal("failed to list auth backends from Vault instance")
-	}
+	// Get the existing auth backends
+	existingAuthMounts := vault.ListAuthBackends()
 
 	// Build a array of all the existing entries.
 	existingBackends := make([]entry, 0)
+
 	if existingAuthMounts != nil {
+
+		var mutex = &sync.Mutex{}
+
+		bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
 		for path, backend := range existingAuthMounts {
-			existingBackends = append(existingBackends, entry{
-				Path:        path,
-				Type:        backend.Type,
-				Description: backend.Description,
-			})
+			bwg.Add(1)
+
+			go func(path string, backend *api.AuthMount) {
+
+				mutex.Lock()
+
+				existingBackends = append(existingBackends, entry{
+					Path:        path,
+					Type:        backend.Type,
+					Description: backend.Description,
+				})
+
+				defer bwg.Done()
+				defer mutex.Unlock()
+			}(path, backend)
 		}
+		bwg.Wait()
 	}
 
 	toBeWritten, toBeDeleted := vault.DiffItems(entriesAsItems(entries), entriesAsItems(existingBackends))
@@ -143,16 +137,40 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 			existingPolicyMappings := make([]policyMapping, 0)
 			entitiesList := vault.ListSecrets(filepath.Join("/auth", e.Path, "map/teams"))
 			if entitiesList != nil {
-				for _, entity := range entitiesList.Data["keys"].([]interface{}) {
-					policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", entity.(string))
-					policiesMappedToEntity := vault.ReadSecret(policyMappingPath).Data["value"].(string)
-					policies := make([]map[string]interface{}, 0)
-					for _, policy := range strings.Split(policiesMappedToEntity, ",") {
-						policies = append(policies, map[string]interface{}{"name": policy})
-					}
-					existingPolicyMappings = append(existingPolicyMappings,
-						policyMapping{GithubTeam: map[string]interface{}{"team": entity}, Policies: policies})
+
+				var mutex = &sync.Mutex{}
+
+				entities := entitiesList.Data["keys"].([]interface{})
+
+				bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
+				// fill existing policy mappings array in parallel
+				for i := range entities {
+
+					bwg.Add(1)
+
+					go func(i int) {
+
+						policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", entities[i].(string))
+
+						policiesMappedToEntity := vault.ReadSecret(policyMappingPath).Data["value"].(string)
+
+						policies := make([]map[string]interface{}, 0)
+
+						for _, policy := range strings.Split(policiesMappedToEntity, ",") {
+							policies = append(policies, map[string]interface{}{"name": policy})
+						}
+
+						mutex.Lock()
+
+						existingPolicyMappings = append(existingPolicyMappings,
+							policyMapping{GithubTeam: map[string]interface{}{"team": entities[i]}, Policies: policies})
+
+						defer bwg.Done()
+						defer mutex.Unlock()
+					}(i)
 				}
+				bwg.Wait()
 			}
 
 			policiesMappingsToBeApplied, policiesMappingsToBeDeleted := vault.DiffItems(policyMappingsAsItems(e.PolicyMappings), policyMappingsAsItems(existingPolicyMappings))
@@ -181,10 +199,14 @@ func (c config) Apply(entriesBytes []byte, dryRun bool) {
 func enableAuth(toBeWritten []vault.Item, dryRun bool) {
 	// TODO(riuvshin): implement auth tuning
 	for _, e := range toBeWritten {
+		ent := e.(entry)
 		if dryRun == true {
-			log.WithField("package", "auth").WithField("path", e.(entry).Path).WithField("type", e.(entry).Type).Info("[Dry Run] auth backend to be enabled")
+			log.WithField("path", ent.Path).WithField("type", ent.Type).Info("[Dry Run] [Vault Auth] auth backend to be enabled")
 		} else {
-			e.(entry).enable(vault.Client())
+			vault.EnableAuthWithOptions(ent.Path, &api.EnableAuthOptions{
+				Type:        ent.Type,
+				Description: ent.Description,
+			})
 		}
 	}
 }
@@ -197,10 +219,10 @@ func configureAuthMounts(entries []entry, dryRun bool) {
 				path := filepath.Join("auth", e.Path, name)
 				if !vault.DataInSecret(cfg, path) {
 					if dryRun == true {
-						log.WithField("package", "auth").WithField("path", path).WithField("type", e.Type).Info("[Dry Run] auth backend configuration to be written")
+						log.WithField("path", path).WithField("type", e.Type).Info("[Dry Run] [Vault Auth] auth backend configuration to be written")
 					} else {
 						vault.WriteSecret(path, cfg)
-						log.WithField("package", "auth").WithField("path", path).WithField("type", e.Type).Info("auth backend successfully configured")
+						log.WithField("path", path).WithField("type", e.Type).Info("[Vault Auth] auth backend successfully configured")
 					}
 				}
 			}
@@ -215,28 +237,19 @@ func disableAuth(toBeDeleted []vault.Item, dryRun bool) {
 			continue
 		}
 		if dryRun == true {
-			log.WithField("package", "auth").WithField("path", ent.Path).WithField("type", ent.Type).Info("[Dry Run] auth backend to be disabled")
+			log.WithField("path", ent.Path).WithField("type", ent.Type).Info("[Dry Run] [Vault Auth] auth backend to be disabled")
 		} else {
-			ent.disable(vault.Client())
+			vault.DisableAuth(ent.Path)
 		}
 	}
 }
 
 func writeMapping(path string, data map[string]interface{}, dryRun bool) {
 	if dryRun == true {
-		log.WithField("package", "auth").WithField("path", path).WithField("policies", data["value"]).Info("[Dry Run] policies mapping to be applied")
+		log.WithField("path", path).WithField("policies", data["value"]).Info("[Dry Run] [Vault Auth] policies mapping to be applied")
 	} else {
 		vault.WriteSecret(path, data)
-		log.WithField("package", "auth").WithField("path", path).WithField("policies", data["value"]).Info("policies mapping is successfully applied")
-	}
-}
-
-func deleteMapping(path string, dryRun bool) {
-	if dryRun == true {
-		log.WithField("package", "auth").WithField("path", path).Info("[Dry Run] policies mapping to be deleted")
-	} else {
-		vault.DeleteSecret(path)
-		log.WithField("package", "auth").WithField("path", path).Info("policies mapping is successfully deleted")
+		log.WithField("path", path).WithField("policies", data["value"]).Info("[Vault Auth] policies mapping is successfully applied")
 	}
 }
 func entriesAsItems(xs []entry) (items []vault.Item) {
@@ -246,6 +259,15 @@ func entriesAsItems(xs []entry) (items []vault.Item) {
 	}
 
 	return
+}
+
+func deleteMapping(path string, dryRun bool) {
+	if dryRun == true {
+		log.WithField("path", path).Info("[Dry Run] [Vault Auth] policies mapping to be deleted")
+	} else {
+		vault.DeleteSecret(path)
+		log.WithField("path", path).Info("[Vault Auth] policies mapping is successfully deleted")
+	}
 }
 
 func policyMappingsAsItems(xs []policyMapping) (items []vault.Item) {
