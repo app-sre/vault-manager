@@ -1,5 +1,5 @@
 {
-  vault_audit_backends {
+  vault_audit_backends: vault_audit_backends_v1 {
     type
     _path
     description
@@ -9,7 +9,7 @@
       }
     }
   }
-  vault_auth_backends {
+  vault_auth_backends: vault_auth_backends_v1 {
     _path
     type
     description
@@ -32,7 +32,7 @@
       }
     }
   }
-  vault_secret_engines {
+  vault_secret_engines: vault_secret_engines_v1 {
     _path
     type
     description
@@ -42,7 +42,7 @@
       }
     }
   }
-  vault_roles {
+  vault_roles: vault_roles_v1 {
     name
     type
     mount
@@ -64,7 +64,7 @@
       }
     }
   }
-  vault_policies {
+  vault_policies: vault_policies_v1 {
     name
     rules
   }
