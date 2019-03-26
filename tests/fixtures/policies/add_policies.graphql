@@ -1,5 +1,5 @@
 {
-    vault_policies {
+    vault_policies: vault_policies_v1 {
         name
         rules
     }

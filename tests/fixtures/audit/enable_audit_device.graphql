@@ -1,5 +1,5 @@
 {
-    vault_audit_backends {
+    vault_audit_backends: vault_audit_backends_v1 {
         type
         _path
         description
