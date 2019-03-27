@@ -1,5 +1,5 @@
 {
-    vault_auth_backends {
+    vault_auth_backends: vault_auth_backends_v1 {
         _path
         type
         description
