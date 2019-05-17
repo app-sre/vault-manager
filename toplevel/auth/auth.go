@@ -135,23 +135,23 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		if e.Type == "github" {
 			//Build a array of existing policy mappings for current auth mount
 			existingPolicyMappings := make([]policyMapping, 0)
-			entitiesList := vault.ListSecrets(filepath.Join("/auth", e.Path, "map/teams"))
-			if entitiesList != nil {
+			teamsList := vault.ListSecrets(filepath.Join("/auth", e.Path, "map/teams"))
+			if teamsList != nil {
 
 				var mutex = &sync.Mutex{}
 
-				entities := entitiesList.Data["keys"].([]interface{})
+				teams := teamsList.Data["keys"].([]interface{})
 
 				bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 
 				// fill existing policy mappings array in parallel
-				for i := range entities {
+				for team := range teams {
 
 					bwg.Add(1)
 
-					go func(i int) {
+					go func(team int) {
 
-						policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", entities[i].(string))
+						policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", teams[team].(string))
 
 						policiesMappedToEntity := vault.ReadSecret(policyMappingPath).Data["value"].(string)
 
@@ -164,11 +164,36 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 						mutex.Lock()
 
 						existingPolicyMappings = append(existingPolicyMappings,
-							policyMapping{GithubTeam: map[string]interface{}{"team": entities[i]}, Policies: policies})
+							policyMapping{GithubTeam: map[string]interface{}{"team": teams[team]}, Policies: policies})
 
 						defer bwg.Done()
 						defer mutex.Unlock()
-					}(i)
+					}(team)
+				}
+				bwg.Wait()
+			}
+
+			// remove all gh user policy mappings from vault
+			usersList := vault.ListSecrets(filepath.Join("/auth", e.Path, "map/users"))
+			if usersList != nil {
+
+				users := usersList.Data["keys"].([]interface{})
+
+				bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+				// remove existing gh user policy mappings in parallel
+				for user := range users {
+
+					bwg.Add(1)
+
+					go func(user int) {
+
+						policyMappingPath := filepath.Join("/auth/", e.Path, "map/users", users[user].(string))
+
+						deletePolicyMapping(policyMappingPath, dryRun)
+
+						defer bwg.Done()
+
+					}(user)
 				}
 				bwg.Wait()
 			}
@@ -184,13 +209,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 				ghTeamName := pm.(policyMapping).GithubTeam["team"].(string)
 				path := filepath.Join("/auth", e.Path, "map/teams", ghTeamName)
 				data := map[string]interface{}{"key": ghTeamName, "value": strings.Join(policies, ",")}
-				writeMapping(path, data, dryRun)
+				writePolicyMapping(path, data, dryRun)
 			}
 
 			// delete policy mappings
 			for _, pm := range policiesMappingsToBeDeleted {
 				path := filepath.Join("/auth", e.Path, "map/teams", pm.(policyMapping).GithubTeam["team"].(string))
-				deleteMapping(path, dryRun)
+				deletePolicyMapping(path, dryRun)
 			}
 		}
 	}
@@ -244,7 +269,7 @@ func disableAuth(toBeDeleted []vault.Item, dryRun bool) {
 	}
 }
 
-func writeMapping(path string, data map[string]interface{}, dryRun bool) {
+func writePolicyMapping(path string, data map[string]interface{}, dryRun bool) {
 	if dryRun == true {
 		log.WithField("path", path).WithField("policies", data["value"]).Info("[Dry Run] [Vault Auth] policies mapping to be applied")
 	} else {
@@ -261,7 +286,7 @@ func entriesAsItems(xs []entry) (items []vault.Item) {
 	return
 }
 
-func deleteMapping(path string, dryRun bool) {
+func deletePolicyMapping(path string, dryRun bool) {
 	if dryRun == true {
 		log.WithField("path", path).Info("[Dry Run] [Vault Auth] policies mapping to be deleted")
 	} else {

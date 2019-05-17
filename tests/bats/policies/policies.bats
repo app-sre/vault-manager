@@ -20,7 +20,7 @@ load ../helpers
 
     # check policies content
     echo $(vault policy read app-sre-policy) | grep -F -q 'path "devtools-osio-ci/*" { capabilities = ["create", "read", "update", "delete", "list"] } path "app-sre/*" { capabilities = ["create", "read", "update", "delete", "list"] } path "app-interface/*" { capabilities = ["create", "read", "update", "delete", "list"] }'
-    echo $(vault policy read app-interface-approle-policy) | grep -F -q 'path "app-sre/creds/*" { capabilities = ["read"] } #app-interface secrets integration path "app-interface/*" { capabilities = ["read"] }'
+    echo $(vault policy read app-interface-approle-policy) | grep -F -q 'path "app-sre/creds/*" { capabilities = ["read"] }'
 
     rerun_check
 }
