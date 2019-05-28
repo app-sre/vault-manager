@@ -13,7 +13,7 @@ load ../helpers
     [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"path=approle/"*"type=approle"* ]]
     [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"path=github/"*"type=github"* ]]
     [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"path=auth/github/config"*"type=github"* ]]
-    [[ "${output}" == *"[Vault Auth] policies mapping is successfully applied"*"path=/auth/github/map/teams/vault-app-sre"*"policies=app-sre-policy"* ]]
+    [[ "${output}" == *"[Vault Auth] policies mapping is successfully applied"*"path=/auth/github/map/teams/vault-app-sre"*"policies"*"app-sre-policy"* ]]
 
     # check auth backends created
     run vault auth list

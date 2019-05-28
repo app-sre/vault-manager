@@ -7,7 +7,7 @@ DOCKER_CONF := $(CURDIR)/.docker
 build:
 	@docker build --no-cache -t builder:$(IMAGE_TAG) -f Dockerfile.build .
 	@docker container create --name extract_$(IMAGE_TAG) builder:$(IMAGE_TAG)
-	@docker container cp extract_$(IMAGE_TAG):/go/src/github.com/app-sre/vault-manager/vault-manager vault-manager
+	@docker container cp extract_$(IMAGE_TAG):/go/vault-manager/vault-manager vault-manager
 	@docker container rm extract_$(IMAGE_TAG)
 	@docker build --no-cache -t $(IMAGE_NAME):$(IMAGE_TAG) .
 
