@@ -24,7 +24,7 @@ test: build build-test-container
 	            --rm \
 	            --net=host \
 	            -v /var/run/docker.sock:/var/run/docker.sock \
-	            -e GRAPHQL_SERVER=https://app-interface.devshift.net/graphql \
-	            -e GRAPHQL_USERNAME=${USERNAME_PRODUCTION} \
-	            -e GRAPHQL_PASSWORD=${PASSWORD_PRODUCTION} \
+	            -e GRAPHQL_SERVER=${GRAPHQL_SERVER} \
+	            -e GRAPHQL_USERNAME=${GRAPHQL_USERNAME} \
+	            -e GRAPHQL_PASSWORD=${GRAPHQL_PASSWORD} \
 	            vault-manager-test
