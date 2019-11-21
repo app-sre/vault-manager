@@ -50,14 +50,16 @@
       ... on VaultApproleOptions_v1 {
         bind_secret_id
         local_secret_ids
-        period
+        token_period
         secret_id_num_uses
         secret_id_ttl
+        token_explicit_max_ttl
         token_max_ttl
+        token_no_default_policy
         token_num_uses
         token_ttl
         token_type
-        bound_cidr_list
+        token_policies
         policies
         secret_id_bound_cidrs
         token_bound_cidrs
