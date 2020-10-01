@@ -13,7 +13,7 @@ load ../helpers
     [[ "${output}" == *"[Dry Run] [Vault Audit] audit device to be enabled"*"path=file/"* ]]
 
     run vault audit list --detailed
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 2 ]
     # check that no audit devices enabled
     [[ "${output}" != *"file/"* ]]
 

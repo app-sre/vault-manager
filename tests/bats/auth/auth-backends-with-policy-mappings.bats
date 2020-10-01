@@ -25,8 +25,8 @@ load ../helpers
     run vault read auth/github/config
     [ "$status" -eq 0 ]
     [[ "${output}" == *"organization"*"app-sre"* ]]
-    [[ "${output}" == *"ttl"*"120h"* ]]
-    [[ "${output}" == *"max_ttl"*"360h"* ]]
+    [[ "${output}" == *"ttl"*"12h"* ]]
+    [[ "${output}" == *"max_ttl"*"24h"* ]]
     [[ "${output}" == *"base_url"*""* ]]
 
     # check policy mappings

@@ -32,7 +32,6 @@ load ../helpers
     [[ "${output}" == *"bind_secret_id"*"true"* ]]
     [[ "${output}" == *"local_secret_ids"*"false"* ]]
     [[ "${output}" == *"token_bound_cidrs"*"[]"* ]]
-    [[ "${output}" == *"bound_cidr_list"*"[]"* ]]
     [[ "${output}" == *"secret_id_bound_cidrs"*"[]"* ]]
     [[ "${output}" == *"token_type"*"default"* ]]
     # check approle config
@@ -48,7 +47,6 @@ load ../helpers
     [[ "${output}" == *"bind_secret_id"*"true"* ]]
     [[ "${output}" == *"local_secret_ids"*"false"* ]]
     [[ "${output}" == *"token_bound_cidrs"*"[]"* ]]
-    [[ "${output}" == *"bound_cidr_list"*"[]"* ]]
     [[ "${output}" == *"secret_id_bound_cidrs"*"[]"* ]]
     [[ "${output}" == *"token_type"*"default"* ]]
 
