@@ -123,7 +123,7 @@ func DataInSecret(data map[string]interface{}, path string) bool {
 	}
 	for k, v := range data {
 		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
-			dur, err := time.ParseDuration(v.(string))
+			dur, err := ParseDuration(v.(string))
 			if err != nil {
 				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
 			}
