@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/go-toolset:latest as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.13.15 as builder
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go test ./...
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo ./cmd/vault-manager
