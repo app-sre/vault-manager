@@ -1,8 +1,15 @@
-.PHONY: test build-test-container build push
+.PHONY: test build-test-container build push gotest gobuild
 
 IMAGE_NAME := quay.io/app-sre/vault-manager
 IMAGE_TAG := $(shell git rev-parse --short=7 HEAD)
 DOCKER_CONF := $(CURDIR)/.docker
+GOOS := $(shell go env GOOS)
+
+gotest:
+	CGO_ENABLED=0 GOOS=$(GOOS) go test ./...
+
+gobuild: gotest
+	CGO_ENABLED=0 GOOS=$(GOOS) go build -a -installsuffix cgo ./cmd/vault-manager
 
 build:
 	@docker build --no-cache -t $(IMAGE_NAME):$(IMAGE_TAG) .
