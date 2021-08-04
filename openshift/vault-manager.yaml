@@ -1,0 +1,113 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: vault-manager
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: vault-manager
+    name: vault-manager
+  spec:
+    replicas: ${{REPLICAS}}
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
+    selector:
+      matchLabels:
+        app: vault-manager
+    template:
+      metadata:
+        labels:
+          app: vault-manager
+      spec:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                      - vault-manager
+                  topologyKey: kubernetes.io/hostname
+                weight: 100
+              - podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                      - vault-manager
+                  topologyKey: failure-domain.beta.kubernetes.io/zone
+                weight: 100
+        containers:
+        - image: ${IMAGE}:${IMAGE_TAG}
+          imagePullPolicy: Always
+          name: vault-manager
+          env:
+            - name: GRAPHQL_QUERY_FILE
+              value: ${GRAPHQL_QUERY_FILE}
+            - name: GRAPHQL_SERVER_URL
+              value: ${GRAPHQL_SERVER_URL}
+            - name: GRAPHQL_USERNAME
+              value: ${GRAPHQL_USERNAME}
+            - name: GRAPHQL_PASSWORD
+              value: ${GRAPHQL_PASSWORD}
+            - name: GRAPHQL_QUERY_FILE
+              value: ${GRAPHQL_QUERY_FILE}
+            - name: VAULT_ADDR
+              value: ${VAULT_ADDR}
+            - name: VAULT_AUTHTYPE
+              value: ${VAULT_AUTHTYPE}
+            - name: VAULT_ROLE_ID
+              value: ${VAULT_ROLE_ID}
+            - name: VAULT_SECRET_ID
+              value: ${VAULT_SECRET_ID}
+          resources:
+            requests:
+              memory: ${MEMORY_REQUESTS}
+              cpu: ${CPU_REQUESTS}
+            limits:
+              memory: ${MEMORY_LIMIT}
+              cpu: ${CPU_LIMIT}
+
+parameters:
+- name: IMAGE
+  value: quay.io/app-sre/vault-manager
+  displayName: vault-manager image
+  description: vault-manager docker image. Defaults to quay.io/app-sre/vault-manager
+- name: IMAGE_TAG
+  value: latest
+  displayName: vault-manager version
+  description: vault-manager version which defaults to latest
+- name: MEMORY_REQUESTS
+  value: 800Mi
+- name: MEMORY_LIMIT
+  value: 1Gi
+- name: CPU_REQUESTS
+  value: 500m
+- name: CPU_LIMIT
+  value: 1000m
+# These values are meant to be overridden by the
+# saas-herder parametrization
+- name: GITHUB_USERS
+  value: app-sre-bot:cs-sre-bot
+- name: GITHUB_MIRROR_URL
+  value: https://github-mirror.stage.devshift.net
+- name: CACHE_TYPE
+  value: redis
+- name: EC_SECRET_NAME
+  value: ghmirror-elasticache-stage
+- name: REDIS_SSL
+  value: 'True'
+- name: READER_ENDPOINT
+  value: ''
+  required: true
+- name: REPLICAS
+  value: '3'
