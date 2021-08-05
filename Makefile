@@ -30,4 +30,6 @@ test: build-test-container
 	            -e GRAPHQL_SERVER=https://app-interface.devshift.net/graphql \
 	            -e GRAPHQL_USERNAME=${USERNAME_PRODUCTION} \
 	            -e GRAPHQL_PASSWORD=${PASSWORD_PRODUCTION} \
+				-e QUAY_USER=${QUAY_USER} \
+				-e QUAY_TOKEN=${QUAY_TOKEN} \
 	            vault-manager-test
