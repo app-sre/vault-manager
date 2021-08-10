@@ -20,7 +20,7 @@ push:
 	@docker --config=$(DOCKER_CONF) push $(IMAGE_NAME):latest
 
 build-test-container:
-	@docker build -t vault-manager-test -f tests/Dockerfile.tests .
+	@docker --config=$(DOCKER_CONF) build -t vault-manager-test -f tests/Dockerfile.tests .
 
 test: build-test-container
 	@docker run -t \
