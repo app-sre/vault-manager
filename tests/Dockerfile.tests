@@ -2,9 +2,10 @@ FROM registry.access.redhat.com/ubi8/go-toolset:1.13.15 as builder
 COPY . .
 RUN make gobuild
 
-FROM quay.io/app-sre/centos:7
+FROM quay.io/centos/centos:7
 ENV PACKAGES="jq git docker unzip wget"
 ENV BATS_VERSION="v0.4.0"
+ENV VAULT_VERSION="1.5.4"
 
 RUN yum install -y epel-release && \
     yum install -y $PACKAGES && \
@@ -14,7 +15,7 @@ RUN git clone https://github.com/sstephenson/bats.git && \
     git --git-dir=bats/.git checkout -b $BATS_VERSION $BATS_VERSION >/dev/null && \
     bats/install.sh /usr/local
 
-RUN wget https://releases.hashicorp.com/vault/1.3.0/vault_1.3.0_linux_amd64.zip && unzip vault_1.3.0_linux_amd64.zip && mv vault /usr/bin
+RUN wget https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip && unzip vault_${VAULT_VERSION}_linux_amd64.zip && mv vault /usr/bin
 
 COPY tests/ /tests/
 COPY --from=builder /opt/app-root/src/vault-manager /bin/
