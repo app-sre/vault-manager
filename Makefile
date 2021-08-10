@@ -23,9 +23,9 @@ build-test-container:
 	@docker build -t vault-manager-test -f tests/Dockerfile.tests .
 
 test: build-test-container
+	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/vault:1.5.4
 	@docker run -t \
 	            --rm \
-				--config=$(DOCKER_CONF) \
 	            --net=host \
 	            -v /var/run/docker.sock:/var/run/docker.sock \
 	            -e GRAPHQL_SERVER=https://app-interface.devshift.net/graphql \
