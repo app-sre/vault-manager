@@ -20,7 +20,6 @@ push:
 	@docker --config=$(DOCKER_CONF) push $(IMAGE_NAME):latest
 
 build-test-container:
-	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/vault:1.5.4
 	@docker build -t vault-manager-test -f tests/Dockerfile.tests .
 
 test: build-test-container
