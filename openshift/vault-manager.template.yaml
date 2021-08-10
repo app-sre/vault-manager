@@ -1,4 +1,3 @@
----
 apiVersion: v1
 kind: Template
 metadata:
@@ -25,27 +24,6 @@ objects:
         labels:
           app: vault-manager
       spec:
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - podAffinityTerm:
-                  labelSelector:
-                    matchExpressions:
-                    - key: app
-                      operator: In
-                      values:
-                      - vault-manager
-                  topologyKey: kubernetes.io/hostname
-                weight: 100
-              - podAffinityTerm:
-                  labelSelector:
-                    matchExpressions:
-                    - key: app
-                      operator: In
-                      values:
-                      - vault-manager
-                  topologyKey: failure-domain.beta.kubernetes.io/zone
-                weight: 100
         containers:
         - image: ${IMAGE}:${IMAGE_TAG}
           imagePullPolicy: Always
@@ -87,27 +65,12 @@ parameters:
   displayName: vault-manager version
   description: vault-manager version which defaults to latest
 - name: MEMORY_REQUESTS
-  value: 800Mi
+  value: 200Mi
 - name: MEMORY_LIMIT
-  value: 1Gi
+  value: 300Mi
 - name: CPU_REQUESTS
-  value: 500m
+  value: 250m
 - name: CPU_LIMIT
-  value: 1000m
-# These values are meant to be overridden by the
-# saas-herder parametrization
-- name: GITHUB_USERS
-  value: app-sre-bot:cs-sre-bot
-- name: GITHUB_MIRROR_URL
-  value: https://github-mirror.stage.devshift.net
-- name: CACHE_TYPE
-  value: redis
-- name: EC_SECRET_NAME
-  value: ghmirror-elasticache-stage
-- name: REDIS_SSL
-  value: 'True'
-- name: READER_ENDPOINT
-  value: ''
-  required: true
+  value: 500m
 - name: REPLICAS
-  value: '3'
+  value: '1'
