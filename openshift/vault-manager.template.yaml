@@ -85,7 +85,7 @@ parameters:
 - name: MEMORY_REQUESTS
   value: 200Mi
 - name: MEMORY_LIMIT
-  value: 300Mi
+  value: 500Mi
 - name: CPU_REQUESTS
   value: 250m
 - name: CPU_LIMIT
