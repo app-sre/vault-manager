@@ -73,7 +73,6 @@ objects:
             limits:
               memory: ${MEMORY_LIMIT}
               cpu: ${CPU_LIMIT}
-
 parameters:
 - name: IMAGE
   value: quay.io/app-sre/vault-manager
