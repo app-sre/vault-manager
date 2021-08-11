@@ -31,7 +31,7 @@ objects:
           command: ["/bin/sh"]
           args: 
           - "-c"
-          - "while true; do /vault-manager; sleep 15m; done;"
+          - "while true; do /vault-manager {{ if ${DRY_RUN} == 'True' }}--dry-run{{ end }}; sleep ${RECONCILE_SLEEP_TIME}; done;"
           env:
           - name: GRAPHQL_QUERY_FILE
             value: ${GRAPHQL_QUERY_FILE}
@@ -92,3 +92,7 @@ parameters:
   value: 500m
 - name: REPLICAS
   value: '1'
+- name: RECONCILE_SLEEP_TIME
+  value: '15m'
+- name: DRY_RUN
+  value: 'False'
