@@ -31,7 +31,7 @@ objects:
           command: ["/bin/sh"]
           args: 
           - "-c"
-          - "while true; do /vault-manager -dry-run=${DRY_RUN}; sleep ${RECONCILE_SLEEP_TIME}; done;"
+          - "while true; do /vault-manager -dry-run=${DRY_RUN} -thread-pool-size=${THREAD_POOL_SIZE}; sleep ${RECONCILE_SLEEP_TIME}; done;"
           env:
           - name: GRAPHQL_QUERY_FILE
             value: ${GRAPHQL_QUERY_FILE}
@@ -101,3 +101,5 @@ parameters:
   value: vault-creds
 - name: GQL_SECRET_NAME
   value: gql-creds
+- name: THREAD_POOL_SIZE
+  value: '10'
