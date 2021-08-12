@@ -39,33 +39,33 @@ objects:
             valueFrom:
               secretKeyRef:
                 key: gql_base_url
-                name: ${VAULT_MANAGER}
+                name: ${GQL_SECRET_NAME}
           - name: GRAPHQL_USERNAME
             valueFrom:
               secretKeyRef:
                 key: gql_username
-                name: ${VAULT_MANAGER}
+                name: ${GQL_SECRET_NAME}
           - name: GRAPHQL_PASSWORD
             valueFrom:
               secretKeyRef:
                 key: gql_password
-                name: ${VAULT_MANAGER}
+                name: ${GQL_SECRET_NAME}
           - name: VAULT_ADDR
             value: ${VAULT_ADDR}
           - name: VAULT_AUTHTYPE
             valueFrom:
               secretKeyRef:
                 key: vault_auth_type
-                name: ${VAULT_MANAGER}
+                name: ${VAULT_SECRET_NAME}
           - name: VAULT_ROLE_ID
             valueFrom:
               secretKeyRef:
                 key: vault_role_id
-                name: ${VAULT_MANAGER}
+                name: ${VAULT_SECRET_NAME}
           - name: VAULT_SECRET_ID
             secretKeyRef:
                 key: vault_secret_id
-                name: ${VAULT_MANAGER}
+                name: ${VAULT_SECRET_NAME}
           resources:
             requests:
               memory: ${MEMORY_REQUESTS}
@@ -97,3 +97,7 @@ parameters:
 - name: DRY_RUN
   description: runs vault-manager in dry-run mode when true
   value: 'false'
+- name: VAULT_SECRET_NAME
+  value: vault-creds
+- name: GQL_SECRET_NAME
+  value: gql-creds
