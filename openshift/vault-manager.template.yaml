@@ -63,7 +63,8 @@ objects:
                 key: role_id
                 name: ${VAULT_SECRET_NAME}
           - name: VAULT_SECRET_ID
-            secretKeyRef:
+            valueFrom:
+              secretKeyRef:
                 key: secret_id
                 name: ${VAULT_SECRET_NAME}
           resources:
@@ -103,3 +104,8 @@ parameters:
   value: gql-creds
 - name: THREAD_POOL_SIZE
   value: '10'
+- name: GRAPHQL_QUERY_FILE
+  value: '/query.graphql'
+- name: VAULT_ADDR
+  description: vault endpoint URL
+  value: ''
