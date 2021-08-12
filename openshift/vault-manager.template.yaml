@@ -38,33 +38,33 @@ objects:
           - name: GRAPHQL_SERVER_URL
             valueFrom:
               secretKeyRef:
-                key: gql_base_url
+                key: endpoint_url
                 name: ${GQL_SECRET_NAME}
           - name: GRAPHQL_USERNAME
             valueFrom:
               secretKeyRef:
-                key: gql_username
+                key: username
                 name: ${GQL_SECRET_NAME}
           - name: GRAPHQL_PASSWORD
             valueFrom:
               secretKeyRef:
-                key: gql_password
+                key: password
                 name: ${GQL_SECRET_NAME}
           - name: VAULT_ADDR
             value: ${VAULT_ADDR}
           - name: VAULT_AUTHTYPE
             valueFrom:
               secretKeyRef:
-                key: vault_auth_type
+                key: auth_type
                 name: ${VAULT_SECRET_NAME}
           - name: VAULT_ROLE_ID
             valueFrom:
               secretKeyRef:
-                key: vault_role_id
+                key: role_id
                 name: ${VAULT_SECRET_NAME}
           - name: VAULT_SECRET_ID
             secretKeyRef:
-                key: vault_secret_id
+                key: secret_id
                 name: ${VAULT_SECRET_NAME}
           resources:
             requests:
