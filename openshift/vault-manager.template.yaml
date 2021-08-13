@@ -35,7 +35,7 @@ objects:
           env:
           - name: GRAPHQL_QUERY_FILE
             value: ${GRAPHQL_QUERY_FILE}
-          - name: GRAPHQL_SERVER_URL
+          - name: GRAPHQL_SERVER
             valueFrom:
               secretKeyRef:
                 key: endpoint_url
