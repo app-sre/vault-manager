@@ -5,15 +5,17 @@
 package secretsengine
 
 import (
+	"strings"
+
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"strings"
+
+	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
-	"sync"
 )
 
 type entry struct {
@@ -27,6 +29,10 @@ var _ vault.Item = entry{}
 
 func (e entry) Key() string {
 	return e.Path
+}
+
+func (e entry) KeyForDescription() string {
+	return e.Description
 }
 
 func (e entry) Equals(i interface{}) bool {
@@ -102,7 +108,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		bwg.Wait()
 	}
 
-	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingSecretsEngines))
+	toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(asItems(entries), asItems(existingSecretsEngines))
 
 	if dryRun == true {
 		for _, w := range toBeWritten {
@@ -113,8 +119,19 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 				log.WithField("path", d.Key()).WithField("type", d.(entry).Type).Infof("[Dry Run] [Vault Secrets engine] secrets-engine to be disabled")
 			}
 		}
+		for _, u := range toBeUpdated {
+			log.WithField("path", u.Key()).WithField("type", u.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be enabled")
+		}
 	} else {
 		// TODO(riuvshin): implement tuning
+		for _, e := range toBeUpdated {
+			ent := e.(entry)
+			vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
+				Type:        ent.Type,
+				Description: ent.Description,
+				Options:     ent.Options,
+			})
+		}
 		for _, e := range toBeWritten {
 			ent := e.(entry)
 			vault.EnableSecretsEngine(ent.Path, &api.MountInput{

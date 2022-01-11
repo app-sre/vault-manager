@@ -3,12 +3,13 @@
 package policy
 
 import (
+	"sync"
+
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"sync"
 )
 
 type config struct{}
@@ -20,8 +21,9 @@ func init() {
 }
 
 type entry struct {
-	Name  string `yaml:"name"`
-	Rules string `yaml:"rules"`
+	Name        string `yaml:"name"`
+	Rules       string `yaml:"rules"`
+	Description string `yaml:"description"`
 }
 
 var _ vault.Item = entry{}
@@ -37,6 +39,10 @@ func (e entry) Equals(i interface{}) bool {
 	}
 
 	return e.Name == entry.Name && e.Rules == entry.Rules
+}
+
+func (e entry) KeyForDescription() string {
+	return e.Description
 }
 
 func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
@@ -80,7 +86,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// Diff the local configuration with the Vault instance.
-	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingPolicies))
+	toBeWritten, toBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingPolicies))
 
 	if dryRun == true {
 		for _, w := range toBeWritten {

@@ -2,22 +2,25 @@ package vault
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Item represents a remote value stored in a Vault instance.
 type Item interface {
 	Key() string
 	Equals(interface{}) bool
+	KeyForDescription() string
 }
 
 // DiffItems is a pure function that determines what changes need to be made to
 // a Vault instance in order to reach the desired state.
-func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted []Item) {
+func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated []Item) {
 	toBeWritten = make([]Item, 0)
 	toBeDeleted = make([]Item, 0)
+	toBeUpdated = make([]Item, 0)
 
 	if len(existing) == 0 && len(desired) != 0 {
 		toBeWritten = desired
@@ -27,7 +30,11 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted []Item) {
 				toBeWritten = append(toBeWritten, item)
 			}
 		}
-
+		for _, item := range desired {
+			if !descriptionIn(item, existing) {
+				toBeUpdated = append(toBeUpdated, item)
+			}
+		}
 		for _, item := range existing {
 			if !keyIn(item, desired) {
 				toBeDeleted = append(toBeDeleted, item)
@@ -36,6 +43,15 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted []Item) {
 	}
 
 	return
+}
+
+func descriptionIn(y Item, xs []Item) bool {
+	for _, x := range xs {
+		if y.KeyForDescription() == x.KeyForDescription() {
+			return true
+		}
+	}
+	return false
 }
 
 func in(y Item, xs []Item) bool {
