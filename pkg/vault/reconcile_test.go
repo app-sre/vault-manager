@@ -64,7 +64,7 @@ func TestDiffItems(t *testing.T) {
 		},
 		{
 			description: "items with the same name get updated",
-			config:      []item{{"x", "newdata", "y"}},
+			config:      []item{{"x", "newdata", "x"}},
 			existing:    []item{{"x", "olddata", "x"}},
 			toBeWritten: []item{{"x", "newdata", "x"}},
 			toBeDeleted: []item{},
