@@ -120,10 +120,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			}
 		}
 		for _, u := range toBeUpdated {
-			log.WithField("path", u.Key()).WithField("type", u.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be enabled")
+			log.WithField("path", u.Key()).WithField("type", u.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be updated")
 		}
 	} else {
-		// TODO(riuvshin): implement tuning
 		for _, e := range toBeUpdated {
 			ent := e.(entry)
 			vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
