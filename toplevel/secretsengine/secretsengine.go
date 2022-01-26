@@ -123,14 +123,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			log.WithField("path", u.Key()).WithField("type", u.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be updated")
 		}
 	} else {
-		for _, e := range toBeUpdated {
-			ent := e.(entry)
-			vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
-				Type:        ent.Type,
-				Description: ent.Description,
-				Options:     ent.Options,
-			})
-		}
 		for _, e := range toBeWritten {
 			ent := e.(entry)
 			vault.EnableSecretsEngine(ent.Path, &api.MountInput{
@@ -139,12 +131,17 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 				Options:     ent.Options,
 			})
 		}
-
 		for _, e := range toBeDeleted {
 			ent := e.(entry)
 			if !isDefaultMount(ent.Path) {
 				vault.DisableSecretsEngine(ent.Path)
 			}
+		}
+		for _, e := range toBeUpdated {
+			ent := e.(entry)
+			vault.UpdateSecretsEngine(ent.Path, api.MountConfigInput{
+				Description: &ent.Description,
+			})
 		}
 	}
 }

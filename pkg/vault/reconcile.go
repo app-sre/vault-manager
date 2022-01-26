@@ -26,13 +26,10 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 		toBeWritten = desired
 	} else {
 		for _, item := range desired {
-			if !in(item, existing) {
-				toBeWritten = append(toBeWritten, item)
-			}
-		}
-		for _, item := range desired {
 			if !descriptionIn(item, existing) {
 				toBeUpdated = append(toBeUpdated, item)
+			} else if !in(item, existing) {
+				toBeWritten = append(toBeWritten, item)
 			}
 		}
 		for _, item := range existing {

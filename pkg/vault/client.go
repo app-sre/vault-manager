@@ -199,11 +199,14 @@ func DisableSecretsEngine(path string) {
 	log.WithField("path", path).Info("[Vault Secrets engine] successfully disabled secrets-engine")
 }
 
-func UpdateSecretsEngine(path string, mount *api.MountInput) {
-	if err := getClient().Sys().TuneMount(path, mount.Config); err != nil {
-		log.WithError(err).WithField("path", path).WithField("type", mount.Type).Fatal("[Vault Secrets engine] failed to update secrets-engine")
+//func (c *Sys) TuneMount(path string, config MountConfigInput) error {
+func UpdateSecretsEngine(path string, config api.MountConfigInput) {
+	if err := getClient().Sys().TuneMount(path, config); err != nil {
+		// log.WithError(err).WithField("path", path).WithField("type", config.).Fatal("[Vault Secrets engine] failed to update secrets-engine")
+		log.WithError(err).WithField("path", path).Fatal("[Vault Secrets engine] failed to update secrets-engine")
 	}
-	log.WithField("path", path).WithField("type", mount.Type).Info("[Vault Secrets engine] successfully updated secrets-engine")
+	// log.WithField("path", path).WithField("type", mount.Type).Info("[Vault Secrets engine] successfully updated secrets-engine")
+	log.WithField("path", path).Info("[Vault Secrets engine] successfully updated secrets-engine")
 }
 
 func mustGetenv(name string) string {
