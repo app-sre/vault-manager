@@ -27,6 +27,18 @@ func (e entry) KeyForDescription() string {
 	return e.Description
 }
 
+func (e entry) KeyForType() string {
+	return e.Type
+}
+
+// func (e entry) KeyForOptions() map[string]interface{} {
+// 	return e.Options
+// }
+
+func (e entry) AmbiguousOptions() map[string]interface{} {
+	return e.Options
+}
+
 func (e entry) Key() string {
 	return e.Name
 }

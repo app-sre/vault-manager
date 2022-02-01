@@ -21,12 +21,15 @@ type entry struct {
 	Description    string                            `yaml:"description"`
 	Settings       map[string]map[string]interface{} `yaml:"settings"`
 	PolicyMappings []policyMapping                   `yaml:"policy_mappings"`
+	Options        map[string]interface{}            `yaml:"options"`
 }
 
 type policyMapping struct {
 	GithubTeam  map[string]interface{}   `yaml:"github_team"`
 	Policies    []map[string]interface{} `yaml:"policies"`
 	Description string                   `yaml:"description"`
+	Type        string                   `yaml:"type"`
+	Options     map[string]interface{}   `yaml:"options"`
 }
 
 var _ vault.Item = entry{}
@@ -35,6 +38,14 @@ var _ vault.Item = policyMapping{}
 
 func (e entry) KeyForDescription() string {
 	return e.Description
+}
+
+func (e entry) KeyForType() string {
+	return e.Type
+}
+
+func (e entry) AmbiguousOptions() map[string]interface{} {
+	return e.Options
 }
 
 func (e entry) Key() string {
@@ -66,6 +77,14 @@ func (p policyMapping) Equals(i interface{}) bool {
 
 func (p policyMapping) KeyForDescription() string {
 	return p.Description
+}
+
+func (p policyMapping) KeyForType() string {
+	return p.Type
+}
+
+func (p policyMapping) AmbiguousOptions() map[string]interface{} {
+	return p.Options
 }
 
 func comparePolicies(xpolicies, ypolicies []map[string]interface{}) bool {

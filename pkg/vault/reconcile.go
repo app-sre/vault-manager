@@ -2,6 +2,7 @@ package vault
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -13,6 +14,8 @@ type Item interface {
 	Key() string
 	Equals(interface{}) bool
 	KeyForDescription() string
+	KeyForType() string
+	AmbiguousOptions() map[string]interface{}
 }
 
 // DiffItems is a pure function that determines what changes need to be made to
@@ -22,14 +25,21 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 	toBeDeleted = make([]Item, 0)
 	toBeUpdated = make([]Item, 0)
 
+	log.Info("Existing engines")
+	log.Info(existing)
+
 	if len(existing) == 0 && len(desired) != 0 {
 		toBeWritten = desired
 	} else {
 		for _, item := range desired {
-			if !descriptionIn(item, existing) {
-				toBeUpdated = append(toBeUpdated, item)
-			} else if !in(item, existing) {
+			if !in(item, existing) {
 				toBeWritten = append(toBeWritten, item)
+			} else if in(item, existing) {
+				if item.KeyForType() == "kv" {
+					if !descriptionIn(item, existing) || !optionsIn(item, existing) {
+						toBeUpdated = append(toBeUpdated, item)
+					}
+				}
 			}
 		}
 		for _, item := range existing {
@@ -39,7 +49,20 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 		}
 	}
 
+	log.Info("written", toBeWritten)
+	log.Info("deleted", toBeDeleted)
+	log.Info("updated", toBeUpdated)
+
 	return
+}
+
+func optionsIn(y Item, xs []Item) bool {
+	for _, x := range xs {
+		if reflect.DeepEqual(y.AmbiguousOptions(), x.AmbiguousOptions()) {
+			return true
+		}
+	}
+	return false
 }
 
 func descriptionIn(y Item, xs []Item) bool {

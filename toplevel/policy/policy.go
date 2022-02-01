@@ -21,9 +21,11 @@ func init() {
 }
 
 type entry struct {
-	Name        string `yaml:"name"`
-	Rules       string `yaml:"rules"`
-	Description string `yaml:"description"`
+	Name        string                 `yaml:"name"`
+	Rules       string                 `yaml:"rules"`
+	Description string                 `yaml:"description"`
+	Type        string                 `yaml:"type"`
+	Options     map[string]interface{} `yaml:"options"`
 }
 
 var _ vault.Item = entry{}
@@ -43,6 +45,14 @@ func (e entry) Equals(i interface{}) bool {
 
 func (e entry) KeyForDescription() string {
 	return e.Description
+}
+
+func (e entry) KeyForType() string {
+	return e.Type
+}
+
+func (e entry) AmbiguousOptions() map[string]interface{} {
+	return e.Options
 }
 
 func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {

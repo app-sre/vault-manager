@@ -35,6 +35,14 @@ func (e entry) KeyForDescription() string {
 	return e.Description
 }
 
+func (e entry) KeyForType() string {
+	return e.Type
+}
+
+func (e entry) KeyForOptions() map[string]string {
+	return e.Options
+}
+
 func (e entry) Equals(i interface{}) bool {
 	entry, ok := i.(entry)
 	if !ok {
@@ -44,10 +52,10 @@ func (e entry) Equals(i interface{}) bool {
 	return vault.EqualPathNames(e.Path, entry.Path) &&
 		e.Type == entry.Type &&
 		e.Description == entry.Description &&
-		vault.OptionsEqual(e.ambiguousOptions(), entry.ambiguousOptions())
+		vault.OptionsEqual(e.AmbiguousOptions(), entry.AmbiguousOptions())
 }
 
-func (e entry) ambiguousOptions() map[string]interface{} {
+func (e entry) AmbiguousOptions() map[string]interface{} {
 	opts := make(map[string]interface{}, len(e.Options))
 	for k, v := range e.Options {
 		opts[k] = v
