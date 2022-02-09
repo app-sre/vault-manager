@@ -3,15 +3,16 @@
 package auth
 
 import (
+	"path/filepath"
+	"strings"
+	"sync"
+
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"path/filepath"
-	"strings"
-	"sync"
 )
 
 type entry struct {
@@ -25,6 +26,8 @@ type entry struct {
 type policyMapping struct {
 	GithubTeam map[string]interface{}   `yaml:"github_team"`
 	Policies   []map[string]interface{} `yaml:"policies"`
+	Type       string                   `yaml:"type"`
+	// Description string                   `yaml:"description"`
 }
 
 var _ vault.Item = entry{}
@@ -34,6 +37,14 @@ var _ vault.Item = policyMapping{}
 func (e entry) Key() string {
 	return e.Path
 }
+
+func (e entry) KeyForType() string {
+	return e.Type
+}
+
+// func (e entry) KeyForDescription() string {
+// 	return e.Description
+// }
 
 func (e entry) Equals(i interface{}) bool {
 	entry, ok := i.(entry)
@@ -48,6 +59,14 @@ func (e entry) Equals(i interface{}) bool {
 func (p policyMapping) Key() string {
 	return p.GithubTeam["team"].(string)
 }
+
+func (p policyMapping) KeyForType() string {
+	return p.Type
+}
+
+// func (p policyMapping) KeyForDescription() string {
+// 	return p.Description
+// }
 
 func (p policyMapping) Equals(i interface{}) bool {
 	policyMapping, ok := i.(policyMapping)
@@ -122,7 +141,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		bwg.Wait()
 	}
 
-	toBeWritten, toBeDeleted := vault.DiffItems(entriesAsItems(entries), entriesAsItems(existingBackends))
+	toBeWritten, toBeDeleted, _ := vault.DiffItems(entriesAsItems(entries), entriesAsItems(existingBackends))
 
 	enableAuth(toBeWritten, dryRun)
 
@@ -198,7 +217,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 				bwg.Wait()
 			}
 
-			policiesMappingsToBeApplied, policiesMappingsToBeDeleted := vault.DiffItems(policyMappingsAsItems(e.PolicyMappings), policyMappingsAsItems(existingPolicyMappings))
+			policiesMappingsToBeApplied, policiesMappingsToBeDeleted, _ := vault.DiffItems(policyMappingsAsItems(e.PolicyMappings), policyMappingsAsItems(existingPolicyMappings))
 
 			// apply policy mappings
 			for _, pm := range policiesMappingsToBeApplied {

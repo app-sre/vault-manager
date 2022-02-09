@@ -5,15 +5,17 @@
 package secretsengine
 
 import (
+	"strings"
+
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"strings"
+
+	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
-	"sync"
 )
 
 type entry struct {
@@ -39,6 +41,14 @@ func (e entry) Equals(i interface{}) bool {
 		e.Type == entry.Type &&
 		e.Description == entry.Description &&
 		vault.OptionsEqual(e.ambiguousOptions(), entry.ambiguousOptions())
+}
+
+// func (e entry) KeyForDescription() string {
+// 	return e.Description
+// }
+
+func (e entry) KeyForType() string {
+	return e.Type
 }
 
 func (e entry) ambiguousOptions() map[string]interface{} {
@@ -102,11 +112,14 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		bwg.Wait()
 	}
 
-	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingSecretsEngines))
+	toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(asItems(entries), asItems(existingSecretsEngines))
 
 	if dryRun == true {
 		for _, w := range toBeWritten {
 			log.WithField("path", w.Key()).WithField("type", w.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be enabled")
+		}
+		for _, u := range toBeUpdated {
+			log.WithField("path", u.Key()).WithField("type", u.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be updated")
 		}
 		for _, d := range toBeDeleted {
 			if !isDefaultMount(d.Key()) {
@@ -121,6 +134,14 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 				Type:        ent.Type,
 				Description: ent.Description,
 				Options:     ent.Options,
+			})
+		}
+
+		for _, e := range toBeUpdated {
+			ent := e.(entry)
+			vault.UpdateSecretsEngine(ent.Path, api.MountConfigInput{
+				// vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
+				Description: &ent.Description,
 			})
 		}
 

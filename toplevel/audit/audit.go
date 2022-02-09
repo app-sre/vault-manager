@@ -3,13 +3,14 @@
 package audit
 
 import (
+	"sync"
+
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"sync"
 )
 
 type entry struct {
@@ -24,6 +25,14 @@ var _ vault.Item = entry{}
 func (e entry) Key() string {
 	return e.Path
 }
+
+func (e entry) KeyForType() string {
+	return e.Type
+}
+
+// func (e entry) KeyForDescription() string {
+// 	return e.Description
+// }
 
 func (e entry) Equals(i interface{}) bool {
 	entry, ok := i.(entry)
@@ -98,7 +107,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// Diff the local configuration with the Vault instance.
-	toBeWritten, toBeDeleted := vault.DiffItems(asItems(entries), asItems(existingAudits))
+	toBeWritten, toBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingAudits))
 
 	if dryRun == true {
 		for _, w := range toBeWritten {
