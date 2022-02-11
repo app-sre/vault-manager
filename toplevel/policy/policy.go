@@ -21,10 +21,10 @@ func init() {
 }
 
 type entry struct {
-	Name  string `yaml:"name"`
-	Rules string `yaml:"rules"`
-	Type  string `yaml:"type"`
-	// Description string `yaml:"description"`
+	Name        string `yaml:"name"`
+	Rules       string `yaml:"rules"`
+	Type        string `yaml:"type"`
+	Description string `yaml:"description"`
 }
 
 var _ vault.Item = entry{}
@@ -37,9 +37,9 @@ func (e entry) KeyForType() string {
 	return e.Type
 }
 
-// func (e entry) KeyForDescription() string {
-// 	return e.Description
-// }
+func (e entry) KeyForDescription() string {
+	return e.Description
+}
 
 func (e entry) Equals(i interface{}) bool {
 	entry, ok := i.(entry)

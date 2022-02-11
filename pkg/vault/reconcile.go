@@ -12,7 +12,7 @@ import (
 type Item interface {
 	Key() string
 	Equals(interface{}) bool
-	// KeyForDescription() string
+	KeyForDescription() string
 	KeyForType() string
 }
 
@@ -23,7 +23,6 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 	toBeDeleted = make([]Item, 0)
 	toBeUpdated = make([]Item, 0)
 
-	// we need to extract the names of the existing items to compare names
 	existingNames := []string{}
 	for _, existingItem := range existing {
 		existingNames = append(existingNames, existingItem.Key())
@@ -33,15 +32,17 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 		toBeWritten = desired
 	} else {
 		for _, item := range desired {
-			// if !in(item, existing) {
-			// 	toBeWritten = append(toBeWritten, item)
-			// }
+
 			if !in(item, existing) {
-				if !in2(item.Key(), existingNames) && item.KeyForType() == "kv" {
+				if !deepComparisonForName(item.Key(), existingNames) {
+					toBeWritten = append(toBeWritten, item)
+				} else if !keyDescription(item, existing) && item.KeyForType() == "kv" {
 					toBeUpdated = append(toBeUpdated, item)
 				} else {
 					toBeWritten = append(toBeWritten, item)
 				}
+			} else if in(item, existing) && !keyDescription(item, existing) && item.KeyForType() == "kv" {
+				toBeUpdated = append(toBeUpdated, item)
 			}
 
 		}
@@ -65,14 +66,11 @@ func in(y Item, xs []Item) bool {
 	return false
 }
 
-func in2(y string, xs []string) bool {
+func deepComparisonForName(y string, xs []string) bool {
 	for _, x := range xs {
 		if y == x {
 			return true
 		}
-		// if y.Equals(x) {
-		// 	return true
-		// }
 	}
 	return false
 }
@@ -86,14 +84,14 @@ func keyIn(y Item, xs []Item) bool {
 	return false
 }
 
-// func keyDescription(y Item, xs []Item) bool {
-// 	for _, x := range xs {
-// 		if y.KeyForDescription() == x.KeyForDescription() {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
+func keyDescription(y Item, xs []Item) bool {
+	for _, x := range xs {
+		if y.KeyForDescription() == x.KeyForDescription() {
+			return true
+		}
+	}
+	return false
+}
 
 // func keyTypeIn(y Item, xs []Item) bool {
 // 	for _, x := range xs {

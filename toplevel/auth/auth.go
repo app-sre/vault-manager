@@ -24,10 +24,10 @@ type entry struct {
 }
 
 type policyMapping struct {
-	GithubTeam map[string]interface{}   `yaml:"github_team"`
-	Policies   []map[string]interface{} `yaml:"policies"`
-	Type       string                   `yaml:"type"`
-	// Description string                   `yaml:"description"`
+	GithubTeam  map[string]interface{}   `yaml:"github_team"`
+	Policies    []map[string]interface{} `yaml:"policies"`
+	Type        string                   `yaml:"type"`
+	Description string                   `yaml:"description"`
 }
 
 var _ vault.Item = entry{}
@@ -42,9 +42,9 @@ func (e entry) KeyForType() string {
 	return e.Type
 }
 
-// func (e entry) KeyForDescription() string {
-// 	return e.Description
-// }
+func (e entry) KeyForDescription() string {
+	return e.Description
+}
 
 func (e entry) Equals(i interface{}) bool {
 	entry, ok := i.(entry)
@@ -64,9 +64,9 @@ func (p policyMapping) KeyForType() string {
 	return p.Type
 }
 
-// func (p policyMapping) KeyForDescription() string {
-// 	return p.Description
-// }
+func (p policyMapping) KeyForDescription() string {
+	return p.Description
+}
 
 func (p policyMapping) Equals(i interface{}) bool {
 	policyMapping, ok := i.(policyMapping)

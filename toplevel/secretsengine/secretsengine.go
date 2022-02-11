@@ -43,9 +43,9 @@ func (e entry) Equals(i interface{}) bool {
 		vault.OptionsEqual(e.ambiguousOptions(), entry.ambiguousOptions())
 }
 
-// func (e entry) KeyForDescription() string {
-// 	return e.Description
-// }
+func (e entry) KeyForDescription() string {
+	return e.Description
+}
 
 func (e entry) KeyForType() string {
 	return e.Type

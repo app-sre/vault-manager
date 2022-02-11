@@ -21,9 +21,9 @@ func (i item) KeyForType() string {
 	return i.typeName
 }
 
-// func (i item) KeyForDescription() string {
-// 	return i.description
-// }
+func (i item) KeyForDescription() string {
+	return i.description
+}
 
 func (i item) Equals(iface interface{}) bool {
 	iitem, ok := iface.(item)
@@ -83,14 +83,14 @@ func TestDiffItems(t *testing.T) {
 			toBeDeleted: []item{{"x", "x", "x", "x"}, {"y", "y", "y", "y"}},
 			toBeUpdated: []item{},
 		},
-		// {
-		// 	description: "description will only get updated and not re-created",
-		// 	config:      []item{{"x", "x", "newdata", "kv"}},
-		// 	existing:    []item{{"x", "x", "olddata", "kv"}},
-		// 	toBeWritten: []item{},
-		// 	toBeDeleted: []item{},
-		// 	toBeUpdated: []item{{"x", "x", "newdata", "kv"}},
-		// },
+		{
+			description: "description will only get updated and not re-created",
+			config:      []item{{"x", "x", "newdata", "kv"}},
+			existing:    []item{{"x", "x", "olddata", "kv"}},
+			toBeWritten: []item{},
+			toBeDeleted: []item{},
+			toBeUpdated: []item{{"x", "x", "newdata", "kv"}},
+		},
 	}
 
 	for _, tt := range table {

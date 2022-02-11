@@ -30,9 +30,9 @@ func (e entry) KeyForType() string {
 	return e.Type
 }
 
-// func (e entry) KeyForDescription() string {
-// 	return e.Description
-// }
+func (e entry) KeyForDescription() string {
+	return e.Description
+}
 
 func (e entry) Equals(i interface{}) bool {
 	entry, ok := i.(entry)
