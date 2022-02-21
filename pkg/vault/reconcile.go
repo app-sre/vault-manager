@@ -93,15 +93,6 @@ func keyDescription(y Item, xs []Item) bool {
 	return false
 }
 
-// func keyTypeIn(y Item, xs []Item) bool {
-// 	for _, x := range xs {
-// 		if y.KeyForType() == x.KeyForType() {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
-
 // OptionsEqual compares two sets of options mappings.
 func OptionsEqual(xopts, yopts map[string]interface{}) bool {
 	if len(xopts) != len(yopts) {

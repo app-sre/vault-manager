@@ -191,8 +191,7 @@ func EnableSecretsEngine(path string, mount *api.MountInput) {
 	log.WithField("path", path).WithField("type", mount.Type).Info("[Vault Secrets engine] successfully enabled secrets-engine")
 }
 
-// func UpdateSecretsEngine(path string, mount *api.MountInput) {
-// if err := getClient().Sys().Mount(path, mount); err != nil {
+// update secrets engine
 func UpdateSecretsEngine(path string, config api.MountConfigInput) {
 	if err := getClient().Sys().TuneMount(path, config); err != nil {
 		log.WithError(err).WithField("path", path).Fatal("[Vault Secrets engine] failed to update secrets-engine")
