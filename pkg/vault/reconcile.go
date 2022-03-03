@@ -2,30 +2,49 @@ package vault
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Item represents a remote value stored in a Vault instance.
 type Item interface {
 	Key() string
 	Equals(interface{}) bool
+	KeyForDescription() string
+	KeyForType() string
 }
 
 // DiffItems is a pure function that determines what changes need to be made to
 // a Vault instance in order to reach the desired state.
-func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted []Item) {
+func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated []Item) {
 	toBeWritten = make([]Item, 0)
 	toBeDeleted = make([]Item, 0)
+	toBeUpdated = make([]Item, 0)
+
+	existingNames := []string{}
+	for _, existingItem := range existing {
+		existingNames = append(existingNames, existingItem.Key())
+	}
 
 	if len(existing) == 0 && len(desired) != 0 {
 		toBeWritten = desired
 	} else {
 		for _, item := range desired {
+
 			if !in(item, existing) {
-				toBeWritten = append(toBeWritten, item)
+				if !deepComparisonForName(item.Key(), existingNames) {
+					toBeWritten = append(toBeWritten, item)
+				} else if !keyDescription(item, existing) && item.KeyForType() == "kv" {
+					toBeUpdated = append(toBeUpdated, item)
+				} else {
+					toBeWritten = append(toBeWritten, item)
+				}
+			} else if in(item, existing) && !keyDescription(item, existing) && item.KeyForType() == "kv" {
+				toBeUpdated = append(toBeUpdated, item)
 			}
+
 		}
 
 		for _, item := range existing {
@@ -47,9 +66,27 @@ func in(y Item, xs []Item) bool {
 	return false
 }
 
+func deepComparisonForName(y string, xs []string) bool {
+	for _, x := range xs {
+		if y == x {
+			return true
+		}
+	}
+	return false
+}
+
 func keyIn(y Item, xs []Item) bool {
 	for _, x := range xs {
 		if y.Key() == x.Key() {
+			return true
+		}
+	}
+	return false
+}
+
+func keyDescription(y Item, xs []Item) bool {
+	for _, x := range xs {
+		if y.KeyForDescription() == x.KeyForDescription() {
 			return true
 		}
 	}

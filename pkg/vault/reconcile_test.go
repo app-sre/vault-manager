@@ -7,12 +7,22 @@ import (
 )
 
 type item struct {
-	name string
-	data string
+	name        string
+	data        string
+	description string
+	typeName    string
 }
 
 func (i item) Key() string {
 	return i.name
+}
+
+func (i item) KeyForType() string {
+	return i.typeName
+}
+
+func (i item) KeyForDescription() string {
+	return i.description
 }
 
 func (i item) Equals(iface interface{}) bool {
@@ -31,6 +41,7 @@ func TestDiffItems(t *testing.T) {
 		existing    []item
 		toBeWritten []item
 		toBeDeleted []item
+		toBeUpdated []item
 	}{
 		{
 			description: "all nil args returns lists of len(0)",
@@ -38,42 +49,56 @@ func TestDiffItems(t *testing.T) {
 			existing:    nil,
 			toBeWritten: []item{},
 			toBeDeleted: []item{},
+			toBeUpdated: []item{},
 		},
 		{
 			description: "all config created when nothing already exists",
-			config:      []item{{"x", "x"}},
+			config:      []item{{"x", "x", "x", "x"}},
 			existing:    []item{},
-			toBeWritten: []item{{"x", "x"}},
+			toBeWritten: []item{{"x", "x", "x", "x"}},
 			toBeDeleted: []item{},
+			toBeUpdated: []item{},
 		},
 		{
 			description: "already existing items are a no-op",
-			config:      []item{{"x", "x"}},
-			existing:    []item{{"x", "x"}},
+			config:      []item{{"x", "x", "x", "x"}},
+			existing:    []item{{"x", "x", "x", "x"}},
 			toBeWritten: []item{},
 			toBeDeleted: []item{},
+			toBeUpdated: []item{},
 		},
 		{
 			description: "items with the same name get updated",
-			config:      []item{{"x", "newdata"}},
-			existing:    []item{{"x", "olddata"}},
-			toBeWritten: []item{{"x", "newdata"}},
+			config:      []item{{"x", "newdata", "x", "x"}},
+			existing:    []item{{"x", "olddata", "x", "x"}},
+			toBeWritten: []item{{"x", "newdata", "x", "x"}},
 			toBeDeleted: []item{},
+			toBeUpdated: []item{},
 		},
 		{
 			description: "empty config deletes all",
 			config:      []item{},
-			existing:    []item{{"x", "x"}, {"y", "y"}},
+			existing:    []item{{"x", "x", "x", "x"}, {"y", "y", "y", "y"}},
 			toBeWritten: []item{},
-			toBeDeleted: []item{{"x", "x"}, {"y", "y"}},
+			toBeDeleted: []item{{"x", "x", "x", "x"}, {"y", "y", "y", "y"}},
+			toBeUpdated: []item{},
+		},
+		{
+			description: "description will only get updated and not re-created",
+			config:      []item{{"x", "x", "newdata", "kv"}},
+			existing:    []item{{"x", "x", "olddata", "kv"}},
+			toBeWritten: []item{},
+			toBeDeleted: []item{},
+			toBeUpdated: []item{{"x", "x", "newdata", "kv"}},
 		},
 	}
 
 	for _, tt := range table {
 		t.Run(tt.description, func(t *testing.T) {
-			toBeWritten, toBeDeleted := DiffItems(intoInterface(tt.config), intoInterface(tt.existing))
+			toBeWritten, toBeDeleted, toBeUpdated := DiffItems(intoInterface(tt.config), intoInterface(tt.existing))
 			require.Equal(t, tt.toBeWritten, outOfInterface(toBeWritten))
 			require.Equal(t, tt.toBeDeleted, outOfInterface(toBeDeleted))
+			require.Equal(t, tt.toBeUpdated, outOfInterface(toBeUpdated))
 		})
 	}
 }
