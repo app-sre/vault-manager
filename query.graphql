@@ -21,6 +21,14 @@
           max_ttl
           ttl
         }
+        ... on VaultAuthConfigOidc_v1 {
+          oidc_discovery_url
+          oidc_client_id
+          oidc_client_secret
+          default_role
+          max_ttl
+          ttl
+        }
       }
     }
     policy_mappings {
