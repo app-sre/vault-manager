@@ -26,8 +26,6 @@
           oidc_client_id
           oidc_client_secret
           default_role
-          max_ttl
-          ttl
         }
       }
     }
@@ -71,6 +69,19 @@
         policies
         secret_id_bound_cidrs
         token_bound_cidrs
+      }
+      ... on VaultRoleOidcOptions_v1 {
+        _type
+        user_claim
+        allowed_redirect_uris
+        token_ttl
+        token_max_ttl
+        token_explicit_max_ttl
+        token_type
+        token_policies
+        token_bound_cidrs
+        token_num_uses
+        token_no_default_policy
       }
     }
   }
