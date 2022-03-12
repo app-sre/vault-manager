@@ -159,6 +159,9 @@ func DataInSecret(data map[string]interface{}, path string) bool {
 		return false
 	}
 	for k, v := range data {
+		if k == "oidc_client_secret" { // not returned from ReadSecret()
+			continue
+		}
 		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
 			dur, err := ParseDuration(v.(string))
 			if err != nil {
