@@ -54,8 +54,15 @@ func (e entry) Save() {
 		// local_secret_ids can not be changed after creation so we skip this option
 		if k == "local_secret_ids" {
 			continue
+		} else if k == "bound_claims" || k == "claim_mappings" { // initially unmarshalled as string and require further processing
+			mapped := vault.UnmarshalJsonObj(k, v)
+			if mapped == nil {
+				return
+			}
+			options[k] = mapped
+		} else {
+			options[k] = v
 		}
-		options[k] = v
 	}
 	vault.WriteSecret(path, options)
 	log.WithField("path", path).WithField("type", e.Type).Info("[Vault Role] role is successfully written")
@@ -128,7 +135,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			}
 		}
 	}
-
 	// Diff the local configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingRoles))
 
@@ -140,12 +146,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			log.WithField("name", d.Key()).WithField("type", d.(entry).Type).Info("[Dry Run] [Vault Role] role to be deleted")
 		}
 	} else {
-		// Write any missing App Roles to the Vault instance.
+		// Write any missing roles to the Vault instance.
 		for _, e := range entriesToBeWritten {
 			e.(entry).Save()
 		}
 
-		// Delete any App Roles from the Vault instance.
+		// Delete any roles from the Vault instance.
 		for _, e := range entriesToBeDeleted {
 			e.(entry).Delete()
 		}
