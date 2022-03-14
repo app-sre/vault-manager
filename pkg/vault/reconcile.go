@@ -1,7 +1,10 @@
 package vault
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -105,11 +108,19 @@ func OptionsEqual(xopts, yopts map[string]interface{}) bool {
 			return false
 		}
 
-		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
+		// option values that need to be processed as numbers
+		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") ||
+			strings.HasSuffix(k, "leeway") || k == "max_age" {
 			if !ttlEqual(fmt.Sprintf("%v", v), fmt.Sprintf("%v", xv)) {
 				return false
 			}
 			continue
+		} else if k == "bound_claims" || k == "claim_mappings" {
+			mapped := UnmarshalJsonObj(k, xv)
+			if reflect.DeepEqual(mapped, v) {
+				continue
+			}
+			return false
 		}
 
 		if fmt.Sprintf("%v", v) != fmt.Sprintf("%v", xv) {
@@ -159,20 +170,38 @@ func DataInSecret(data map[string]interface{}, path string) bool {
 		return false
 	}
 	for k, v := range data {
-		if k == "oidc_client_secret" { // not returned from ReadSecret()
-			continue
-		}
 		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
 			dur, err := ParseDuration(v.(string))
 			if err != nil {
 				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
 			}
 			v = int64(dur.Seconds())
+		} else if k == "oidc_client_secret" { // not returned from ReadSecret()
+			continue
 		}
+
 		if fmt.Sprintf("%v", secret.Data[k]) == fmt.Sprintf("%v", v) {
 			continue
 		}
 		return false
 	}
 	return true
+}
+
+// Yaml unmarshal limitation causes nested options objects to be decode as strings with json format
+// ex: `{"foo": "bar"}`
+// UnmarshalJsonObj performs unmarshal of jsons strings
+func UnmarshalJsonObj(key string, obj interface{}) map[string]interface{} {
+	var x map[string]interface{}
+	strObj, ok := obj.(string)
+	if !ok {
+		log.WithError(errors.New(fmt.Sprintf("Type conversion failed for %s", key)))
+		return nil
+	}
+	err := json.Unmarshal([]byte(strObj), &x)
+	if err != nil {
+		log.WithError(err)
+		return nil
+	}
+	return x
 }
