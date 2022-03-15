@@ -11,6 +11,12 @@
                     max_ttl
                     ttl
                 }
+                ... on VaultAuthConfigOidc_v1 {
+                    oidc_discovery_url
+                    oidc_client_id
+                    oidc_client_secret
+                    default_role
+                }
             }
         }
         policy_mappings {
@@ -43,6 +49,31 @@
                 policies
                 secret_id_bound_cidrs
                 token_bound_cidrs
+            }
+            ... on VaultRoleOidcOptions_v1 {
+                allowed_redirect_uris
+                bound_audiences
+                bound_claims
+                bound_claims_type
+                bound_subject
+                claim_mappings
+                clock_skew_leeway
+                expiration_leeway
+                groups_claim
+                not_before_leeway
+                oidc_scopes
+                role_type
+                token_ttl
+                token_max_ttl
+                token_explicit_max_ttl
+                token_type
+                token_period
+                token_policies
+                token_bound_cidrs
+                token_num_uses
+                token_no_default_policy
+                user_claim
+                verbose_oidc_logging
             }
         }
     }
