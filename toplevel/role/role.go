@@ -214,6 +214,7 @@ func pruneUnsupported(roles []entry) error {
 	if err != nil {
 		return err
 	}
+	// https://github.com/hashicorp/vault/blob/main/CHANGELOG.md#170
 	threshold, err := version.NewVersion("1.7.0")
 	if current.LessThan(threshold) {
 		for _, role := range roles {
