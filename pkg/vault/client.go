@@ -206,6 +206,15 @@ func DisableSecretsEngine(path string) {
 	log.WithField("path", path).Info("[Vault Secrets engine] successfully disabled secrets-engine")
 }
 
+// GetVaultVersion returns the vault server version
+func GetVaultVersion() string {
+	info, err := getClient().Sys().Health()
+	if err != nil {
+		log.WithError(err).Fatal("[Vault System] failed to retrieve vault system information")
+	}
+	return info.Version
+}
+
 func mustGetenv(name string) string {
 	env := os.Getenv(name)
 	if env == "" {

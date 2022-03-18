@@ -140,6 +140,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	addOptionalOidcDefaults(entries)
+	pruneUnsupported(entries)
 
 	// Diff the local configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingRoles))
@@ -198,6 +199,17 @@ func addOptionalOidcDefaults(roles []entry) {
 				if role.Options[k] == nil {
 					role.Options[k] = v
 				}
+			}
+		}
+	}
+}
+
+// remove attributes not supported in commercial but in fedramp variant
+func pruneUnsupported(roles []entry) {
+	if vault.GetVaultVersion() == "1.5.4" {
+		for _, role := range roles {
+			if strings.ToLower(role.Type) == "oidc" {
+				delete(role.Options, "max_age")
 			}
 		}
 	}
