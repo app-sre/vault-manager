@@ -10,6 +10,7 @@ import (
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
+	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -140,7 +141,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	addOptionalOidcDefaults(entries)
-	pruneUnsupported(entries)
+	err := pruneUnsupported(entries)
+	if err != nil {
+		log.WithError(err).Fatal("[Vault Role] failed to determine vault version")
+	}
 
 	// Diff the local configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingRoles))
@@ -205,12 +209,18 @@ func addOptionalOidcDefaults(roles []entry) {
 }
 
 // remove attributes not supported in commercial but in fedramp variant
-func pruneUnsupported(roles []entry) {
-	if vault.GetVaultVersion() == "1.5.4" {
+func pruneUnsupported(roles []entry) error {
+	current, err := version.NewVersion(vault.GetVaultVersion())
+	if err != nil {
+		return err
+	}
+	threshold, err := version.NewVersion("1.7.0")
+	if current.LessThan(threshold) {
 		for _, role := range roles {
 			if strings.ToLower(role.Type) == "oidc" {
 				delete(role.Options, "max_age")
 			}
 		}
 	}
+	return nil
 }
