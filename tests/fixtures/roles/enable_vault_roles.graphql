@@ -60,6 +60,7 @@
                 clock_skew_leeway
                 expiration_leeway
                 groups_claim
+                max_age
                 not_before_leeway
                 oidc_scopes
                 role_type

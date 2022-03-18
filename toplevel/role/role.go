@@ -4,6 +4,7 @@ package role
 
 import (
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
@@ -54,9 +55,11 @@ func (e entry) Save() {
 		// local_secret_ids can not be changed after creation so we skip this option
 		if k == "local_secret_ids" {
 			continue
-		} else if k == "bound_claims" || k == "claim_mappings" { // initially unmarshalled as string and require further processing
-			mapped := vault.UnmarshalJsonObj(k, v)
-			if mapped == nil {
+			// initially unmarshalled as string or nil and require further processing
+		} else if k == "bound_claims" || k == "claim_mappings" {
+			mapped, err := vault.UnmarshalJsonObj(k, v)
+			if err != nil {
+				log.WithError(err)
 				return
 			}
 			options[k] = mapped
@@ -135,6 +138,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			}
 		}
 	}
+
+	addOptionalOidcDefaults(entries)
+	pruneUnsupported(entries)
+
 	// Diff the local configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingRoles))
 
@@ -165,4 +172,45 @@ func asItems(xs []entry) (items []vault.Item) {
 	}
 
 	return
+}
+
+// addOptionalOidcDefaults adds optional attributes and corresponding default values to desired oidc roles
+// this circumvents defining every attribute within desired oidc roles
+func addOptionalOidcDefaults(roles []entry) {
+	defaults := map[string]interface{}{
+		"bound_audiences":      []string{},
+		"bound_claims":         nil,
+		"bound_claims_type":    "string",
+		"bound_subject":        "",
+		"claim_mappings":       nil,
+		"clock_skew_leeway":    0,
+		"expiration_leeway":    0,
+		"groups_claim":         "",
+		"max_age":              0,
+		"not_before_leeway":    0,
+		"oidc_scopes":          []string{},
+		"verbose_oidc_logging": false,
+	}
+	for _, role := range roles {
+		if strings.ToLower(role.Type) == "oidc" {
+			for k, v := range defaults {
+				// denotes that attr was not included in definition and graphql assigned nil
+				// valid check because all attrs in default do not have nil as a default value
+				if role.Options[k] == nil {
+					role.Options[k] = v
+				}
+			}
+		}
+	}
+}
+
+// remove attributes not supported in commercial but in fedramp variant
+func pruneUnsupported(roles []entry) {
+	if vault.GetVaultVersion() == "1.5.4" {
+		for _, role := range roles {
+			if strings.ToLower(role.Type) == "oidc" {
+				delete(role.Options, "max_age")
+			}
+		}
+	}
 }

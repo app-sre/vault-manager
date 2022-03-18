@@ -18,7 +18,6 @@ var client *api.Client
 func getClient() *api.Client {
 	vaultCFG := api.DefaultConfig()
 	vaultCFG.Address = mustGetenv("VAULT_ADDR")
-
 	if clientToken == "" {
 		var err error
 		client, err = api.NewClient(vaultCFG)
@@ -205,6 +204,15 @@ func DisableSecretsEngine(path string) {
 		log.WithError(err).WithField("path", path).Fatal("[Vault Secrets engine] failed to disable secrets-engine")
 	}
 	log.WithField("path", path).Info("[Vault Secrets engine] successfully disabled secrets-engine")
+}
+
+// GetVaultVersion returns the vault server version
+func GetVaultVersion() string {
+	info, err := getClient().Sys().Health()
+	if err != nil {
+		log.WithError(err).Fatal("[Vault System] failed to retrieve vault system information")
+	}
+	return info.Version
 }
 
 func mustGetenv(name string) string {
