@@ -195,7 +195,7 @@ func addOptionalOidcDefaults(roles []entry) {
 		if strings.ToLower(role.Type) == "oidc" {
 			for k, v := range defaults {
 				// denotes that attr was not included in definition and graphql assigned nil
-				// valid check because all attrs in default do not have nil as a default value
+				// proceed with assigning default value that api would assign if attribute was omitted
 				if role.Options[k] == nil {
 					role.Options[k] = v
 				}
