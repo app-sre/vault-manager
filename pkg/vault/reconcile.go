@@ -1,7 +1,10 @@
 package vault
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -105,11 +108,26 @@ func OptionsEqual(xopts, yopts map[string]interface{}) bool {
 			return false
 		}
 
-		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
+		// option values that need to be processed as numbers
+		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") ||
+			strings.HasSuffix(k, "leeway") || k == "max_age" {
 			if !ttlEqual(fmt.Sprintf("%v", v), fmt.Sprintf("%v", xv)) {
 				return false
 			}
 			continue
+		} else if k == "bound_claims" || k == "claim_mappings" {
+			if xv == nil && v == nil {
+				continue
+			}
+			mapped, err := UnmarshalJsonObj(k, xv)
+			if err != nil {
+				log.WithError(err)
+				return false
+			}
+			if reflect.DeepEqual(mapped, v) {
+				continue
+			}
+			return false
 		}
 
 		if fmt.Sprintf("%v", v) != fmt.Sprintf("%v", xv) {
@@ -165,11 +183,33 @@ func DataInSecret(data map[string]interface{}, path string) bool {
 				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
 			}
 			v = int64(dur.Seconds())
+		} else if k == "oidc_client_secret" { // not returned from ReadSecret()
+			continue
 		}
+
 		if fmt.Sprintf("%v", secret.Data[k]) == fmt.Sprintf("%v", v) {
 			continue
 		}
 		return false
 	}
 	return true
+}
+
+// Yaml unmarshal limitation causes nested options objects to be decode as strings with json format
+// ex: `{"foo": "bar"}`
+// UnmarshalJsonObj performs unmarshal of jsons strings
+func UnmarshalJsonObj(key string, obj interface{}) (map[string]interface{}, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	strObj, ok := obj.(string)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("Type conversion failed for %s", key))
+	}
+	var unmarshalled map[string]interface{}
+	err := json.Unmarshal([]byte(strObj), &unmarshalled)
+	if err != nil {
+		return nil, err
+	}
+	return unmarshalled, nil
 }

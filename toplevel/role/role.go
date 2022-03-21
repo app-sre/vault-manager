@@ -4,11 +4,13 @@ package role
 
 import (
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
+	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -54,8 +56,17 @@ func (e entry) Save() {
 		// local_secret_ids can not be changed after creation so we skip this option
 		if k == "local_secret_ids" {
 			continue
+			// initially unmarshalled as string or nil and require further processing
+		} else if k == "bound_claims" || k == "claim_mappings" {
+			mapped, err := vault.UnmarshalJsonObj(k, v)
+			if err != nil {
+				log.WithError(err)
+				return
+			}
+			options[k] = mapped
+		} else {
+			options[k] = v
 		}
-		options[k] = v
 	}
 	vault.WriteSecret(path, options)
 	log.WithField("path", path).WithField("type", e.Type).Info("[Vault Role] role is successfully written")
@@ -129,6 +140,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		}
 	}
 
+	addOptionalOidcDefaults(entries)
+	err := pruneUnsupported(entries)
+	if err != nil {
+		log.WithError(err).Fatal("[Vault Role] failed to determine vault version")
+	}
+
 	// Diff the local configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingRoles))
 
@@ -140,12 +157,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			log.WithField("name", d.Key()).WithField("type", d.(entry).Type).Info("[Dry Run] [Vault Role] role to be deleted")
 		}
 	} else {
-		// Write any missing App Roles to the Vault instance.
+		// Write any missing roles to the Vault instance.
 		for _, e := range entriesToBeWritten {
 			e.(entry).Save()
 		}
 
-		// Delete any App Roles from the Vault instance.
+		// Delete any roles from the Vault instance.
 		for _, e := range entriesToBeDeleted {
 			e.(entry).Delete()
 		}
@@ -159,4 +176,52 @@ func asItems(xs []entry) (items []vault.Item) {
 	}
 
 	return
+}
+
+// addOptionalOidcDefaults adds optional attributes and corresponding default values to desired oidc roles
+// this circumvents defining every attribute within desired oidc roles
+func addOptionalOidcDefaults(roles []entry) {
+	defaults := map[string]interface{}{
+		"bound_audiences":      []string{},
+		"bound_claims":         nil,
+		"bound_claims_type":    "string",
+		"bound_subject":        "",
+		"claim_mappings":       nil,
+		"clock_skew_leeway":    0,
+		"expiration_leeway":    0,
+		"groups_claim":         "",
+		"max_age":              0,
+		"not_before_leeway":    0,
+		"oidc_scopes":          []string{},
+		"verbose_oidc_logging": false,
+	}
+	for _, role := range roles {
+		if strings.ToLower(role.Type) == "oidc" {
+			for k, v := range defaults {
+				// denotes that attr was not included in definition and graphql assigned nil
+				// proceed with assigning default value that api would assign if attribute was omitted
+				if role.Options[k] == nil {
+					role.Options[k] = v
+				}
+			}
+		}
+	}
+}
+
+// remove attributes not supported in commercial but in fedramp variant
+func pruneUnsupported(roles []entry) error {
+	current, err := version.NewVersion(vault.GetVaultVersion())
+	if err != nil {
+		return err
+	}
+	// https://github.com/hashicorp/vault/blob/main/CHANGELOG.md#170
+	threshold, err := version.NewVersion("1.7.0")
+	if current.LessThan(threshold) {
+		for _, role := range roles {
+			if strings.ToLower(role.Type) == "oidc" {
+				delete(role.Options, "max_age")
+			}
+		}
+	}
+	return nil
 }
