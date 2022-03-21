@@ -1,8 +1,6 @@
 package vault
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -116,15 +114,7 @@ func OptionsEqual(xopts, yopts map[string]interface{}) bool {
 			}
 			continue
 		} else if k == "bound_claims" || k == "claim_mappings" {
-			if xv == nil && v == nil {
-				continue
-			}
-			mapped, err := UnmarshalJsonObj(k, xv)
-			if err != nil {
-				log.WithError(err)
-				return false
-			}
-			if reflect.DeepEqual(mapped, v) {
+			if reflect.DeepEqual(xv, v) {
 				continue
 			}
 			return false
@@ -193,23 +183,4 @@ func DataInSecret(data map[string]interface{}, path string) bool {
 		return false
 	}
 	return true
-}
-
-// Yaml unmarshal limitation causes nested options objects to be decode as strings with json format
-// ex: `{"foo": "bar"}`
-// UnmarshalJsonObj performs unmarshal of jsons strings
-func UnmarshalJsonObj(key string, obj interface{}) (map[string]interface{}, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	strObj, ok := obj.(string)
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("Type conversion failed for %s", key))
-	}
-	var unmarshalled map[string]interface{}
-	err := json.Unmarshal([]byte(strObj), &unmarshalled)
-	if err != nil {
-		return nil, err
-	}
-	return unmarshalled, nil
 }
