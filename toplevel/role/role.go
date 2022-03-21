@@ -138,13 +138,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Role] failed to determine vault version")
 	}
+
 	err = unmarshallOptionObjects(entries)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Role] failed to unmarshal oidc options of desired role")
-	}
-	err = unmarshallOptionObjects(existingRoles)
-	if err != nil {
-		log.WithError(err).Fatal("[Vault Role] failed to unmarshal oidc options of existing role")
 	}
 
 	err = unmarshallOptionObjects(entries)
