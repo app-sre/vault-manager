@@ -102,4 +102,19 @@
     name
     rules
   }
+  vault_entities: vault_entities_v1 {
+    name
+    mount
+    type
+    policies
+    metadata
+    disabled
+    aliases {
+      ... on VaultEntityAlias_v1 {
+        name
+        auth_type
+        custom_metadata
+      }
+    }
+  }
 }

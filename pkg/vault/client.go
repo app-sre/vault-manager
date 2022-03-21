@@ -3,6 +3,7 @@
 package vault
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -213,6 +214,30 @@ func GetVaultVersion() string {
 		log.WithError(err).Fatal("[Vault System] failed to retrieve vault system information")
 	}
 	return info.Version
+}
+
+func ListEntities() map[string]interface{} {
+	existingEntities, err := getClient().Logical().List("identity/entity/id")
+	if err != nil {
+		log.WithError(err).Fatal("[Vault Identity] failed to list Vault entities")
+	}
+	return existingEntities.Data
+}
+
+func GetEntityInfo(id string) map[string]interface{} {
+	entity, err := getClient().Logical().Read(fmt.Sprintf("identity/entity/id/%s", id))
+	if err != nil {
+		log.WithError(err).Fatal("[Vault Identity] failed to get info for entity: %s", id)
+	}
+	return entity.Data
+}
+
+func GetEntityAliasInfo(id string) map[string]interface{} {
+	entityAlias, err := getClient().Logical().Read(fmt.Sprintf("identity/entity-alias/id/%s", id))
+	if err != nil {
+		log.WithError(err).Fatal("[Vault Identity] failed to get info for entity alias: %s", id)
+	}
+	return entityAlias.Data
 }
 
 func mustGetenv(name string) string {
