@@ -138,13 +138,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Role] failed to determine vault version")
 	}
+
 	err = unmarshallOptionObjects(entries)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Role] failed to unmarshal oidc options of desired role")
-	}
-	err = unmarshallOptionObjects(existingRoles)
-	if err != nil {
-		log.WithError(err).Fatal("[Vault Role] failed to unmarshal oidc options of existing role")
 	}
 
 	// Diff the local configuration with the Vault instance.
@@ -187,6 +184,12 @@ func unmarshallOptionObjects(roles []entry) error {
 					converted, err := utils.UnmarshalJsonObj(k, role.Options[k])
 					if err != nil {
 						return err
+					}
+					// avoid assignment if result of unmarshal call is nil bc it will
+					// set type of option[k] to map[string]interface{}
+					// causing failure in reflect.deepequal check even when both are nil
+					if converted == nil {
+						continue
 					}
 					role.Options[k] = converted
 				}
