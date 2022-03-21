@@ -176,6 +176,8 @@ func asItems(xs []entry) (items []vault.Item) {
 	return
 }
 
+// unmarshals select options attributes which are defined within schema as objects
+// limitation within yaml unmarshal causes theses attributes to be initially unmarshalled as strings
 func unmarshallOptionObjects(roles []entry) error {
 	for _, role := range roles {
 		if strings.ToLower(role.Type) == "oidc" {
