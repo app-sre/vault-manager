@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
@@ -120,17 +119,35 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
 
-	// Get the existing entities
+	// Process data on existing entities/aliases
 	listEntitiesResult := vault.ListEntities()
 	existingEntities, err := createBaseExistingEntities(listEntitiesResult)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
 	}
-	err = getExistingEntitiesDetails(existingEntities, threadPoolSize)
+	customMetadataSupported, err := isCustomMetadataSupported()
+	if err != nil {
+		log.WithError(err).Fatal("[Vault Identity] failed to determine vault version")
+	}
+	err = getExistingEntitiesDetails(existingEntities, threadPoolSize, customMetadataSupported)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to retrieve details for existing entities")
 	}
-
+	for _, entity := range existingEntities {
+		fmt.Println(entity.Name)
+		fmt.Println("\t", entity.Id)
+		fmt.Println("\t", entity.Type)
+		fmt.Println("\t", entity.Metadata)
+		fmt.Println("\t", entity.Policies)
+		fmt.Println("\t", entity.Disabled)
+		for _, alias := range entity.Aliases {
+			fmt.Println("\t\t", alias.Name)
+			fmt.Println("\t\t", alias.Id)
+			fmt.Println("\t\t", alias.AccessorId)
+			fmt.Println("\t\t", alias.Type)
+			fmt.Println("\t\t", alias.CustomMetadata.(map[string]interface{}))
+		}
+	}
 }
 
 func createBaseExistingEntities(raw map[string]interface{}) ([]entry, error) {
@@ -195,25 +212,23 @@ func createBaseExistingEntities(raw map[string]interface{}) ([]entry, error) {
 	return processed, nil
 }
 
-func getExistingEntitiesDetails(entities []entry, threadPoolSize int) error {
-	var mutex = &sync.Mutex{}
+func getExistingEntitiesDetails(entities []entry, threadPoolSize int, customMetadataSupported bool) error {
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 
-	for _, entity := range entities {
+	for i := 0; i < len(entities); i++ {
 		bwg.Add(1)
 
-		go func(id string) {
-			mutex.Lock()
+		go func(entity *entry) {
+			defer bwg.Done()
 
-			info := vault.GetEntityInfo(id)
+			info := vault.GetEntityInfo(entity.Id)
 
 			if _, exists := info["disabled"]; !exists {
-				log.WithError(errors.New(fmt.Sprintf("Required `disabled` attribute not found for entity id: %s", id))).Fatal()
+				log.WithError(errors.New(fmt.Sprintf("Required `disabled` attribute not found for entity id: %s", entity.Id))).Fatal()
 			}
 			disabled := info["disabled"].(bool)
-
 			if _, exists := info["policies"]; !exists {
-				log.WithError(errors.New(fmt.Sprintf("Required `policies` attribute not found for entity id: %s", id))).Fatal()
+				log.WithError(errors.New(fmt.Sprintf("Required `policies` attribute not found for entity id: %s", entity.Id))).Fatal()
 			}
 			rawPolicies := info["policies"].([]interface{})
 			policies := []string{}
@@ -221,8 +236,34 @@ func getExistingEntitiesDetails(entities []entry, threadPoolSize int) error {
 				policies = append(policies, policy.(string))
 			}
 
-		}(entity.Id)
+			// TODO: make this nested goroutine
+			for j := 0; j < len(entity.Aliases); j++ {
+				rawAlias := vault.GetEntityAliasInfo(entity.Aliases[j].Id)
+				if _, exists := rawAlias["mount_accessor"]; !exists {
+					log.WithError(errors.New(fmt.Sprintf("Required `mount_accessor` attribute not found for entity-alias id: %s", entity.Aliases[j].Id))).Fatal()
+				}
+				entity.Aliases[j].AccessorId = rawAlias["mount_accessor"].(string)
+
+				if customMetadataSupported {
+					// deviate from norm and do not fail on missing custom_metadata
+					if _, exists := rawAlias["custom_metadata"]; exists {
+						entity.Aliases[j].CustomMetadata = make(map[string]interface{})
+						aliasMap, ok := entity.Aliases[j].CustomMetadata.(map[string]interface{})
+						for k, v := range rawAlias["custom_metadata"].(map[string]interface{}) {
+							if ok {
+								aliasMap[k] = v
+							}
+						}
+					}
+				}
+			}
+
+			entity.Disabled = disabled
+			entity.Policies = policies
+		}(&entities[i])
 	}
+	bwg.Wait()
+
 	return nil
 }
 
@@ -244,19 +285,18 @@ func unmarshallMetadatas(entities []entry) error {
 	return nil
 }
 
-// remove attributes not supported in commercial but in fedramp variant
-func pruneUnsupported(roles []entry) error {
+// return flag indicating if vault version supports alias custom_metadata attribute
+func isCustomMetadataSupported() (bool, error) {
 	current, err := version.NewVersion(vault.GetVaultVersion())
 	if err != nil {
-		return err
+		return false, err
 	}
 	threshold, err := version.NewVersion("1.9.0")
 	if err != nil {
-		return err
+		return false, err
 	}
 	if current.LessThan(threshold) {
-		// TODO:
-		// remove custom metadata
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
