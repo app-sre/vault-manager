@@ -161,11 +161,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
-	err := unmarshallMetadatas(entries)
-	if err != nil {
+	if err := unmarshallMetadatas(entries); err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to unmarshall nested entity objects")
 	}
 	populateAliasType(entries)
+	if err := validateEntityPolicies(entries); err != nil {
+		log.WithError(err).Fatal("[Vault Identity] entity failed policy validaton")
+	}
 
 	// Process data on existing entities/aliases
 	existingEntities, err := createBaseExistingEntities()
@@ -470,6 +472,25 @@ func unmarshallMetadatas(entries []entry) error {
 				return err
 			}
 			entries[i].Aliases[j].CustomMetadata = converted
+		}
+	}
+	return nil
+}
+
+// validate that policies listed for each desired entity exist in vault
+// TODO: refactor to instead remove entries from desired and continue processing valid entries
+func validateEntityPolicies(entries []entry) error {
+	policies := vault.ListVaultPolicies()
+	availablePolicies := make(map[string]bool)
+	for _, policy := range policies {
+		availablePolicies[policy] = true
+	}
+	for _, entry := range entries {
+		for _, policy := range entry.Policies {
+			if _, exists := availablePolicies[policy]; !exists {
+				return errors.New(fmt.Sprintf(
+					"desired entity `%s` contains invalid policy: `%s`", entry.Name, policy))
+			}
 		}
 	}
 	return nil
