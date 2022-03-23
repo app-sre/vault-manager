@@ -221,13 +221,19 @@ func ListEntities() map[string]interface{} {
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to list Vault entities")
 	}
+	if existingEntities == nil {
+		return nil
+	}
 	return existingEntities.Data
 }
 
-func GetEntityInfo(id string) map[string]interface{} {
-	entity, err := getClient().Logical().Read(fmt.Sprintf("identity/entity/id/%s", id))
+func GetEntityInfo(name string) map[string]interface{} {
+	entity, err := getClient().Logical().Read(fmt.Sprintf("identity/entity/name/%s", name))
 	if err != nil {
-		log.WithError(err).Fatal("[Vault Identity] failed to get info for entity: %s", id)
+		log.WithError(err).Fatalf("[Vault Identity] failed to get info for entity: %s", name)
+	}
+	if entity == nil {
+		return nil
 	}
 	return entity.Data
 }
@@ -235,9 +241,16 @@ func GetEntityInfo(id string) map[string]interface{} {
 func GetEntityAliasInfo(id string) map[string]interface{} {
 	entityAlias, err := getClient().Logical().Read(fmt.Sprintf("identity/entity-alias/id/%s", id))
 	if err != nil {
-		log.WithError(err).Fatal("[Vault Identity] failed to get info for entity alias: %s", id)
+		log.WithError(err).Fatalf("[Vault Identity] failed to get info for entity alias: %s", id)
 	}
 	return entityAlias.Data
+}
+
+func WriteEntityAlias(secretPath string, secretData map[string]interface{}) {
+	_, err := getClient().Logical().Write(secretPath, secretData)
+	if err != nil {
+		log.WithError(err).WithField("path", secretPath).Fatal("[Vault Client] failed to write entity-alias secret")
+	}
 }
 
 func mustGetenv(name string) string {
