@@ -104,7 +104,6 @@
   }
   vault_entities: vault_entities_v1 {
     name
-    mount
     type
     policies
     metadata
