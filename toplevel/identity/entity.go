@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
@@ -22,11 +23,11 @@ var _ toplevel.Configuration = config{}
 type entry struct {
 	Name     string `yaml:"name"`
 	Id       string
-	Type     string        `yaml:"type"`
-	Metadata interface{}   `yaml:"metadata"`
-	Policies []string      `yaml:"policies"`
-	Disabled bool          `yaml:"disabled"`
-	Aliases  []entityAlias `yaml:"aliases"`
+	Type     string                   `yaml:"type"`
+	Metadata interface{}              `yaml:"metadata"`
+	Policies []map[string]interface{} `yaml:"policies"`
+	Disabled bool                     `yaml:"disabled"`
+	Aliases  []entityAlias            `yaml:"aliases"`
 }
 
 type entityAlias struct {
@@ -65,28 +66,22 @@ func (e entry) Equals(i interface{}) bool {
 		e.Disabled == entry.Disabled
 }
 
-func (e entry) Create() {
+func (e entry) CreateOrUpdate(action string) {
 	path := filepath.Join("identity", e.Type, "name", e.Name)
+	policyNames := []string{}
+	for _, policyMap := range e.Policies {
+		for _, policy := range policyMap {
+			policyNames = append(policyNames, policy.(string))
+		}
+	}
 	config := map[string]interface{}{
-		"policies": e.Policies,
+		"policies": policyNames,
 		"disabled": e.Disabled,
 		"metadata": e.Metadata,
 	}
 	vault.WriteSecret(path, config)
 	log.WithField("path", path).WithField("type", e.Type).Info(
-		"[Vault Identity] entity successfully written")
-}
-
-func (e entry) Update() {
-	path := filepath.Join("identity", e.Type, "name", e.Name)
-	config := map[string]interface{}{
-		"policies": e.Policies,
-		"disabled": e.Disabled,
-		"metadata": e.Metadata,
-	}
-	vault.WriteSecret(path, config)
-	log.WithField("path", path).WithField("type", e.Type).Info(
-		"[Vault Identity] entity successfully updated")
+		fmt.Sprintf("[Vault Identity] entity successfully %s", action))
 }
 
 func (e entry) Delete() {
@@ -169,9 +164,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		log.WithError(err).Fatal("[Vault Identity] failed to unmarshall nested entity objects")
 	}
 	populateAliasType(entries)
-	if err := validateEntityPolicies(entries); err != nil {
-		log.WithError(err).Fatal("[Vault Identity] entity failed policy validaton")
-	}
+	sortPolicies(entries)
 
 	customMetadataSupported, err := isCustomMetadataSupported()
 	if err != nil {
@@ -190,6 +183,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		}
 		populateAliasType(existingEntities)
 		copyIds(entries, existingEntities)
+		sortPolicies(existingEntities)
 	}
 
 	// determine entity changes
@@ -214,13 +208,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	} else {
 		// TODO: make each action perform concurrently
 		for _, w := range entitiesToBeWritten {
-			w.(entry).Create()
+			w.(entry).CreateOrUpdate("written")
 		}
 		for _, d := range entitiesToBeDeleted {
 			d.(entry).Delete()
 		}
 		for _, u := range entitiesToBeUpdated {
-			u.(entry).Update()
+			u.(entry).CreateOrUpdate("update")
 		}
 		err = performAliasReconcile(aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated, customMetadataSupported)
 		if err != nil {
@@ -334,9 +328,9 @@ func getExistingEntitiesDetails(entities []entry, threadPoolSize int, customMeta
 					"Required `policies` attribute not found for entity id: %s", entity.Id))).Fatal()
 			}
 			rawPolicies := info["policies"].([]interface{})
-			policies := []string{}
+			policies := []map[string]interface{}{}
 			for _, policy := range rawPolicies {
-				policies = append(policies, policy.(string))
+				policies = append(policies, map[string]interface{}{"name": policy})
 			}
 
 			// TODO: make this a nested goroutine
@@ -482,25 +476,6 @@ func unmarshallMetadatas(entries []entry) error {
 	return nil
 }
 
-// validate that policies listed for each desired entity exist in vault
-// TODO: refactor to instead remove entries from desired and continue processing valid entries
-func validateEntityPolicies(entries []entry) error {
-	policies := vault.ListVaultPolicies()
-	availablePolicies := make(map[string]bool)
-	for _, policy := range policies {
-		availablePolicies[policy] = true
-	}
-	for _, entry := range entries {
-		for _, policy := range entry.Policies {
-			if _, exists := availablePolicies[policy]; !exists {
-				return errors.New(fmt.Sprintf(
-					"desired entity `%s` contains invalid policy: `%s`", entry.Name, policy))
-			}
-		}
-	}
-	return nil
-}
-
 // return flag indicating if vault version supports alias custom_metadata attribute
 func isCustomMetadataSupported() (bool, error) {
 	current, err := version.NewVersion(vault.GetVaultVersion())
@@ -549,6 +524,15 @@ func populateAliasType(entries []entry) {
 		for i := 0; i < len(entry.Aliases); i++ {
 			entry.Aliases[i].Type = "entity-alias"
 		}
+	}
+}
+
+// sorts policies within entity based upon policy name
+func sortPolicies(entries []entry) {
+	for _, entry := range entries {
+		sort.Slice(entry.Policies, func(i, j int) bool {
+			return entry.Policies[i]["name"].(string) < entry.Policies[j]["name"].(string)
+		})
 	}
 }
 
