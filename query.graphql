@@ -105,7 +105,9 @@
   vault_entities: vault_entities_v1 {
     name
     type
-    policies
+    policies {
+      name
+    }
     metadata
     disabled
     aliases {
