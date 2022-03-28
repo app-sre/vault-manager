@@ -102,19 +102,20 @@
     name
     rules
   }
-  vault_entities: vault_entities_v1 {
+  vault_entities: users_v1 {
     name
-    type
-    policies {
+    org_username
+    roles {
       name
-    }
-    metadata
-    disabled
-    aliases {
-      ... on VaultEntityAlias_v1 {
+      oidc_permissions {
         name
-        auth_type
-        custom_metadata
+        description
+        service
+        ... on OidcPermissionVault_v1 {
+          vault_policies {
+            name
+          }
+        }
       }
     }
   }

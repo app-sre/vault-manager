@@ -20,63 +20,76 @@ type config struct{}
 
 var _ toplevel.Configuration = config{}
 
-type entry struct {
-	Name     string `yaml:"name"`
+type user struct {
+	Name        string `yaml:"name"`
+	OrgUsername string `yaml:"org_username"`
+	Roles       []role `yaml:"roles"`
+}
+
+type role struct {
+	Name        string           `yaml:"name"`
+	Permissions []oidcPermission `yaml:"oidc_permissions"`
+}
+
+type oidcPermission struct {
+	Name        string        `yaml:"name"`
+	Description string        `yaml:"description"`
+	Service     string        `yaml:"service"`
+	Policies    []vaultPolicy `yaml:"vault_policies"`
+}
+
+type vaultPolicy struct {
+	Name string `yaml:"name"`
+}
+
+type entity struct {
+	Name     string
 	Id       string
-	Type     string                   `yaml:"type"`
-	Metadata interface{}              `yaml:"metadata"`
-	Policies []map[string]interface{} `yaml:"policies"`
-	Disabled bool                     `yaml:"disabled"`
-	Aliases  []entityAlias            `yaml:"aliases"`
+	Type     string
+	Metadata interface{}
+	Policies []string
+	Aliases  []entityAlias
 }
 
 type entityAlias struct {
-	Name           string `yaml:"name"`
+	Name           string
 	Id             string
 	Type           string
-	AuthType       string `yaml:"auth_type"`
+	AuthType       string
 	AccessorId     string
-	CustomMetadata interface{} `yaml:"custom_metadata"`
+	CustomMetadata interface{}
 }
 
-var _ vault.Item = entry{}
+var _ vault.Item = entity{}
 
 var _ vault.Item = entityAlias{}
 
-func (e entry) Key() string {
+func (e entity) Key() string {
 	return e.Name
 }
 
-func (e entry) KeyForType() string {
+func (e entity) KeyForType() string {
 	return e.Type
 }
 
-func (e entry) KeyForDescription() string {
+func (e entity) KeyForDescription() string {
 	return fmt.Sprintf("%v", e.Metadata)
 }
 
-func (e entry) Equals(i interface{}) bool {
-	entry, ok := i.(entry)
+func (e entity) Equals(i interface{}) bool {
+	entry, ok := i.(entity)
 	if !ok {
 		return false
 	}
 	return e.Name == entry.Name &&
 		reflect.DeepEqual(e.Metadata, entry.Metadata) &&
-		reflect.DeepEqual(e.Policies, entry.Policies) &&
-		e.Disabled == entry.Disabled
+		reflect.DeepEqual(e.Policies, entry.Policies)
 }
 
-func (e entry) CreateOrUpdate(action string) {
+func (e entity) CreateOrUpdate(action string) {
 	path := filepath.Join("identity", e.Type, "name", e.Name)
-	policyNames := []string{}
-	for _, policyMap := range e.Policies {
-		for _, policy := range policyMap {
-			policyNames = append(policyNames, policy.(string))
-		}
-	}
 	config := map[string]interface{}{
-		"policies": policyNames,
-		"disabled": e.Disabled,
+		"policies": e.Policies,
 		"metadata": e.Metadata,
 	}
 	vault.WriteSecret(path, config)
@@ -84,7 +97,7 @@ func (e entry) CreateOrUpdate(action string) {
 		fmt.Sprintf("[Vault Identity] entity successfully %s", action))
 }
 
-func (e entry) Delete() {
+func (e entity) Delete() {
 	path := filepath.Join("identity", e.Type, "name", e.Name)
 	vault.DeleteSecret(path)
 	log.WithField("path", path).WithField("type", e.Type).Info(
@@ -156,15 +169,13 @@ func init() {
 
 func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	// process desired entities/aliases
-	var entries []entry
+	var entries []user
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
-	if err := unmarshallMetadatas(entries); err != nil {
-		log.WithError(err).Fatal("[Vault Identity] failed to unmarshall nested entity objects")
-	}
-	populateAliasType(entries)
-	sortPolicies(entries)
+	desired := generateDesired(entries)
+	populateAliasType(desired)
+	sortPolicies(desired)
 
 	customMetadataSupported, err := isCustomMetadataSupported()
 	if err != nil {
@@ -179,19 +190,19 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if existingEntities != nil {
 		getExistingEntitiesDetails(existingEntities, threadPoolSize, customMetadataSupported)
 		if !customMetadataSupported {
-			pruneUnsupported(entries)
+			pruneUnsupported(desired)
 		}
 		populateAliasType(existingEntities)
-		copyIds(entries, existingEntities)
+		copyIds(desired, existingEntities)
 		sortPolicies(existingEntities)
 	}
 
 	// determine entity changes
 	entitiesToBeWritten, entitiesToBeDeleted, entitiesToBeUpdated :=
-		vault.DiffItems(entriesAsItems(entries), entriesAsItems(existingEntities))
+		vault.DiffItems(entriesAsItems(desired), entriesAsItems(existingEntities))
 	// determine entity alias changes
 	aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated :=
-		determineAliasActions(entries, existingEntities, entitiesToBeDeleted)
+		determineAliasActions(desired, existingEntities, entitiesToBeDeleted)
 
 	// preform actions
 	if dryRun {
@@ -208,13 +219,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	} else {
 		// TODO: make each action perform concurrently
 		for _, w := range entitiesToBeWritten {
-			w.(entry).CreateOrUpdate("written")
+			w.(entity).CreateOrUpdate("written")
 		}
 		for _, d := range entitiesToBeDeleted {
-			d.(entry).Delete()
+			d.(entity).Delete()
 		}
 		for _, u := range entitiesToBeUpdated {
-			u.(entry).CreateOrUpdate("update")
+			u.(entity).CreateOrUpdate("update")
 		}
 		err = performAliasReconcile(aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated, customMetadataSupported)
 		if err != nil {
@@ -224,13 +235,65 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 }
 
+// generatedDesired accepts the yaml-marshalled result of the `vault_entities` graphql
+// query and returns entity/entity-alias objects
+func generateDesired(entries []user) []entity {
+	desired := []entity{}
+
+	for _, entry := range entries {
+		var newDesired *entity
+		var uniquePolicies map[string]bool
+		if entry.Roles != nil {
+			for _, role := range entry.Roles {
+				if role.Permissions != nil {
+					for _, permission := range role.Permissions {
+						if permission.Service == "vault" {
+							if newDesired == nil {
+								newDesired = &entity{
+									Name: entry.OrgUsername,
+									Type: "entity",
+									Aliases: []entityAlias{
+										{
+											Name:     entry.OrgUsername,
+											Type:     "entity-alias",
+											AuthType: "oidc",
+											CustomMetadata: map[string]interface{}{
+												"account": "RH SSO", // revisit this for better info to add
+											},
+										},
+									},
+									Metadata: map[string]interface{}{
+										"name": entry.Name,
+									},
+								}
+								uniquePolicies = make(map[string]bool)
+							}
+							for _, policy := range permission.Policies {
+								// avoid adding same policy more than once that exists in multiple roles
+								if _, exists := uniquePolicies[policy.Name]; !exists {
+									newDesired.Policies = append(newDesired.Policies, policy.Name)
+									uniquePolicies[policy.Name] = true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		if newDesired != nil {
+			desired = append(desired, *newDesired)
+		}
+	}
+	return desired
+}
+
 // processes all relevant info for entities/entity aliases from single vault api request
-func createBaseExistingEntities() ([]entry, error) {
+func createBaseExistingEntities() ([]entity, error) {
 	raw := vault.ListEntities()
 	if raw == nil {
 		return nil, nil
 	}
-	processed := []entry{}
+	processed := []entity{}
 	if _, exists := raw["key_info"]; !exists {
 		return nil, errors.New(
 			"Required `key_info` attribute not found in response from vault.ListEntites()")
@@ -292,7 +355,7 @@ func createBaseExistingEntities() ([]entry, error) {
 			})
 		}
 
-		processed = append(processed, entry{
+		processed = append(processed, entity{
 			Name:    name,
 			Id:      id,
 			Type:    "entity", // used for reconcile and output
@@ -304,20 +367,16 @@ func createBaseExistingEntities() ([]entry, error) {
 
 // performs concurrent requests to retrieve additional details for existing entities/entity aliases
 // these details require explicit requests to vault api for each entitiy/alias
-func getExistingEntitiesDetails(entities []entry, threadPoolSize int, customMetadataSupported bool) {
+func getExistingEntitiesDetails(entities []entity, threadPoolSize int, customMetadataSupported bool) {
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 
 	for i := 0; i < len(entities); i++ {
 		bwg.Add(1)
 
-		go func(entity *entry) {
+		go func(entity *entity) {
 			defer bwg.Done()
 			info := vault.GetEntityInfo(entity.Name)
-			if _, exists := info["disabled"]; !exists {
-				log.WithError(errors.New(fmt.Sprintf(
-					"Required `disabled` attribute not found for entity id: %s", entity.Id))).Fatal()
-			}
-			disabled := info["disabled"].(bool)
+
 			if _, exists := info["metadata"]; !exists {
 				log.WithError(errors.New(fmt.Sprintf(
 					"Required `metadata` attribute not found for entity id: %s", entity.Id))).Fatal()
@@ -328,9 +387,9 @@ func getExistingEntitiesDetails(entities []entry, threadPoolSize int, customMeta
 					"Required `policies` attribute not found for entity id: %s", entity.Id))).Fatal()
 			}
 			rawPolicies := info["policies"].([]interface{})
-			policies := []map[string]interface{}{}
+			policies := []string{}
 			for _, policy := range rawPolicies {
-				policies = append(policies, map[string]interface{}{"name": policy})
+				policies = append(policies, policy.(string))
 			}
 
 			// TODO: make this a nested goroutine
@@ -355,7 +414,6 @@ func getExistingEntitiesDetails(entities []entry, threadPoolSize int, customMeta
 				}
 			}
 
-			entity.Disabled = disabled
 			entity.Policies = policies
 			entity.Metadata = make(map[string]interface{})
 			metadataMap, ok := entity.Metadata.(map[string]interface{})
@@ -370,7 +428,7 @@ func getExistingEntitiesDetails(entities []entry, threadPoolSize int, customMeta
 }
 
 // Calls vault.DiffItems for existing/desired list of aliases, within each exisitng/desired entity
-func determineAliasActions(entries, existingEntities []entry, entitiesToBeDeleted []vault.Item) (map[string]map[string][]vault.Item,
+func determineAliasActions(entries, existingEntities []entity, entitiesToBeDeleted []vault.Item) (map[string]map[string][]vault.Item,
 	[]vault.Item, map[string][]vault.Item) {
 
 	existingEntityToAliases := make(map[string][]entityAlias)
@@ -402,9 +460,9 @@ func determineAliasActions(entries, existingEntities []entry, entitiesToBeDelete
 
 	// the parent existing entity DNE in desired (to be deleted)
 	// treat this as deletion of all affiliated aliases
-	for _, entity := range entitiesToBeDeleted {
-		if _, exists := existingEntityToAliases[entity.(entry).Name]; exists {
-			aliasesToBeDeleted = append(aliasesToBeDeleted, aliasesAsItems(entity.(entry).Aliases)...)
+	for _, e := range entitiesToBeDeleted {
+		if _, exists := existingEntityToAliases[e.(entity).Name]; exists {
+			aliasesToBeDeleted = append(aliasesToBeDeleted, aliasesAsItems(e.(entity).Aliases)...)
 		}
 	}
 	return aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated
@@ -458,7 +516,7 @@ func performAliasReconcile(aliasesToBeWritten map[string]map[string][]vault.Item
 
 // due to yaml unmarshal limitation, nested objects are initially unmarshalled as json strings
 // unmarshallMetadatas targets nested object attributes defined in entity schema and properly unmarshalls
-func unmarshallMetadatas(entries []entry) error {
+func unmarshallMetadatas(entries []entity) error {
 	for i := range entries {
 		converted, err := utils.UnmarshalJsonObj("metadata", entries[i].Metadata)
 		if err != nil {
@@ -494,7 +552,7 @@ func isCustomMetadataSupported() (bool, error) {
 
 // remove unsupported attributes that may be supported in one version of vault but not another
 // (commercial v fedramp)
-func pruneUnsupported(entries []entry) {
+func pruneUnsupported(entries []entity) {
 	for _, entry := range entries {
 		for _, alias := range entry.Aliases {
 			alias.CustomMetadata = nil
@@ -502,7 +560,7 @@ func pruneUnsupported(entries []entry) {
 	}
 }
 
-func entriesAsItems(entries []entry) []vault.Item {
+func entriesAsItems(entries []entity) []vault.Item {
 	items := make([]vault.Item, 0)
 	for _, entry := range entries {
 		items = append(items, entry)
@@ -519,7 +577,7 @@ func aliasesAsItems(aliases []entityAlias) []vault.Item {
 }
 
 // sets Type field for use in vault.DiffItem()
-func populateAliasType(entries []entry) {
+func populateAliasType(entries []entity) {
 	for _, entry := range entries {
 		for i := 0; i < len(entry.Aliases); i++ {
 			entry.Aliases[i].Type = "entity-alias"
@@ -528,17 +586,15 @@ func populateAliasType(entries []entry) {
 }
 
 // sorts policies within entity based upon policy name
-func sortPolicies(entries []entry) {
+func sortPolicies(entries []entity) {
 	for _, entry := range entries {
-		sort.Slice(entry.Policies, func(i, j int) bool {
-			return entry.Policies[i]["name"].(string) < entry.Policies[j]["name"].(string)
-		})
+		sort.Strings(entry.Policies)
 	}
 }
 
 // copy entity and alias Ids off existing entities/aliases to matching desired
 // desired entries do not include Ids but ID is required for various operations
-func copyIds(entries, existingEntities []entry) {
+func copyIds(entries, existingEntities []entity) {
 	existingEntityIds := make(map[string]string)
 	// entityName: aliasName: aliasID
 	existingEntityAliasIds := make(map[string]map[string]string)
@@ -569,8 +625,8 @@ func copyIds(entries, existingEntities []entry) {
 
 // reusable func to output updates on writes, deletes, and updates for entities
 func entitiesDryRunOutput(entities []vault.Item, action string) {
-	for _, entity := range entities {
-		log.WithField("name", entity.Key()).WithField("type", entity.(entry).Type).Info(
+	for _, e := range entities {
+		log.WithField("name", e.Key()).WithField("type", e.(entity).Type).Info(
 			fmt.Sprintf("[Dry Run] [Vault Identity] entity to be %s", action))
 	}
 }
