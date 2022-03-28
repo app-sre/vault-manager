@@ -354,15 +354,19 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int, customMet
 		go func(entity *entity) {
 			defer bwg.Done()
 			info := vault.GetEntityInfo(entity.Name)
-
+			if info == nil {
+				log.WithError(errors.New(fmt.Sprintf(
+					"No information returned for entity id: %s", entity.Id))).Fatal()
+			}
 			if _, exists := info["metadata"]; !exists {
 				log.WithError(errors.New(fmt.Sprintf(
 					"Required `metadata` attribute not found for entity id: %s", entity.Id))).Fatal()
 			}
-			metadata := info["metadata"].(map[string]interface{})
-			if _, exists := info["policies"]; !exists {
-				log.WithError(errors.New(fmt.Sprintf(
-					"Required `policies` attribute not found for entity id: %s", entity.Id))).Fatal()
+			var metadata map[string]interface{}
+			if info["metadata"] == nil {
+				metadata = nil
+			} else {
+				metadata = info["metadata"].(map[string]interface{})
 			}
 
 			// TODO: make this a nested goroutine
@@ -376,11 +380,13 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int, customMet
 				if customMetadataSupported {
 					// deviate from norm and do not fail on missing custom_metadata
 					if _, exists := rawAlias["custom_metadata"]; exists {
-						entity.Aliases[j].CustomMetadata = make(map[string]interface{})
-						aliasMap, ok := entity.Aliases[j].CustomMetadata.(map[string]interface{})
-						for k, v := range rawAlias["custom_metadata"].(map[string]interface{}) {
-							if ok {
-								aliasMap[k] = v
+						if rawAlias["custom_metadata"] != nil {
+							entity.Aliases[j].CustomMetadata = make(map[string]interface{})
+							aliasMap, ok := entity.Aliases[j].CustomMetadata.(map[string]interface{})
+							for k, v := range rawAlias["custom_metadata"].(map[string]interface{}) {
+								if ok {
+									aliasMap[k] = v
+								}
 							}
 						}
 					}
