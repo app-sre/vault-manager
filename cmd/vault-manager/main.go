@@ -17,7 +17,8 @@ import (
 	// Register top-level configurations.
 	_ "github.com/app-sre/vault-manager/toplevel/audit"
 	_ "github.com/app-sre/vault-manager/toplevel/auth"
-	_ "github.com/app-sre/vault-manager/toplevel/identity"
+	_ "github.com/app-sre/vault-manager/toplevel/entity"
+	_ "github.com/app-sre/vault-manager/toplevel/group"
 	_ "github.com/app-sre/vault-manager/toplevel/policy"
 	_ "github.com/app-sre/vault-manager/toplevel/role"
 	_ "github.com/app-sre/vault-manager/toplevel/secretsengine"
@@ -143,6 +144,8 @@ func resolveConfigPriority(s string) int {
 		priority = 5
 	case "vault_entities":
 		priority = 6
+	case "vault_groups":
+		priority = 7
 	default:
 		priority = 0
 	}

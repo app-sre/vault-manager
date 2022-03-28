@@ -1,11 +1,10 @@
-package identity
+package entity
 
 import (
 	"errors"
 	"fmt"
 	"path/filepath"
 	"reflect"
-	"sort"
 	"strings"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
@@ -32,14 +31,8 @@ type role struct {
 }
 
 type oidcPermission struct {
-	Name        string        `yaml:"name"`
-	Description string        `yaml:"description"`
-	Service     string        `yaml:"service"`
-	Policies    []vaultPolicy `yaml:"vault_policies"`
-}
-
-type vaultPolicy struct {
-	Name string `yaml:"name"`
+	Name    string `yaml:"name"`
+	Service string `yaml:"service"`
 }
 
 type entity struct {
@@ -47,7 +40,6 @@ type entity struct {
 	Id       string
 	Type     string
 	Metadata interface{}
-	Policies []string
 	Aliases  []entityAlias
 }
 
@@ -82,14 +74,12 @@ func (e entity) Equals(i interface{}) bool {
 		return false
 	}
 	return e.Name == entry.Name &&
-		reflect.DeepEqual(e.Metadata, entry.Metadata) &&
-		reflect.DeepEqual(e.Policies, entry.Policies)
+		reflect.DeepEqual(e.Metadata, entry.Metadata)
 }
 
 func (e entity) CreateOrUpdate(action string) {
 	path := filepath.Join("identity", e.Type, "name", e.Name)
 	config := map[string]interface{}{
-		"policies": e.Policies,
 		"metadata": e.Metadata,
 	}
 	vault.WriteSecret(path, config)
@@ -175,7 +165,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 	desired := generateDesired(entries)
 	populateAliasType(desired)
-	sortPolicies(desired)
 
 	customMetadataSupported, err := isCustomMetadataSupported()
 	if err != nil {
@@ -194,7 +183,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		}
 		populateAliasType(existingEntities)
 		copyIds(desired, existingEntities)
-		sortPolicies(existingEntities)
 	}
 
 	// determine entity changes
@@ -239,10 +227,8 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 // query and returns entity/entity-alias objects
 func generateDesired(entries []user) []entity {
 	desired := []entity{}
-
 	for _, entry := range entries {
 		var newDesired *entity
-		var uniquePolicies map[string]bool
 		if entry.Roles != nil {
 			for _, role := range entry.Roles {
 				if role.Permissions != nil {
@@ -265,14 +251,6 @@ func generateDesired(entries []user) []entity {
 									Metadata: map[string]interface{}{
 										"name": entry.Name,
 									},
-								}
-								uniquePolicies = make(map[string]bool)
-							}
-							for _, policy := range permission.Policies {
-								// avoid adding same policy more than once that exists in multiple roles
-								if _, exists := uniquePolicies[policy.Name]; !exists {
-									newDesired.Policies = append(newDesired.Policies, policy.Name)
-									uniquePolicies[policy.Name] = true
 								}
 							}
 						}
@@ -386,11 +364,6 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int, customMet
 				log.WithError(errors.New(fmt.Sprintf(
 					"Required `policies` attribute not found for entity id: %s", entity.Id))).Fatal()
 			}
-			rawPolicies := info["policies"].([]interface{})
-			policies := []string{}
-			for _, policy := range rawPolicies {
-				policies = append(policies, policy.(string))
-			}
 
 			// TODO: make this a nested goroutine
 			for j := 0; j < len(entity.Aliases); j++ {
@@ -414,7 +387,6 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int, customMet
 				}
 			}
 
-			entity.Policies = policies
 			entity.Metadata = make(map[string]interface{})
 			metadataMap, ok := entity.Metadata.(map[string]interface{})
 			if ok {
@@ -582,13 +554,6 @@ func populateAliasType(entries []entity) {
 		for i := 0; i < len(entry.Aliases); i++ {
 			entry.Aliases[i].Type = "entity-alias"
 		}
-	}
-}
-
-// sorts policies within entity based upon policy name
-func sortPolicies(entries []entity) {
-	for _, entry := range entries {
-		sort.Strings(entry.Policies)
 	}
 }
 
