@@ -1,0 +1,82 @@
+---
+$schema: /vault-config/policy-1.yml
+
+labels:
+  service: vault.local
+
+name: "vault-oidc-app-sre-policy"
+rules: |
+  path "devtools-osio-ci/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "app-sre/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "app-interface/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "sd-uhc/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "osd-sre/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "osd-sre-cicd/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "osde2e/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "cs-sre/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "cs-sre-ci/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "mt-sre/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "insights/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "insights-cicd/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "quay/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "rhmi/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "rhobs/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "managed-services/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "managed-services-ci/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "image-builder-ci/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+
+  path "totp/app-sre/keys/*" {
+    capabilities = ["create", "read", "update", "delete", "list"]
+  }
+  path "totp/app-sre/code/*" {
+    capabilities = ["read", "list"]
+  }
+
+  # https://www.vaultproject.io/api/system/audit-hash#calculate-hash
+  path "/sys/audit-hash/file" {
+    capabilities = ["create", "read", "update"]
+  }
+
+  #allow vault seal/unseal
+  path "/sys/seal" {
+    policy = "sudo"
+  }
+  path "/sys/unseal" {
+    policy = "sudo"
+  }

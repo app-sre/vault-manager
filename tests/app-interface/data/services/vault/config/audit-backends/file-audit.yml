@@ -1,0 +1,17 @@
+---
+$schema: /vault-config/audit-1.yml
+
+labels:
+  service: vault.local
+
+_path: "file/"
+type: "file"
+description: ""
+options:
+  _type: "file"
+  file_path: "/var/log/vault/vault_audit.log"
+  format: "json"
+  log_raw: "false"
+  hmac_accessor: "true"
+  mode: "0600"
+  prefix: ""

@@ -1,0 +1,79 @@
+---
+$schema: /vault-config/policy-1.yml
+
+labels:
+  service: vault.devshift.net
+
+name: "app-interface-approle-policy"
+rules: |
+  path "app-sre/creds/*" {
+    capabilities = ["read"]
+  }
+  path "app-sre/ansible/*" {
+    capabilities = ["read"]
+  }
+  path "app-sre/ci-int/*" {
+    capabilities = ["read"]
+  }
+  path "app-sre/ci-ext/*" {
+    capabilities = ["read"]
+  }
+  path "app-sre/ci-centos/*" {
+    capabilities = ["read"]
+  }
+  path "app-sre/quay/*" {
+      capabilities = ["read"]
+    }
+  path "app-sre/ocm-quay/*" {
+      capabilities = ["read"]
+    }
+  path "app-sre/unleash/*" {
+      capabilities = ["read"]
+    }
+  path "app-sre/dashdot/*" {
+      capabilities = ["read"]
+    }
+  path "osde2e/*" {
+     capabilities = ["read"]
+  }
+  path "osd-sre/*" {
+     capabilities = ["read"]
+  }
+  path "cs-sre/*" {
+     capabilities = ["read"]
+  }
+  path "mt-sre/*" {
+     capabilities = ["read"]
+  }
+  path "insights/*" {
+     capabilities = ["read"]
+  }
+  path "rhmi/*" {
+    capabilities = ["read"]
+  }
+  path "rhobs/*" {
+    capabilities = ["read"]
+  }
+  path "managed-services/*" {
+    capabilities = ["read"]
+  }
+  path "managed-services-ci/*" {
+    capabilities = ["read"]
+  }
+  path "image-builder-ci/*" {
+    capabilities = ["read"]
+  }
+  #app-interface secrets integration
+  path "app-interface/*" {
+     capabilities = ["read"]
+  }
+  # integrations input/output
+  path "app-sre/integrations-input/*" {
+    capabilities = ["read"]
+  }
+  path "app-sre/integrations-output/*" {
+    capabilities = ["create", "update", "read"]
+  }
+  path "app-sre/integrations-throughput/*" {
+    capabilities = ["create", "update", "read"]
+  }

@@ -1,0 +1,24 @@
+---
+$schema: /vault-config/role-1.yml
+
+labels:
+  service: vault.local
+
+name: "minimal"
+type: "oidc"
+mount: "oidc/"
+options:
+  _type: "oidc"
+  allowed_redirect_uris:
+    - "http://localhost:8200/ui/vault/auth/oidc/oidc/callback"
+  role_type: "oidc"
+  token_ttl: "60"
+  token_max_ttl: "60"
+  token_explicit_max_ttl: "0"
+  token_type: "default"
+  token_period: "0"
+  token_policies: []
+  token_bound_cidrs: []
+  token_no_default_policy: false
+  token_num_uses: "0"
+  user_claim: "email"

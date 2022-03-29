@@ -1,0 +1,21 @@
+---
+$schema: /vault-config/auth-1.yml
+
+labels:
+  service: vault.local
+
+_path: "github/"
+type: "github"
+description: "github auth backend"
+settings:
+  config:
+    _type: "github"
+    organization: "app-sre"
+    base_url: "https://api.github.com/"
+    max_ttl: "24h"
+    ttl: "12h"
+policy_mappings:
+  - github_team:
+      $ref: /dependencies/vault/permissions/app-sre.yml
+    policies:
+      - $ref: /services/vault.devshift.net/config/policies/app-sre-policy.yml

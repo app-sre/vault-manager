@@ -1,0 +1,14 @@
+---
+$schema: /access/user-1.yml
+
+labels: {}
+
+name: The Tester
+org_username: tester
+github_username: tester0
+quay_username: rh_ee_tester
+
+roles:
+- $ref: /teams/app-sre/roles/app-sre-vault-oidc.yml
+
+public_gpg_key: nada

@@ -24,11 +24,12 @@ build-test-container:
 
 test: build-test-container
 	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/vault:1.5.4
+	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/qontract-schemas:e45b092
+	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/qontract-validator:f412923
+	@docker --config=$(DOCKER_CONF) pull quay.io/rhoas/rhsso:f08a770
 	@docker run -t \
 	            --rm \
 	            --net=host \
 	            -v /var/run/docker.sock:/var/run/docker.sock \
-	            -e GRAPHQL_SERVER=https://app-interface.devshift.net/graphql \
-	            -e GRAPHQL_USERNAME=${USERNAME_PRODUCTION} \
-	            -e GRAPHQL_PASSWORD=${PASSWORD_PRODUCTION} \
+	            -e GRAPHQL_SERVER=http://127.0.0.1:4000/graphql \
 	            vault-manager-test
