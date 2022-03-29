@@ -15,52 +15,6 @@ rules: |
   path "app-interface/*" {
     capabilities = ["create", "read", "update", "delete", "list"]
   }
-  path "sd-uhc/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "osd-sre/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "osd-sre-cicd/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "osde2e/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "cs-sre/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "cs-sre-ci/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "mt-sre/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "insights/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "insights-cicd/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "quay/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "rhmi/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "rhobs/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "managed-services/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "managed-services-ci/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-  path "image-builder-ci/*" {
-    capabilities = ["create", "read", "update", "delete", "list"]
-  }
-
   path "totp/app-sre/keys/*" {
     capabilities = ["create", "read", "update", "delete", "list"]
   }

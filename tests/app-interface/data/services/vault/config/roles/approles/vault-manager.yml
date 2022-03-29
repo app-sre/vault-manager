@@ -2,7 +2,7 @@
 $schema: /vault-config/role-1.yml
 
 labels:
-  service: vault.devshift.net
+  service: vault.local
 
 name: "vault_manager"
 type: "approle"
