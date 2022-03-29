@@ -24,12 +24,13 @@ build-test-container:
 
 test: build-test-container
 	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/vault:1.5.4
-	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/qontract-schemas:e45b092
-	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/qontract-validator:f412923
-	@docker --config=$(DOCKER_CONF) pull quay.io/rhoas/rhsso:f08a770
+	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/qontract-server:64b433b
+	@docker --config=$(DOCKER_CONF) pull quay.io/keycloak/keycloak:17.0
+	@docker --config=$(DOCKER_CONF) pull quay.io/tpate/keycloak-config-cli:latest
 	@docker run -t \
 	            --rm \
-	            --net=host \
+				--net=host \
 	            -v /var/run/docker.sock:/var/run/docker.sock \
+				-e HOST_PATH=$(shell pwd) \
 	            -e GRAPHQL_SERVER=http://127.0.0.1:4000/graphql \
 	            vault-manager-test
