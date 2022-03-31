@@ -86,7 +86,7 @@ docker run --name $KEYCLOAK_CLI_NAME \
   -e KEYCLOAK_AVAILABILITYCHECK_ENABLED=true \
   -e IMPORT_FILES='/config/*' \
   -v $HOST_PATH/$(pwd)/keycloak:/config \
-  $KEYCLOAK_CLI_IMAGE:$KEYCLOAK_CLI_TAG
+  $KEYCLOAK_CLI_IMAGE:$KEYCLOAK_CLI_IMAGE_TAG
 
 # spin up qontract-server, using existing data.json file
 docker run -d --rm \
