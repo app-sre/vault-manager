@@ -18,7 +18,7 @@ export KEYCLOAK_IMAGE_TAG=17.0
 
 export KEYCLOAK_CLI_NAME=keycloak_cli
 export KEYCLOAK_CLI_IMAGE=quay.io/app-sre/keycloak-config-cli
-export KEYCLOAK_CLI_IMAGE_TAG=v4.9.0-rc1-17.0.0
+export KEYCLOAK_CLI_IMAGE_TAG=5.0.0-17.0.1
 
 export VAULT_NAME=vault-dev-server
 export VAULT_IMAGE=quay.io/app-sre/vault
