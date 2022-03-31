@@ -23,10 +23,10 @@ build-test-container:
 	@docker build -t vault-manager-test -f tests/Dockerfile.tests .
 
 test: build-test-container
-	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/vault:1.5.4
-	@docker --config=$(DOCKER_CONF) pull quay.io/app-sre/qontract-server:64b433b
-	@docker --config=$(DOCKER_CONF) pull quay.io/keycloak/keycloak:17.0
-	@docker --config=$(DOCKER_CONF) pull quay.io/tpate/keycloak-config-cli:latest
+	@docker --config=$(DOCKER_CONF) pull $(VAULT_IMAGE):$(VAULT_IMAGE_TAG)
+	@docker --config=$(DOCKER_CONF) pull $(QONTRACT_SERVER_IMAGE):$(QONTRACT_SERVER_IMAGE_TAG)
+	@docker --config=$(DOCKER_CONF) pull $(KEYCLOAK_IMAGE):$(KEYCLOAK_IMAGE_TAG)
+	@docker --config=$(DOCKER_CONF) pull $(KEYCLOAK_CLI_IMAGE):$(KEYCLOAK_CLI_IMAGE_TAG)
 	@docker run -t \
 	            --rm \
 				--net=host \
