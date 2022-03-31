@@ -2,9 +2,23 @@
 
 set -e
 
+export QONTRACT_SERVER_NAME=qontract-server
+export QONTRACT_SERVER_IMAGE=quay.io/app-sre/qontract-server
+export QONTRACT_SERVER_IMAGE_TAG=64b433b
+
+export KEYCLOAK_NAME=keycloak
+export KEYCLOAK_IMAGE=quay.io/keycloak/keycloak
+export KEYCLOAK_IMAGE_TAG=17.0
 export KEYCLOAK_USER=admin
 export KEYCLOAK_PASSWORD=admin
 
+export KEYCLOAK_CLI_NAME=keycloak_cli
+export KEYCLOAK_CLI_IMAGE=quay.io/app-sre/keycloak-config-cli
+export KEYCLOAK_CLI_IMAGE_TAG=v4.9.0-rc1-17.0.0
+
+export VAULT_NAME=vault-dev-server
+export VAULT_IMAGE=quay.io/app-sre/vault
+export VAULT_IMAGE_TAG=1.5.4
 export VAULT_ADDR=http://127.0.0.1:8200
 export VAULT_TOKEN=root
 export VAULT_AUTHTYPE=token
@@ -72,7 +86,7 @@ docker run --name $KEYCLOAK_CLI_NAME \
   -e KEYCLOAK_AVAILABILITYCHECK_ENABLED=true \
   -e IMPORT_FILES='/config/*' \
   -v $HOST_PATH/$(pwd)/keycloak:/config \
-  $KEYCLOAK_CLI_IMAGE:$KEYCLOAK_CLI_IMAGE_TAG
+  $KEYCLOAK_CLI_IMAGE:$KEYCLOAK_CLI_TAG
 
 # spin up qontract-server, using existing data.json file
 docker run -d --rm \
