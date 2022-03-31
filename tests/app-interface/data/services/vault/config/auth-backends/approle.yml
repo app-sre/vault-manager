@@ -1,0 +1,9 @@
+---
+$schema: /vault-config/auth-1.yml
+
+labels:
+  service: vault.local
+
+_path: "approle/"
+type: "approle"
+description: "approle auth backend"

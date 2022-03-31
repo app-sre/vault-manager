@@ -1,0 +1,12 @@
+---
+$schema: /access/permission-1.yml
+
+labels:
+  service: openshift.io
+
+name: vault-app-sre
+description: vault app-sre secret engine access
+
+service: github-org-team
+org: app-sre
+team: vault-app-sre

@@ -10,3 +10,8 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# app-interface make data outputs
+tests/app-interface/graphql-schemas/*
+tests/app-interface/schemas/*
+tests/app-interface/resources/*

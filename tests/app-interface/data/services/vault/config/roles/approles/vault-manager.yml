@@ -1,0 +1,28 @@
+---
+$schema: /vault-config/role-1.yml
+
+labels:
+  service: vault.local
+
+name: "vault_manager"
+type: "approle"
+mount: "approle/"
+options:
+  _type: "approle"
+  bind_secret_id: "true"
+  local_secret_ids: "false"
+  token_period: "0"
+  secret_id_num_uses: "0"
+  secret_id_ttl: "0"
+  token_explicit_max_ttl: "0"
+  token_max_ttl: "1800"
+  token_no_default_policy: false
+  token_num_uses: "0"
+  token_ttl: "1800"
+  token_type: "default"
+  token_policies:
+    - vault-manager-policy
+  policies:
+    - vault-manager-policy
+  secret_id_bound_cidrs: []
+  token_bound_cidrs: []

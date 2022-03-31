@@ -1,0 +1,12 @@
+---
+$schema: /vault-config/secret-engine-1.yml
+
+labels:
+  service: vault.local
+
+_path: "app-interface/"
+type: "kv"
+description: "app-interface secrets integration engine"
+options:
+  _type: "kv"
+  version: "2"

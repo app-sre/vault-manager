@@ -1,0 +1,10 @@
+---
+$schema: /access/role-1.yml
+
+labels: {}
+name: app-sre-vault-oidc
+
+permissions: []
+
+oidc_permissions:
+- $ref: /dependencies/vault/permissions/oidc/app-sre-vault-admin.yml
