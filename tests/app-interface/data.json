@@ -92,6 +92,86 @@
                 "sponsors"
             ]
         },
+        "/access/oidc-permission-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/access/oidc-permission-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "service": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "vault_policies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": {
+                            "type": "object",
+                            "properties": {
+                                "$schema": {
+                                    "type": "string",
+                                    "enum": [
+                                        "/vault-config/policy-1.yml"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "oneOf": [
+                {
+                    "properties": {
+                        "service": {
+                            "enum": [
+                                "vault"
+                            ]
+                        },
+                        "vault_policies": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "/common-1.json#/definitions/crossref",
+                                "$schemaRef": {
+                                    "type": "object",
+                                    "properties": {
+                                        "$schema": {
+                                            "type": "string",
+                                            "enum": [
+                                                "/vault-config/policy-1.yml"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "required": [
+                        "vault_policies"
+                    ]
+                }
+            ],
+            "required": [
+                "$schema",
+                "name",
+                "description",
+                "service"
+            ]
+        },
         "/access/permission-1.yml": {
             "$schema": "/metaschema-1.json",
             "version": "1.0",
@@ -408,6 +488,13 @@
                     "items": {
                         "$ref": "/common-1.json#/definitions/crossref",
                         "$schemaRef": "/access/permission-1.yml"
+                    }
+                },
+                "oidc_permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/access/oidc-permission-1.yml"
                     }
                 },
                 "tag_on_cluster_updates": {
@@ -842,11 +929,7 @@
                         "type": "object",
                         "properties": {
                             "name": {
-                                "type": "string",
-                                "enum": [
-                                    "app-interface-production-dev-access",
-                                    "app-interface-production-cicd-access"
-                                ]
+                                "type": "string"
                             },
                             "secret": {
                                 "$ref": "/common-1.json#/definitions/vaultSecret"
@@ -1063,11 +1146,7 @@
                     "$schemaRef": "/access/user-1.yml"
                 },
                 "credentials": {
-                    "type": "string",
-                    "enum": [
-                        "app-interface-production-dev-access",
-                        "app-interface-production-cicd-access"
-                    ]
+                    "type": "string"
                 }
             },
             "required": [
@@ -5423,6 +5502,10 @@
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/dependencies/jira-server-1.yml"
                 },
+                "severityPriorityMappings": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/dependencies/jira-severity-priority-mappings-1.yml"
+                },
                 "slack": {
                     "type": "object",
                     "properties": {
@@ -5444,7 +5527,8 @@
                 "labels",
                 "name",
                 "description",
-                "server"
+                "server",
+                "severityPriorityMappings"
             ]
         },
         "/dependencies/jira-server-1.yml": {
@@ -5483,6 +5567,59 @@
                 "description",
                 "serverUrl",
                 "token"
+            ]
+        },
+        "/dependencies/jira-severity-priority-mappings-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "description": "mappings between alert severities and jira ticket priorities",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/dependencies/jira-severity-priority-mappings-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "mappings": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "description": "a mapping between an alert severity to a ticket priority",
+                        "additionalProperties": false,
+                        "properties": {
+                            "severity": {
+                                "type": "string",
+                                "description": "alert severity"
+                            },
+                            "priority": {
+                                "type": "string",
+                                "description": "ticket priority"
+                            }
+                        },
+                        "required": [
+                            "severity",
+                            "priority"
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description",
+                "mappings"
             ]
         },
         "/dependencies/ocp-release-mirror-1.yml": {
@@ -11559,6 +11696,56 @@
             ]
         },
         {
+            "name": "SeverityPriorityMapping_v1",
+            "fields": [
+                {
+                    "name": "severity",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "priority",
+                    "type": "string",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "JiraSeverityPriorityMappings_v1",
+            "fields": [
+                {
+                    "name": "schema",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "path",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "labels",
+                    "type": "json"
+                },
+                {
+                    "name": "name",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "description",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "mappings",
+                    "type": "SeverityPriorityMapping_v1",
+                    "isList": true,
+                    "isRequired": true
+                }
+            ]
+        },
+        {
             "name": "JiraBoard_v1",
             "fields": [
                 {
@@ -11590,6 +11777,11 @@
                 {
                     "name": "server",
                     "type": "JiraServer_v1",
+                    "isRequired": true
+                },
+                {
+                    "name": "severityPriorityMappings",
+                    "type": "JiraSeverityPriorityMappings_v1",
                     "isRequired": true
                 },
                 {
@@ -16476,6 +16668,79 @@
             ]
         },
         {
+            "name": "OidcPermission_v1",
+            "isInterface": true,
+            "interfaceResolve": {
+                "strategy": "fieldMap",
+                "field": "service",
+                "fieldMap": {
+                    "vault": "OidcPermissionVault_v1"
+                }
+            },
+            "fields": [
+                {
+                    "name": "schema",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "labels",
+                    "type": "json"
+                },
+                {
+                    "name": "name",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "service",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "description",
+                    "type": "string",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "OidcPermissionVault_v1",
+            "interface": "OidcPermission_v1",
+            "fields": [
+                {
+                    "name": "schema",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "labels",
+                    "type": "json"
+                },
+                {
+                    "name": "name",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "service",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "description",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "vault_policies",
+                    "type": "VaultPolicy_v1",
+                    "isList": true,
+                    "isRequired": true
+                }
+            ]
+        },
+        {
             "name": "Permission_v1",
             "isInterface": true,
             "interfaceResolve": {
@@ -17167,6 +17432,12 @@
                 {
                     "name": "permissions",
                     "type": "Permission_v1",
+                    "isList": true,
+                    "isInterface": true
+                },
+                {
+                    "name": "oidc_permissions",
+                    "type": "OidcPermission_v1",
                     "isList": true,
                     "isInterface": true
                 },
@@ -18810,14 +19081,14 @@
         "/dependencies/vault/permissions/oidc/app-sre-vault-admin.yml": {
             "$schema": "/access/oidc-permission-1.yml",
             "labels": {
-                "service": "vault.fedramp.devshift.net"
+                "service": "vault.local"
             },
             "name": "app-sre-vault-admin",
             "service": "vault",
             "description": "app-sre vault administrator permission",
             "vault_policies": [
                 {
-                    "$ref": "/services/vault.devshift.net/config/policies/app-sre-vault-admin.yml"
+                    "$ref": "/services/vault/config/policies/app-sre-vault-admin.yml"
                 }
             ]
         },
@@ -18831,6 +19102,16 @@
             "service": "github-org-team",
             "org": "app-sre",
             "team": "vault-app-sre"
+        },
+        "/app-interface/app-interface-settings.yml": {
+            "$schema": "/app-interface/app-interface-settings-1.yml",
+            "labels": {},
+            "name": "app-interface-settings",
+            "description": "App Interface settings",
+            "vault": false,
+            "kubeBinary": "kubectl",
+            "saasDeployJobTemplate": "openshift-saas-deploy",
+            "hashLength": 7
         },
         "/services/vault/config/audit-backends/file-audit.yml": {
             "$schema": "/vault-config/audit-1.yml",
@@ -18907,6 +19188,14 @@
                 }
             }
         },
+        "/services/vault/config/policies/app-interface-approle-policy.yml": {
+            "$schema": "/vault-config/policy-1.yml",
+            "labels": {
+                "service": "vault.devshift.net"
+            },
+            "name": "app-interface-approle-policy",
+            "rules": "path \"app-sre/creds/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/ansible/*\" {\n  capabilities = [\"read\"]\n}\n#app-interface secrets integration\npath \"app-interface/*\" {\n   capabilities = [\"read\"]\n}\n# integrations input/output\npath \"app-sre/integrations-input/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/integrations-output/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\npath \"app-sre/integrations-throughput/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\n"
+        },
         "/services/vault/config/policies/app-sre-policy.yml": {
             "$schema": "/vault-config/policy-1.yml",
             "labels": {
@@ -18922,45 +19211,6 @@
             },
             "name": "vault-oidc-app-sre-policy",
             "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
-        },
-        "/services/vault/config/policies/app-interface-approle-policy.yml": {
-            "$schema": "/vault-config/policy-1.yml",
-            "labels": {
-                "service": "vault.devshift.net"
-            },
-            "name": "app-interface-approle-policy",
-            "rules": "path \"app-sre/creds/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/ansible/*\" {\n  capabilities = [\"read\"]\n}\n#app-interface secrets integration\npath \"app-interface/*\" {\n   capabilities = [\"read\"]\n}\n# integrations input/output\npath \"app-sre/integrations-input/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/integrations-output/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\npath \"app-sre/integrations-throughput/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\n"
-        },
-        "/services/vault/config/roles/approles/vault-manager.yml": {
-            "$schema": "/vault-config/role-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "name": "vault_manager",
-            "type": "approle",
-            "mount": "approle/",
-            "options": {
-                "_type": "approle",
-                "bind_secret_id": "true",
-                "local_secret_ids": "false",
-                "token_period": "0",
-                "secret_id_num_uses": "0",
-                "secret_id_ttl": "0",
-                "token_explicit_max_ttl": "0",
-                "token_max_ttl": "1800",
-                "token_no_default_policy": false,
-                "token_num_uses": "0",
-                "token_ttl": "1800",
-                "token_type": "default",
-                "token_policies": [
-                    "vault-manager-policy"
-                ],
-                "policies": [
-                    "vault-manager-policy"
-                ],
-                "secret_id_bound_cidrs": [],
-                "token_bound_cidrs": []
-            }
         },
         "/services/vault/config/roles/approles/app-interface.yml": {
             "$schema": "/vault-config/role-1.yml",
@@ -18993,30 +19243,35 @@
                 "token_bound_cidrs": []
             }
         },
-        "/services/vault/config/roles/oidc/minimal.yml": {
+        "/services/vault/config/roles/approles/vault-manager.yml": {
             "$schema": "/vault-config/role-1.yml",
             "labels": {
                 "service": "vault.local"
             },
-            "name": "minimal",
-            "type": "oidc",
-            "mount": "oidc/",
+            "name": "vault_manager",
+            "type": "approle",
+            "mount": "approle/",
             "options": {
-                "_type": "oidc",
-                "allowed_redirect_uris": [
-                    "http://localhost:8200/ui/vault/auth/oidc/oidc/callback"
-                ],
-                "role_type": "oidc",
-                "token_ttl": "60",
-                "token_max_ttl": "60",
-                "token_explicit_max_ttl": "0",
-                "token_type": "default",
+                "_type": "approle",
+                "bind_secret_id": "true",
+                "local_secret_ids": "false",
                 "token_period": "0",
-                "token_policies": [],
-                "token_bound_cidrs": [],
+                "secret_id_num_uses": "0",
+                "secret_id_ttl": "0",
+                "token_explicit_max_ttl": "0",
+                "token_max_ttl": "1800",
                 "token_no_default_policy": false,
                 "token_num_uses": "0",
-                "user_claim": "email"
+                "token_ttl": "1800",
+                "token_type": "default",
+                "token_policies": [
+                    "vault-manager-policy"
+                ],
+                "policies": [
+                    "vault-manager-policy"
+                ],
+                "secret_id_bound_cidrs": [],
+                "token_bound_cidrs": []
             }
         },
         "/services/vault/config/roles/oidc/default.yml": {
@@ -19062,6 +19317,32 @@
                 "verbose_oidc_logging": true
             }
         },
+        "/services/vault/config/roles/oidc/minimal.yml": {
+            "$schema": "/vault-config/role-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "minimal",
+            "type": "oidc",
+            "mount": "oidc/",
+            "options": {
+                "_type": "oidc",
+                "allowed_redirect_uris": [
+                    "http://localhost:8200/ui/vault/auth/oidc/oidc/callback"
+                ],
+                "role_type": "oidc",
+                "token_ttl": "60",
+                "token_max_ttl": "60",
+                "token_explicit_max_ttl": "0",
+                "token_type": "default",
+                "token_period": "0",
+                "token_policies": [],
+                "token_bound_cidrs": [],
+                "token_no_default_policy": false,
+                "token_num_uses": "0",
+                "user_claim": "email"
+            }
+        },
         "/services/vault/config/secret-engines/app-interface.yml": {
             "$schema": "/vault-config/secret-engine-1.yml",
             "labels": {
@@ -19087,16 +19368,6 @@
                 "_type": "kv",
                 "version": "1"
             }
-        },
-        "/app-interface/app-interface-settings.yml": {
-            "$schema": "/app-interface/app-interface-settings-1.yml",
-            "labels": {},
-            "name": "app-interface-settings",
-            "description": "App Interface settings",
-            "vault": false,
-            "kubeBinary": "kubectl",
-            "saasDeployJobTemplate": "openshift-saas-deploy",
-            "hashLength": 7
         },
         "/teams/app-sre/roles/app-sre-vault-oidc.yml": {
             "$schema": "/access/role-1.yml",

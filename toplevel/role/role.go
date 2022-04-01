@@ -144,11 +144,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		log.WithError(err).Fatal("[Vault Role] failed to unmarshal oidc options of desired role")
 	}
 
-	err = unmarshallOptionObjects(entries)
-	if err != nil {
-		log.WithError(err).Fatal("[Vault Role] failed to unmarshal oidc options of desired role")
-	}
-
 	// Diff the local configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingRoles))
 

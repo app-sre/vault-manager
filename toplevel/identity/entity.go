@@ -257,9 +257,6 @@ func generateDesired(entries []user) []entity {
 											Name:     entry.OrgUsername,
 											Type:     "entity-alias",
 											AuthType: "oidc",
-											CustomMetadata: map[string]interface{}{
-												"account": "RH SSO", // revisit this for better info to add
-											},
 										},
 									},
 									Metadata: map[string]interface{}{

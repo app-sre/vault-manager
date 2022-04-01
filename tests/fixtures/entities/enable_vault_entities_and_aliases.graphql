@@ -1,0 +1,19 @@
+{
+  vault_entities: users_v1 {
+    name
+    org_username
+    roles {
+      name
+      oidc_permissions {
+        name
+        description
+        service
+        ... on OidcPermissionVault_v1 {
+          vault_policies {
+            name
+          }
+        }
+      }
+    }
+  }
+}
