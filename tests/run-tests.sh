@@ -110,7 +110,7 @@ docker run -d --name=$VAULT_NAME \
 container_alive "http://127.0.0.1:8200" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME
 
 # run test suite
-for test in $(find bats/ -type f | grep .bats | grep -v entities); do
+for test in $(find bats/ -type f | grep .bats | grep -v entities | grep -v groups); do
     echo "running $test"
     bats --tap $test
     # hack so flags.bats has clean slate for audit resources when testing
