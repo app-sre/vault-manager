@@ -6,13 +6,7 @@
       name
       oidc_permissions {
         name
-        description
         service
-        ... on OidcPermissionVault_v1 {
-          vault_policies {
-            name
-          }
-        }
       }
     }
   }
