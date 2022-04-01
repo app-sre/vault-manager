@@ -257,6 +257,9 @@ func generateDesired(entries []user) []entity {
 											Name:     entry.OrgUsername,
 											Type:     "entity-alias",
 											AuthType: "oidc",
+											CustomMetadata: map[string]interface{}{
+												"account": "RH SSO", // revisit this for better info to add
+											},
 										},
 									},
 									Metadata: map[string]interface{}{
@@ -551,8 +554,8 @@ func isCustomMetadataSupported() (bool, error) {
 // (commercial v fedramp)
 func pruneUnsupported(entries []entity) {
 	for _, entry := range entries {
-		for _, alias := range entry.Aliases {
-			alias.CustomMetadata = nil
+		for i := 0; i < len(entry.Aliases); i++ {
+			entry.Aliases[i].CustomMetadata = nil
 		}
 	}
 }
