@@ -149,7 +149,7 @@ func processDesired(entries []user, entityNamesToIds map[string]string) []group 
 								processedGroups[role.Name] = &group{
 									Name:      role.Name,
 									Type:      "group",
-									EntityIds: []string{entityNamesToIds[entry.Name]},
+									EntityIds: []string{entityNamesToIds[entry.Name]}, // note that this could potentially be empty
 									Policies:  policies,
 									Metadata: map[string]interface{}{
 										permission.Name: permission.Description,
@@ -261,7 +261,7 @@ func getEntityNamesToIds() (map[string]string, error) {
 	var entityNamesToIds map[string]string
 	raw := vault.ListEntities()
 	if raw == nil {
-		return nil, errors.New("No results retrieved by vault.ListEntites()")
+		return make(map[string]string), nil
 	}
 	if _, exists := raw["key_info"]; !exists {
 		return nil, errors.New(
