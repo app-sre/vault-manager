@@ -395,10 +395,14 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 	bwg.Wait()
 }
 
-// Calls vault.DiffItems for existing/desired list of aliases, within each exisitng/desired entity
+// calls vault.DiffItems for existing/desired list of aliases, within each exisitng/desired entity
+// vault.DiffItem cannot adequately handle reconcile of aliases in "top level" diffItem of entities
+// this logic goes a layer deeper and compares aliases of a entities one at a time
 func determineAliasActions(entries, existingEntities []entity, entitiesToBeDeleted []vault.Item) (map[string]map[string][]vault.Item,
 	[]vault.Item, map[string][]vault.Item) {
 
+	// ds to quickly pull applicable aliases for diff against desired
+	// using existing entites, map entity name to list of associated aliases
 	existingEntityToAliases := make(map[string][]entityAlias)
 	for _, entity := range existingEntities {
 		existingEntityToAliases[entity.Name] = append(existingEntityToAliases[entity.Name], entity.Aliases...)
@@ -428,6 +432,7 @@ func determineAliasActions(entries, existingEntities []entity, entitiesToBeDelet
 
 	// the parent existing entity DNE in desired (to be deleted)
 	// treat this as deletion of all affiliated aliases
+	// this is redundant "to be certain" logic as vault should remove associated aliases when entity is deleted
 	for _, e := range entitiesToBeDeleted {
 		if _, exists := existingEntityToAliases[e.(entity).Name]; exists {
 			aliasesToBeDeleted = append(aliasesToBeDeleted, aliasesAsItems(e.(entity).Aliases)...)
@@ -457,6 +462,9 @@ func performAliasReconcile(aliasesToBeWritten map[string]map[string][]vault.Item
 			}
 		}
 	}
+	// recall, a new entity was created for entries in this ds
+	// therefore, additional call is required to find the id of the new entity
+	// in order to associate the new aliases
 	if _, exists := aliasesToBeWritten["name"]; exists {
 		for name, ws := range aliasesToBeWritten["name"] {
 			for _, w := range ws {
