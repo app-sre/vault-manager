@@ -42,6 +42,9 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 				} else if (itemType == "entity" || itemType == "entity-alias" || itemType == "group") &&
 					deepComparisonForName(item.Key(), existingNames) {
 					toBeUpdated = append(toBeUpdated, item)
+				} else if (item.KeyForType() == "entity" || item.KeyForType() == "entity-alias") &&
+					deepComparisonForName(item.Key(), existingNames) {
+					toBeUpdated = append(toBeUpdated, item)
 				} else {
 					toBeWritten = append(toBeWritten, item)
 				}
