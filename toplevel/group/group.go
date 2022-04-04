@@ -141,34 +141,7 @@ func processDesired(entries []user, entityNamesToIds map[string]string) []group 
 				if role.Permissions != nil {
 					for _, permission := range role.Permissions {
 						if permission.Service == "vault" {
-							policies := []string{}
-							for _, policy := range permission.Policies {
-								policies = append(policies, policy.Name)
-							}
-							if _, exists := processedGroups[role.Name]; !exists {
-								processedGroups[role.Name] = &group{
-									Name:      role.Name,
-									Type:      "group",
-									EntityIds: []string{entityNamesToIds[entry.Name]}, // note that this could potentially be empty
-									Policies:  policies,
-									Metadata: map[string]interface{}{
-										permission.Name: permission.Description,
-									},
-								}
-							} else {
-								processedGroups[role.Name].EntityIds = append(processedGroups[role.Name].EntityIds, entityNamesToIds[entry.Name])
-								processedGroups[role.Name].Metadata[permission.Name] = permission.Description
-								// avoid adding duplicate policies that already exist on another permission associated w/ role
-								existingPolicies := make(map[string]bool)
-								for _, policy := range processedGroups[role.Name].Policies {
-									existingPolicies[policy] = true
-								}
-								for _, policy := range policies {
-									if _, exists := existingPolicies[policy]; !exists {
-										processedGroups[role.Name].Policies = append(processedGroups[role.Name].Policies, policy)
-									}
-								}
-							}
+							handleNewDesired(processedGroups, permission, role.Name, entityNamesToIds[entry.Name])
 						}
 					}
 				}
@@ -179,6 +152,39 @@ func processDesired(entries []user, entityNamesToIds map[string]string) []group 
 		desired = append(desired, *v)
 	}
 	return desired
+}
+
+// either creates or updates a desired group
+// helper function for processDesired
+func handleNewDesired(processedGroups map[string]*group, permission oidcPermission, roleName string, entityId string) {
+	policies := []string{}
+	for _, policy := range permission.Policies {
+		policies = append(policies, policy.Name)
+	}
+	if _, exists := processedGroups[roleName]; !exists {
+		processedGroups[roleName] = &group{
+			Name:      roleName,
+			Type:      "group",
+			EntityIds: []string{entityId}, // note that this could potentially be empty
+			Policies:  policies,
+			Metadata: map[string]interface{}{
+				permission.Name: permission.Description,
+			},
+		}
+	} else {
+		processedGroups[roleName].EntityIds = append(processedGroups[roleName].EntityIds, entityId)
+		processedGroups[roleName].Metadata[permission.Name] = permission.Description
+		// avoid adding duplicate policies that already exist on another permission associated w/ role
+		existingPolicies := make(map[string]bool)
+		for _, policy := range processedGroups[roleName].Policies {
+			existingPolicies[policy] = true
+		}
+		for _, policy := range policies {
+			if _, exists := existingPolicies[policy]; !exists {
+				processedGroups[roleName].Policies = append(processedGroups[roleName].Policies, policy)
+			}
+		}
+	}
 }
 
 // returns list of existing vault groups
