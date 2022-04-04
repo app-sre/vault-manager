@@ -4,18 +4,20 @@ import (
 	"context"
 	"encoding/base64"
 	"flag"
+	"io/ioutil"
+	"os"
+	"sort"
+
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
-	"sort"
 
 	// Register top-level configurations.
 	_ "github.com/app-sre/vault-manager/toplevel/audit"
 	_ "github.com/app-sre/vault-manager/toplevel/auth"
+	_ "github.com/app-sre/vault-manager/toplevel/identity"
 	_ "github.com/app-sre/vault-manager/toplevel/policy"
 	_ "github.com/app-sre/vault-manager/toplevel/role"
 	_ "github.com/app-sre/vault-manager/toplevel/secretsengine"
@@ -139,6 +141,8 @@ func resolveConfigPriority(s string) int {
 		priority = 4
 	case "vault_roles":
 		priority = 5
+	case "vault_entities":
+		priority = 6
 	default:
 		priority = 0
 	}

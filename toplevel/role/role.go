@@ -57,13 +57,6 @@ func (e entry) Save() {
 		if k == "local_secret_ids" {
 			continue
 			// initially unmarshalled as string or nil and require further processing
-		} else if k == "bound_claims" || k == "claim_mappings" {
-			mapped, err := vault.UnmarshalJsonObj(k, v)
-			if err != nil {
-				log.WithError(err)
-				return
-			}
-			options[k] = mapped
 		} else {
 			options[k] = v
 		}
@@ -146,6 +139,11 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		log.WithError(err).Fatal("[Vault Role] failed to determine vault version")
 	}
 
+	err = unmarshallOptionObjects(entries)
+	if err != nil {
+		log.WithError(err).Fatal("[Vault Role] failed to unmarshal oidc options of desired role")
+	}
+
 	// Diff the local configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingRoles))
 
@@ -176,6 +174,31 @@ func asItems(xs []entry) (items []vault.Item) {
 	}
 
 	return
+}
+
+// unmarshals select options attributes which are defined within schema as objects
+// limitation within yaml unmarshal causes theses attributes to be initially unmarshalled as strings
+func unmarshallOptionObjects(roles []entry) error {
+	for _, role := range roles {
+		if strings.ToLower(role.Type) == "oidc" {
+			for k := range role.Options {
+				if k == "bound_claims" || k == "claim_mappings" {
+					converted, err := utils.UnmarshalJsonObj(k, role.Options[k])
+					if err != nil {
+						return err
+					}
+					// avoid assignment if result of unmarshal call is nil bc it will
+					// set type of option[k] to map[string]interface{}
+					// causing failure in reflect.deepequal check even when both are nil
+					if converted == nil {
+						continue
+					}
+					role.Options[k] = converted
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // addOptionalOidcDefaults adds optional attributes and corresponding default values to desired oidc roles
