@@ -33,11 +33,14 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 		toBeWritten = desired
 	} else {
 		for _, item := range desired {
-
+			itemType := item.KeyForType()
 			if !in(item, existing) {
 				if !deepComparisonForName(item.Key(), existingNames) {
 					toBeWritten = append(toBeWritten, item)
-				} else if !keyDescription(item, existing) && item.KeyForType() == "kv" {
+				} else if !keyDescription(item, existing) && itemType == "kv" {
+					toBeUpdated = append(toBeUpdated, item)
+				} else if (itemType == "entity" || itemType == "entity-alias" || itemType == "group") &&
+					deepComparisonForName(item.Key(), existingNames) {
 					toBeUpdated = append(toBeUpdated, item)
 				} else if (item.KeyForType() == "entity" || item.KeyForType() == "entity-alias") &&
 					deepComparisonForName(item.Key(), existingNames) {
@@ -45,7 +48,7 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 				} else {
 					toBeWritten = append(toBeWritten, item)
 				}
-			} else if in(item, existing) && !keyDescription(item, existing) && item.KeyForType() == "kv" {
+			} else if in(item, existing) && !keyDescription(item, existing) && itemType == "kv" {
 				toBeUpdated = append(toBeUpdated, item)
 			}
 		}
