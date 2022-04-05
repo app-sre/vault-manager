@@ -4,6 +4,7 @@ IMAGE_NAME := quay.io/app-sre/vault-manager
 IMAGE_TAG := $(shell git rev-parse --short=7 HEAD)
 DOCKER_CONF := $(CURDIR)/.docker
 GOOS := $(shell go env GOOS)
+PWD := $(shell pwd)
 
 gotest:
 	CGO_ENABLED=0 GOOS=$(GOOS) go test ./...
@@ -28,9 +29,9 @@ test: build-test-container
 	@docker --config=$(DOCKER_CONF) pull $(KEYCLOAK_IMAGE):$(KEYCLOAK_IMAGE_TAG)
 	@docker --config=$(DOCKER_CONF) pull $(KEYCLOAK_CLI_IMAGE):$(KEYCLOAK_CLI_IMAGE_TAG)
 	@docker run -t \
-	            --rm \
-				--net=host \
-	            -v /var/run/docker.sock:/var/run/docker.sock \
-				-e HOST_PATH=$(shell pwd) \
-	            -e GRAPHQL_SERVER=http://127.0.0.1:4000/graphql \
-	            vault-manager-test
+		--rm \
+		--net=host \
+		-v $(PWD)/.env:/tests/.env \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-e HOST_PATH=$(PWD) \
+		vault-manager-test

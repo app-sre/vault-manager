@@ -1,6 +1,6 @@
 .PHONY: schemas bundle run data
 
-include .env
+include ../../.env
 
 CONTAINER_ENGINE ?= $(shell which podman &>/dev/null && echo podman || echo docker)
 OUTPUT_DIR ?= $(shell pwd)
