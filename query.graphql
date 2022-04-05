@@ -109,6 +109,16 @@
       name
       oidc_permissions {
         name
+        service
+      }
+    }
+  }
+  vault_groups: users_v1 {
+    org_username
+    roles {
+      name
+      oidc_permissions {
+        name
         description
         service
         ... on OidcPermissionVault_v1 {
