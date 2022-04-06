@@ -184,7 +184,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		aliasesDryRunOutput(aliasesToBeWritten["name"], "written")
 		for _, alias := range aliasesToBeDeleted {
 			log.WithField("name", alias.Key()).WithField("type", alias.(entityAlias).AuthType).Info(
-				fmt.Sprintf("[Dry Run] [Vault Identity] entity alias to be delelted"))
+				fmt.Sprintf("[Dry Run] [Vault Identity] entity alias to be deleted"))
 		}
 		aliasesDryRunOutput(aliasesToBeUpdated, "updated")
 	} else {
@@ -321,6 +321,27 @@ func createBaseExistingEntities() ([]entity, error) {
 		})
 	}
 	return processed, nil
+}
+
+// processes raw result of vault.ListApproles and use extract names as keys in returned map
+func getApproleNames() (map[string]bool, error) {
+	approles := make(map[string]bool)
+	raw := vault.ListApproles()
+	if raw == nil {
+		return approles, nil
+	}
+	if _, exists := raw["keys"]; !exists {
+		return nil, errors.New(
+			"Required `keys` attribute not found in response from vault.ListApproles()")
+	}
+	existingApproles, ok := raw["keys"].([]interface{})
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("Failed to convert `keys` to []string"))
+	}
+	for _, name := range existingApproles {
+		approles[name.(string)] = true
+	}
+	return approles, nil
 }
 
 // performs concurrent requests to retrieve additional details for existing entities/entity aliases
