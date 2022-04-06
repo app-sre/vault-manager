@@ -201,7 +201,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		aliasesDryRunOutput(aliasesToBeWritten["name"], "written")
 		for _, alias := range aliasesToBeDeleted {
 			log.WithField("name", alias.Key()).WithField("type", alias.(entityAlias).AuthType).Info(
-				fmt.Sprintf("[Dry Run] [Vault Identity] entity alias to be delelted"))
+				fmt.Sprintf("[Dry Run] [Vault Identity] entity alias to be deleted"))
 		}
 		aliasesDryRunOutput(aliasesToBeUpdated, "updated")
 	} else {
