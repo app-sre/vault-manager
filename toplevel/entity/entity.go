@@ -10,7 +10,6 @@ import (
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
-	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -44,12 +43,11 @@ type entity struct {
 }
 
 type entityAlias struct {
-	Name           string
-	Id             string
-	Type           string
-	AuthType       string
-	AccessorId     string
-	CustomMetadata interface{}
+	Name       string
+	Id         string
+	Type       string
+	AuthType   string
+	AccessorId string
 }
 
 var _ vault.Item = entity{}
@@ -103,7 +101,7 @@ func (e entityAlias) KeyForType() string {
 }
 
 func (e entityAlias) KeyForDescription() string {
-	return fmt.Sprintf("%v", e.CustomMetadata)
+	return e.AuthType
 }
 
 func (e entityAlias) Equals(i interface{}) bool {
@@ -112,34 +110,27 @@ func (e entityAlias) Equals(i interface{}) bool {
 		return false
 	}
 	return e.Name == entry.Name &&
-		e.AuthType == entry.AuthType &&
-		reflect.DeepEqual(e.CustomMetadata, entry.CustomMetadata)
+		e.AuthType == entry.AuthType
 }
 
-func (ea entityAlias) Create(entityId string, customMetadataSupported bool) {
+func (ea entityAlias) Create(entityId string) {
 	path := filepath.Join("identity", ea.Type)
 	config := map[string]interface{}{
 		"name":           ea.Name,
 		"canonical_id":   entityId,
 		"mount_accessor": ea.AccessorId,
 	}
-	if customMetadataSupported {
-		config["custom_metadata"] = ea.CustomMetadata
-	}
 	vault.WriteEntityAlias(path, config)
 	log.WithField("path", filepath.Join(path, ea.Name)).WithField("type", ea.AuthType).Info(
 		"[Vault Identity] entity alias successfully written")
 }
 
-func (ea entityAlias) Update(entityId string, customMetadataSupported bool) {
+func (ea entityAlias) Update(entityId string) {
 	path := filepath.Join("identity", ea.Type, "id", ea.Id)
 	config := map[string]interface{}{
 		"name":           ea.Name,
 		"canonical_id":   entityId,
 		"mount_accessor": ea.AccessorId,
-	}
-	if customMetadataSupported {
-		config["custom_metadata"] = ea.CustomMetadata
 	}
 	vault.WriteSecret(path, config)
 	log.WithField("path", filepath.Join(path, ea.Name)).WithField("type", ea.AuthType).Info(
@@ -166,21 +157,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	desired := generateDesired(entries)
 	populateAliasType(desired)
 
-	customMetadataSupported, err := isCustomMetadataSupported()
-	if err != nil {
-		log.WithError(err).Fatal("[Vault Identity] failed to determine vault version")
-	}
-
 	// Process data on existing entities/aliases
 	existingEntities, err := createBaseExistingEntities()
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
 	}
 	if existingEntities != nil {
-		getExistingEntitiesDetails(existingEntities, threadPoolSize, customMetadataSupported)
-		if !customMetadataSupported {
-			pruneUnsupported(desired)
-		}
+		getExistingEntitiesDetails(existingEntities, threadPoolSize)
 		populateAliasType(existingEntities)
 		copyIds(desired, existingEntities)
 	}
@@ -215,7 +198,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		for _, u := range entitiesToBeUpdated {
 			u.(entity).CreateOrUpdate("update")
 		}
-		err = performAliasReconcile(aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated, customMetadataSupported)
+		err = performAliasReconcile(aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated)
 		if err != nil {
 			log.WithError(err).Fatal(
 				"[Vault Identity] failed to perform entity-alias reconcile operations")
@@ -243,9 +226,6 @@ func generateDesired(entries []user) []entity {
 											Name:     entry.OrgUsername,
 											Type:     "entity-alias",
 											AuthType: "oidc",
-											CustomMetadata: map[string]interface{}{
-												"account": "RH SSO", // revisit this for better info to add
-											},
 										},
 									},
 									Metadata: map[string]interface{}{
@@ -345,7 +325,7 @@ func createBaseExistingEntities() ([]entity, error) {
 
 // performs concurrent requests to retrieve additional details for existing entities/entity aliases
 // these details require explicit requests to vault api for each entitiy/alias
-func getExistingEntitiesDetails(entities []entity, threadPoolSize int, customMetadataSupported bool) {
+func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 
 	for i := 0; i < len(entities); i++ {
@@ -377,20 +357,6 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int, customMet
 						"Required `mount_accessor` attribute not found for entity-alias id: %s", entity.Aliases[j].Id))).Fatal()
 				}
 				entity.Aliases[j].AccessorId = rawAlias["mount_accessor"].(string)
-				if customMetadataSupported {
-					// deviate from norm and do not fail on missing custom_metadata
-					if _, exists := rawAlias["custom_metadata"]; exists {
-						if rawAlias["custom_metadata"] != nil {
-							entity.Aliases[j].CustomMetadata = make(map[string]interface{})
-							aliasMap, ok := entity.Aliases[j].CustomMetadata.(map[string]interface{})
-							for k, v := range rawAlias["custom_metadata"].(map[string]interface{}) {
-								if ok {
-									aliasMap[k] = v
-								}
-							}
-						}
-					}
-				}
 			}
 
 			entity.Metadata = make(map[string]interface{})
@@ -405,10 +371,14 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int, customMet
 	bwg.Wait()
 }
 
-// Calls vault.DiffItems for existing/desired list of aliases, within each exisitng/desired entity
+// calls vault.DiffItems for existing/desired list of aliases, within each exisitng/desired entity
+// vault.DiffItem cannot adequately handle reconcile of aliases in "top level" diffItem of entities
+// this logic goes a layer deeper and compares aliases of a entities one at a time
 func determineAliasActions(entries, existingEntities []entity, entitiesToBeDeleted []vault.Item) (map[string]map[string][]vault.Item,
 	[]vault.Item, map[string][]vault.Item) {
 
+	// ds to quickly pull applicable aliases for diff against desired
+	// using existing entites, map entity name to list of associated aliases
 	existingEntityToAliases := make(map[string][]entityAlias)
 	for _, entity := range existingEntities {
 		existingEntityToAliases[entity.Name] = append(existingEntityToAliases[entity.Name], entity.Aliases...)
@@ -438,6 +408,7 @@ func determineAliasActions(entries, existingEntities []entity, entitiesToBeDelet
 
 	// the parent existing entity DNE in desired (to be deleted)
 	// treat this as deletion of all affiliated aliases
+	// this is redundant "to be certain" logic as vault should remove associated aliases when entity is deleted
 	for _, e := range entitiesToBeDeleted {
 		if _, exists := existingEntityToAliases[e.(entity).Name]; exists {
 			aliasesToBeDeleted = append(aliasesToBeDeleted, aliasesAsItems(e.(entity).Aliases)...)
@@ -448,7 +419,7 @@ func determineAliasActions(entries, existingEntities []entity, entitiesToBeDelet
 
 // writes, deletes, and/or updates entity aliases
 func performAliasReconcile(aliasesToBeWritten map[string]map[string][]vault.Item,
-	aliasesToBeDeleted []vault.Item, aliasesToBeUpdated map[string][]vault.Item, customMetadataSupported bool) error {
+	aliasesToBeDeleted []vault.Item, aliasesToBeUpdated map[string][]vault.Item) error {
 	var accessorIds map[string]string
 	// extra work (vault api request) required to organize accessor ids
 	if len(aliasesToBeWritten) > 0 {
@@ -463,10 +434,13 @@ func performAliasReconcile(aliasesToBeWritten map[string]map[string][]vault.Item
 			for _, w := range ws {
 				a := w.(entityAlias)
 				a.AccessorId = accessorIds[a.AuthType]
-				a.Create(id, customMetadataSupported)
+				a.Create(id)
 			}
 		}
 	}
+	// recall, a new entity was created for entries in this ds
+	// therefore, additional call is required to find the id of the new entity
+	// in order to associate the new aliases
 	if _, exists := aliasesToBeWritten["name"]; exists {
 		for name, ws := range aliasesToBeWritten["name"] {
 			for _, w := range ws {
@@ -477,7 +451,7 @@ func performAliasReconcile(aliasesToBeWritten map[string]map[string][]vault.Item
 					return errors.New(fmt.Sprintf(
 						"[Vault Identity] failed to get info for newly created entity: %s", name))
 				}
-				a.Create(newEntity["id"].(string), customMetadataSupported)
+				a.Create(newEntity["id"].(string))
 			}
 		}
 	}
@@ -486,7 +460,7 @@ func performAliasReconcile(aliasesToBeWritten map[string]map[string][]vault.Item
 	}
 	for id, us := range aliasesToBeUpdated {
 		for _, u := range us {
-			u.(entityAlias).Update(id, customMetadataSupported)
+			u.(entityAlias).Update(id)
 		}
 	}
 	return nil
@@ -501,41 +475,8 @@ func unmarshallMetadatas(entries []entity) error {
 			return err
 		}
 		entries[i].Metadata = converted
-		for j := range entries[i].Aliases {
-			converted, err = utils.UnmarshalJsonObj("custom_metadata", entries[i].Aliases[j].CustomMetadata)
-			if err != nil {
-				return err
-			}
-			entries[i].Aliases[j].CustomMetadata = converted
-		}
 	}
 	return nil
-}
-
-// return flag indicating if vault version supports alias custom_metadata attribute
-func isCustomMetadataSupported() (bool, error) {
-	current, err := version.NewVersion(vault.GetVaultVersion())
-	if err != nil {
-		return false, err
-	}
-	threshold, err := version.NewVersion("1.9.0")
-	if err != nil {
-		return false, err
-	}
-	if current.LessThan(threshold) {
-		return false, nil
-	}
-	return true, nil
-}
-
-// remove unsupported attributes that may be supported in one version of vault but not another
-// (commercial v fedramp)
-func pruneUnsupported(entries []entity) {
-	for _, entry := range entries {
-		for i := 0; i < len(entry.Aliases); i++ {
-			entry.Aliases[i].CustomMetadata = nil
-		}
-	}
 }
 
 func entriesAsItems(entries []entity) []vault.Item {
