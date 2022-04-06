@@ -216,6 +216,17 @@ func GetVaultVersion() string {
 	return info.Version
 }
 
+func ListApproles() map[string]interface{} {
+	existingApproles, err := getClient().Logical().List("auth/approle/role")
+	if err != nil {
+		log.WithError(err).Fatal("[Vault Auth] failed to list Vault approles")
+	}
+	if existingApproles == nil {
+		return nil
+	}
+	return existingApproles.Data
+}
+
 func ListEntities() map[string]interface{} {
 	existingEntities, err := getClient().Logical().List("identity/entity/id")
 	if err != nil {
