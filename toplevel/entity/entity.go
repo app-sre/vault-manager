@@ -35,11 +35,12 @@ type oidcPermission struct {
 }
 
 type entity struct {
-	Name     string
-	Id       string
-	Type     string
-	Metadata interface{}
-	Aliases  []entityAlias
+	Name      string
+	Id        string
+	Type      string
+	Metadata  interface{}
+	Aliases   []entityAlias
+	IsApprole bool
 }
 
 type entityAlias struct {
@@ -164,6 +165,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 	if existingEntities != nil {
 		getExistingEntitiesDetails(existingEntities, threadPoolSize)
+		pruneApproleEntities(&existingEntities)
 		populateAliasType(existingEntities)
 		copyIds(desired, existingEntities)
 	}
@@ -348,20 +350,25 @@ func getApproleNames() (map[string]bool, error) {
 // these details require explicit requests to vault api for each entitiy/alias
 func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+	approles, err := getApproleNames()
+	if err != nil {
+		log.WithError(err).Fatal()
+	}
 
 	for i := 0; i < len(entities); i++ {
 		bwg.Add(1)
 
-		go func(entity *entity) {
+		go func(e *entity) {
 			defer bwg.Done()
-			info := vault.GetEntityInfo(entity.Name)
+
+			info := vault.GetEntityInfo(e.Name)
 			if info == nil {
 				log.WithError(errors.New(fmt.Sprintf(
-					"No information returned for entity id: %s", entity.Id))).Fatal()
+					"No information returned for entity id: %s", e.Id))).Fatal()
 			}
 			if _, exists := info["metadata"]; !exists {
 				log.WithError(errors.New(fmt.Sprintf(
-					"Required `metadata` attribute not found for entity id: %s", entity.Id))).Fatal()
+					"Required `metadata` attribute not found for entity id: %s", e.Id))).Fatal()
 			}
 			var metadata map[string]interface{}
 			if info["metadata"] == nil {
@@ -371,17 +378,30 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 			}
 
 			// TODO: make this a nested goroutine
-			for j := 0; j < len(entity.Aliases); j++ {
-				rawAlias := vault.GetEntityAliasInfo(entity.Aliases[j].Id)
+			isApprole := false
+			for j := 0; j < len(e.Aliases); j++ {
+				rawAlias := vault.GetEntityAliasInfo(e.Aliases[j].Id)
 				if _, exists := rawAlias["mount_accessor"]; !exists {
 					log.WithError(errors.New(fmt.Sprintf(
-						"Required `mount_accessor` attribute not found for entity-alias id: %s", entity.Aliases[j].Id))).Fatal()
+						"Required `mount_accessor` attribute not found for entity-alias id: %s", e.Aliases[j].Id))).Fatal()
 				}
-				entity.Aliases[j].AccessorId = rawAlias["mount_accessor"].(string)
+				e.Aliases[j].AccessorId = rawAlias["mount_accessor"].(string)
+				// approle logins create entities/entity-aliases
+				// we do not want to include these in the reconcile process
+				// entity-aliases created this way contain a metadata k/v pair w/ key `role_name`
+				// check every alias's metadata and see if the name matches an existing approle
+				if rawAlias["metadata"] != nil {
+					metadata := rawAlias["metadata"].(map[string]interface{})
+					if _, exists := approles[metadata["role_name"].(string)]; exists {
+						isApprole = true
+						break
+					}
+				}
 			}
 
-			entity.Metadata = make(map[string]interface{})
-			metadataMap, ok := entity.Metadata.(map[string]interface{})
+			e.IsApprole = isApprole
+			e.Metadata = make(map[string]interface{})
+			metadataMap, ok := e.Metadata.(map[string]interface{})
 			if ok {
 				for k, v := range metadata {
 					metadataMap[k] = v
@@ -390,6 +410,19 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 		}(&entities[i])
 	}
 	bwg.Wait()
+}
+
+// removes existing entities that have been flagged as being connected to approles
+// from inclusion in reconcile process
+func pruneApproleEntities(entities *[]entity) {
+	i := 0
+	for _, e := range *entities {
+		if !e.IsApprole {
+			(*entities)[i] = e
+			i++
+		}
+	}
+	*entities = (*entities)[:i]
 }
 
 // calls vault.DiffItems for existing/desired list of aliases, within each exisitng/desired entity
