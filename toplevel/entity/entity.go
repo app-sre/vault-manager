@@ -35,12 +35,11 @@ type oidcPermission struct {
 }
 
 type entity struct {
-	Name      string
-	Id        string
-	Type      string
-	Metadata  interface{}
-	Aliases   []entityAlias
-	IsApprole bool
+	Name     string
+	Id       string
+	Type     string
+	Metadata interface{}
+	Aliases  []entityAlias
 }
 
 type entityAlias struct {
@@ -163,9 +162,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
 	}
-	if existingEntities != nil {
+	pruneApproleEntities(&existingEntities)
+	if existingEntities != nil && len(existingEntities) > 0 {
 		getExistingEntitiesDetails(existingEntities, threadPoolSize)
-		pruneApproleEntities(&existingEntities)
 		populateAliasType(existingEntities)
 		copyIds(desired, existingEntities)
 	}
@@ -325,35 +324,10 @@ func createBaseExistingEntities() ([]entity, error) {
 	return processed, nil
 }
 
-// processes raw result of vault.ListApproles and use extract names as keys in returned map
-func getApproleNames() (map[string]bool, error) {
-	approles := make(map[string]bool)
-	raw := vault.ListApproles()
-	if raw == nil {
-		return approles, nil
-	}
-	if _, exists := raw["keys"]; !exists {
-		return nil, errors.New(
-			"Required `keys` attribute not found in response from vault.ListApproles()")
-	}
-	existingApproles, ok := raw["keys"].([]interface{})
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("Failed to convert `keys` to []string"))
-	}
-	for _, name := range existingApproles {
-		approles[name.(string)] = true
-	}
-	return approles, nil
-}
-
 // performs concurrent requests to retrieve additional details for existing entities/entity aliases
 // these details require explicit requests to vault api for each entitiy/alias
 func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
-	approles, err := getApproleNames()
-	if err != nil {
-		log.WithError(err).Fatal()
-	}
 
 	for i := 0; i < len(entities); i++ {
 		bwg.Add(1)
@@ -378,35 +352,16 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 			}
 
 			// TODO: make this a nested goroutine
-			isApprole := false
 			for j := 0; j < len(e.Aliases); j++ {
 				rawAlias := vault.GetEntityAliasInfo(e.Aliases[j].Id)
-				if _, exists := rawAlias["mount_accessor"]; !exists {
+				mountAccessor, ok := rawAlias["mount_accessor"].(string)
+				if !ok {
 					log.WithError(errors.New(fmt.Sprintf(
-						"Required `mount_accessor` attribute not found for entity-alias id: %s", e.Aliases[j].Id))).Fatal()
+						"Unable to retrieve required `mount_accessor` attribute for entity-alias id: %s", e.Aliases[j].Id))).Fatal()
 				}
-				e.Aliases[j].AccessorId = rawAlias["mount_accessor"].(string)
-				// approle logins create entities/entity-aliases
-				// we do not want to include these in the reconcile process
-				// entity-aliases created this way contain a metadata k/v pair w/ key `role_name`
-				// check every alias's metadata and see if the name matches an existing approle
-				if rawAlias["metadata"] != nil {
-					metadata := rawAlias["metadata"].(map[string]interface{})
-					// oidc logins w/ out permission also create entities/entity-aliases
-					// unlike approle logins, they do not create 'role_name' metadata
-					// however, they do initalize metadata to `map[]`, instead of the `nil` we assign for explicit entity creations
-					// this check is to handle such existing entities
-					if len(metadata) == 0 {
-						break
-					}
-					if _, exists := approles[metadata["role_name"].(string)]; exists {
-						isApprole = true
-						break
-					}
-				}
+				e.Aliases[j].AccessorId = mountAccessor
 			}
 
-			e.IsApprole = isApprole
 			e.Metadata = make(map[string]interface{})
 			metadataMap, ok := e.Metadata.(map[string]interface{})
 			if ok {
@@ -422,9 +377,17 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 // removes existing entities that have been flagged as being connected to approles
 // from inclusion in reconcile process
 func pruneApproleEntities(entities *[]entity) {
+	var isOidc bool
 	i := 0
 	for _, e := range *entities {
-		if !e.IsApprole {
+		isOidc = true
+		for _, a := range e.Aliases {
+			if a.AuthType != "oidc" {
+				isOidc = false
+				break
+			}
+		}
+		if isOidc {
 			(*entities)[i] = e
 			i++
 		}
