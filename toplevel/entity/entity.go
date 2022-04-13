@@ -392,6 +392,13 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 				// check every alias's metadata and see if the name matches an existing approle
 				if rawAlias["metadata"] != nil {
 					metadata := rawAlias["metadata"].(map[string]interface{})
+					// oidc logins w/ out permission also create entities/entity-aliases
+					// unlike approle logins, they do not create 'role_name' metadata
+					// however, they do initalize metadata to `map[]`, instead of the `nil` we assign for explicit entity creations
+					// this check is to handle such existing entities
+					if len(metadata) == 0 {
+						break
+					}
 					if _, exists := approles[metadata["role_name"].(string)]; exists {
 						isApprole = true
 						break
