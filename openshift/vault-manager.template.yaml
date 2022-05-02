@@ -92,7 +92,7 @@ parameters:
 - name: CPU_LIMIT
   value: 100m
 - name: REPLICAS
-  value: '1'
+  value: '3'
 - name: RECONCILE_SLEEP_TIME
   value: '15m'
 - name: DRY_RUN
