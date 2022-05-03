@@ -3,6 +3,13 @@
     type
     _path
     description
+    instance
+    ... on VaultInstanceApprole_v1 {
+      address
+    }
+    ... on VaultInstanceToken_v1 {
+      address
+    }
     options {
       ... on VaultAuditOptionsFile_v1 {
         file_path
@@ -130,15 +137,29 @@
     }
   }
   vault_instances: vault_instances_v1 {
-    name
     address
     authType
     ... on VaultInstanceApprole_v1 {
       roleID
+      ... on VaultSecret_v1 {
+        path
+        field
+        version
+      }
       secretID
+      ... on VaultSecret_v1 {
+        path
+        field
+        version
+      }
     }
     ... on VaultInstanceToken_v1 {
       token
+      ... on VaultSecret_v1 {
+        path
+        field
+        version
+      }
     }
   }
 }
