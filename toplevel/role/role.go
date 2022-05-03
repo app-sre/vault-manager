@@ -106,8 +106,8 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		}
 	}
 
+	// build list of all existing roles for each instance
 	instancesToExistingRoles := make(map[string][]entry)
-
 	for instance, existingAuthBackends := range instancesToExistingAuths {
 		if existingAuthBackends != nil {
 			for authBackend := range existingAuthBackends {

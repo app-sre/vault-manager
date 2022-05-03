@@ -76,6 +76,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
 	}
 
+	// call to vault api for each instance to obtain raw enabled audit info
 	instancesToEnabledAudits := make(map[string]map[string]*api.Audit)
 	instances := []string{}
 	for _, e := range entries {
@@ -85,12 +86,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		}
 	}
 
-	// Build a list of all the existing entries.
+	// Build a list of all the existing audits for each instance
 	instancesToExistingAudits := make(map[string][]entry)
-	for addr, enabledAudits := range instancesToEnabledAudits {
+	for instance, enabledAudits := range instancesToEnabledAudits {
 		if enabledAudits != nil {
 			for k := range enabledAudits {
-				instancesToExistingAudits[addr] = append(instancesToExistingAudits[addr], entry{
+				instancesToExistingAudits[instance] = append(instancesToExistingAudits[instance], entry{
 					Path:        enabledAudits[k].Path,
 					Type:        enabledAudits[k].Type,
 					Description: enabledAudits[k].Description,
