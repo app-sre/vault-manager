@@ -98,11 +98,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 	// Get the existing auth backends
 	instancesToExistingAuths := make(map[string]map[string]*api.MountOutput)
-	instances := []string{}
 	for _, e := range entries {
 		if _, exists := instancesToExistingAuths[e.Instance.Address]; !exists {
 			instancesToExistingAuths[e.Instance.Address] = vault.ListAuthBackends(e.Instance.Address)
-			instances = append(instances, e.Instance.Address)
 		}
 	}
 
@@ -159,7 +157,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// perform reconcile operations for each instance
-	for _, instance := range instances {
+	for _, instance := range instance.InstanceAddresses {
 		// Diff the local configuration with the Vault instance.
 		entriesToBeWritten, entriesToBeDeleted, _ :=
 			vault.DiffItems(asItems(instancesToDesiredRoles[instance]), asItems(instancesToExistingRoles[instance]))

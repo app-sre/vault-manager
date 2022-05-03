@@ -65,12 +65,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 	// call to vault api for each instance to obtain raw enabled audit info
 	instancesToExistingPolicyNames := make(map[string][]string)
-	instances := []string{}
 	for _, e := range entries {
 		if _, exists := instancesToExistingPolicyNames[e.Instance.Address]; !exists {
 			instancesToExistingPolicyNames[e.Instance.Address] =
 				append(instancesToExistingPolicyNames[e.Instance.Address], vault.ListVaultPolicies(e.Instance.Address)...)
-			instances = append(instances, e.Instance.Address)
 		}
 	}
 
@@ -102,7 +100,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// perform reconcile operations for each instance
-	for _, instance := range instances {
+	for _, instance := range instance.InstanceAddresses {
 		// Diff the local configuration with the Vault instance.
 		toBeWritten, toBeDeleted, _ :=
 			vault.DiffItems(asItems(instancesToDesiredPolicies[instance]), asItems(instancesToExistingPolicies[instance]))

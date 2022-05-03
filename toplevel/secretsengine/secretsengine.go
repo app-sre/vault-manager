@@ -83,11 +83,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 	// call to vault api for each instance to obtain raw enabled engine info
 	instancesToEnabledEngines := make(map[string]map[string]*api.MountOutput)
-	instances := []string{}
 	for _, e := range entries {
 		if _, exists := instancesToEnabledEngines[e.Instance.Address]; !exists {
 			instancesToEnabledEngines[e.Instance.Address] = vault.ListSecretsEngines(e.Instance.Address)
-			instances = append(instances, e.Instance.Address)
 		}
 	}
 
@@ -105,7 +103,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// perform reconcile operations for each instance
-	for _, instance := range instances {
+	for _, instance := range instance.InstanceAddresses {
 		toBeWritten, toBeDeleted, toBeUpdated :=
 			vault.DiffItems(asItems(instancesToDesiredEngines[instance]), asItems(instancesToExistingEngines[instance]))
 
