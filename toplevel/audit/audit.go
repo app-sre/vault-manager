@@ -3,11 +3,10 @@
 package audit
 
 import (
-	"sync"
-
-	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
+	"github.com/app-sre/vault-manager/toplevel/instance"
+
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -17,6 +16,7 @@ type entry struct {
 	Path        string            `yaml:"_path"`
 	Type        string            `yaml:"type"`
 	Description string            `yaml:"description"`
+	Instance    instance.Instance `yaml:"instance"`
 	Options     map[string]string `yaml:"options"`
 }
 
@@ -71,65 +71,62 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Audit] failed to decode audit device configuration")
 	}
+	instancesToDesiredEntries := make(map[string][]entry)
+	for _, e := range entries {
+		instancesToDesiredEntries[e.Instance.Address] = append(instancesToDesiredEntries[e.Instance.Address], e)
+	}
 
-	enabledAudits := vault.ListAuditDevices()
+	instancesToEnabledAudits := make(map[string]map[string]*api.Audit)
+	instances := []string{}
+	for _, e := range entries {
+		if _, exists := instancesToEnabledAudits[e.Instance.Address]; !exists {
+			instancesToEnabledAudits[e.Instance.Address] = vault.ListAuditDevices(e.Instance.Address)
+			instances = append(instances, e.Instance.Address)
+		}
+	}
 
 	// Build a list of all the existing entries.
-	existingAudits := make([]entry, 0)
-
-	if enabledAudits != nil {
-
-		var mutex = &sync.Mutex{}
-
-		bwg := utils.NewBoundedWaitGroup(threadPoolSize)
-
-		// fill existing audits array in parallel
-		for k := range enabledAudits {
-
-			bwg.Add(1)
-
-			go func(k string) {
-
-				mutex.Lock()
-
-				existingAudits = append(existingAudits, entry{
+	instancesToExistingAudits := make(map[string][]entry)
+	for addr, enabledAudits := range instancesToEnabledAudits {
+		if enabledAudits != nil {
+			for k := range enabledAudits {
+				instancesToExistingAudits[addr] = append(instancesToExistingAudits[addr], entry{
 					Path:        enabledAudits[k].Path,
 					Type:        enabledAudits[k].Type,
 					Description: enabledAudits[k].Description,
 					Options:     enabledAudits[k].Options,
 				})
-
-				defer bwg.Done()
-				defer mutex.Unlock()
-			}(k)
+			}
 		}
-		bwg.Wait()
 	}
 
-	// Diff the local configuration with the Vault instance.
-	toBeWritten, toBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingAudits))
+	// perform reconcile operations for each instance
+	for _, instance := range instances {
+		// Diff the local configuration with the Vault instance.
+		toBeWritten, toBeDeleted, _ :=
+			vault.DiffItems(asItems(instancesToDesiredEntries[instance]), asItems(instancesToExistingAudits[instance]))
 
-	if dryRun == true {
-		for _, w := range toBeWritten {
-			log.WithField("path", w.Key()).Infof("[Dry Run] [Vault Audit] audit device to be enabled")
-		}
-		for _, d := range toBeDeleted {
-			log.WithField("path", d.Key()).Infof("[Dry Run] [Vault Audit] audit device to be disabled")
-		}
-	} else {
-		// Write any missing Audit Devices to the Vault instance.
-		for _, e := range toBeWritten {
-			ent := e.(entry)
-			vault.EnableAduitDevice(ent.Path, &api.EnableAuditOptions{
-				Type:        ent.Type,
-				Description: ent.Description,
-				Options:     ent.Options,
-			})
-		}
-
-		// Delete any Audit Devices from the Vault instance.
-		for _, e := range toBeDeleted {
-			vault.DisableAuditDevice(e.(entry).Path)
+		if dryRun == true {
+			for _, w := range toBeWritten {
+				log.WithField("path", w.Key()).Infof("[Dry Run] [Vault Audit] audit device to be enabled")
+			}
+			for _, d := range toBeDeleted {
+				log.WithField("path", d.Key()).Infof("[Dry Run] [Vault Audit] audit device to be disabled")
+			}
+		} else {
+			// Write any missing Audit Devices to the Vault instance.
+			for _, e := range toBeWritten {
+				ent := e.(entry)
+				vault.EnableAduitDevice(instance, ent.Path, &api.EnableAuditOptions{
+					Type:        ent.Type,
+					Description: ent.Description,
+					Options:     ent.Options,
+				})
+			}
+			// Delete any Audit Devices from the Vault instance.
+			for _, e := range toBeDeleted {
+				vault.DisableAuditDevice(instance, e.(entry).Path)
+			}
 		}
 	}
 }
