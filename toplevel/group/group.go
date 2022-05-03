@@ -161,14 +161,10 @@ func processDesired(entries []user, entityNamesToIds map[string]string) []group 
 	desired := []group{}
 	processedGroups := make(map[string]*group)
 	for _, entry := range entries {
-		if entry.Roles != nil {
-			for _, role := range entry.Roles {
-				if role.Permissions != nil {
-					for _, permission := range role.Permissions {
-						if permission.Service == "vault" {
-							handleNewDesired(processedGroups, permission, role.Name, entityNamesToIds[entry.Name])
-						}
-					}
+		for _, role := range entry.Roles {
+			for _, permission := range role.Permissions {
+				if permission.Service == "vault" {
+					handleNewDesired(processedGroups, permission, role.Name, entityNamesToIds[entry.Name])
 				}
 			}
 		}
