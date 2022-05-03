@@ -154,6 +154,13 @@
             name
           }
         }
+        instance
+        ... on VaultInstanceApprole_v1 {
+          address
+        }
+        ... on VaultInstanceToken_v1 {
+          address
+        }
       }
     }
   }
