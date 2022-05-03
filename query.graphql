@@ -48,6 +48,13 @@
   vault_secret_engines: vault_secret_engines_v1 {
     _path
     type
+    instance
+    ... on VaultInstanceApprole_v1 {
+      address
+    }
+    ... on VaultInstanceToken_v1 {
+      address
+    }
     description
     options {
       ... on VaultSecretEngineOptionsKV_v1 {

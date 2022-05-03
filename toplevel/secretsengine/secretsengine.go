@@ -7,12 +7,10 @@ package secretsengine
 import (
 	"strings"
 
-	"github.com/app-sre/vault-manager/pkg/utils"
+	"github.com/app-sre/vault-manager/toplevel/instance"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-
-	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
@@ -21,6 +19,7 @@ import (
 type entry struct {
 	Path        string            `yaml:"_path"`
 	Type        string            `yaml:"type"`
+	Instance    instance.Instance `yaml:"instance"`
 	Description string            `yaml:"description"`
 	Options     map[string]string `yaml:"options"`
 }
@@ -77,78 +76,75 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Secrets engine] failed to decode secrets engines configuration")
 	}
-
-	// List the existing secrets engines.
-	existingMounts := vault.ListSecretsEngines()
-
-	// Build a list of all the existing entries.
-	existingSecretsEngines := make([]entry, 0)
-
-	if existingSecretsEngines != nil {
-
-		var mutex = &sync.Mutex{}
-
-		bwg := utils.NewBoundedWaitGroup(threadPoolSize)
-
-		for path, engine := range existingMounts {
-
-			bwg.Add(1)
-
-			go func(path string, engine *api.MountOutput) {
-
-				mutex.Lock()
-
-				existingSecretsEngines = append(existingSecretsEngines, entry{
-					Path:        path,
-					Type:        engine.Type,
-					Description: engine.Description,
-					Options:     engine.Options,
-				})
-
-				defer bwg.Done()
-				defer mutex.Unlock()
-			}(path, engine)
-		}
-		bwg.Wait()
+	instancesToDesiredEngines := make(map[string][]entry)
+	for _, e := range entries {
+		instancesToDesiredEngines[e.Instance.Address] = append(instancesToDesiredEngines[e.Instance.Address], e)
 	}
 
-	toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(asItems(entries), asItems(existingSecretsEngines))
+	// call to vault api for each instance to obtain raw enabled engine info
+	instancesToEnabledEngines := make(map[string]map[string]*api.MountOutput)
+	instances := []string{}
+	for _, e := range entries {
+		if _, exists := instancesToEnabledEngines[e.Instance.Address]; !exists {
+			instancesToEnabledEngines[e.Instance.Address] = vault.ListSecretsEngines(e.Instance.Address)
+			instances = append(instances, e.Instance.Address)
+		}
+	}
 
-	if dryRun == true {
-		for _, w := range toBeWritten {
-			log.WithField("path", w.Key()).WithField("type", w.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be enabled")
+	// Build a list of all the existing engines for each instance
+	instancesToExistingEngines := make(map[string][]entry)
+	for instance, enabledEngines := range instancesToEnabledEngines {
+		for path, engine := range enabledEngines {
+			instancesToExistingEngines[instance] = append(instancesToExistingEngines[instance], entry{
+				Path:        path,
+				Type:        engine.Type,
+				Description: engine.Description,
+				Options:     engine.Options,
+			})
 		}
-		for _, u := range toBeUpdated {
-			log.WithField("path", u.Key()).WithField("type", u.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be updated")
-		}
-		for _, d := range toBeDeleted {
-			if !isDefaultMount(d.Key()) {
-				log.WithField("path", d.Key()).WithField("type", d.(entry).Type).Infof("[Dry Run] [Vault Secrets engine] secrets-engine to be disabled")
+	}
+
+	// perform reconcile operations for each instance
+	for _, instance := range instances {
+		toBeWritten, toBeDeleted, toBeUpdated :=
+			vault.DiffItems(asItems(instancesToDesiredEngines[instance]), asItems(instancesToExistingEngines[instance]))
+
+		if dryRun == true {
+			for _, w := range toBeWritten {
+				log.WithField("path", w.Key()).WithField("type", w.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be enabled")
 			}
-		}
-	} else {
-		// TODO(riuvshin): implement tuning
-		for _, e := range toBeWritten {
-			ent := e.(entry)
-			vault.EnableSecretsEngine(ent.Path, &api.MountInput{
-				Type:        ent.Type,
-				Description: ent.Description,
-				Options:     ent.Options,
-			})
-		}
+			for _, u := range toBeUpdated {
+				log.WithField("path", u.Key()).WithField("type", u.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be updated")
+			}
+			for _, d := range toBeDeleted {
+				if !isDefaultMount(d.Key()) {
+					log.WithField("path", d.Key()).WithField("type", d.(entry).Type).Infof("[Dry Run] [Vault Secrets engine] secrets-engine to be disabled")
+				}
+			}
+		} else {
+			// TODO(riuvshin): implement tuning
+			for _, e := range toBeWritten {
+				ent := e.(entry)
+				vault.EnableSecretsEngine(instance, ent.Path, &api.MountInput{
+					Type:        ent.Type,
+					Description: ent.Description,
+					Options:     ent.Options,
+				})
+			}
 
-		for _, e := range toBeUpdated {
-			ent := e.(entry)
-			vault.UpdateSecretsEngine(ent.Path, api.MountConfigInput{
-				// vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
-				Description: &ent.Description,
-			})
-		}
+			for _, e := range toBeUpdated {
+				ent := e.(entry)
+				vault.UpdateSecretsEngine(instance, ent.Path, api.MountConfigInput{
+					// vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
+					Description: &ent.Description,
+				})
+			}
 
-		for _, e := range toBeDeleted {
-			ent := e.(entry)
-			if !isDefaultMount(ent.Path) {
-				vault.DisableSecretsEngine(ent.Path)
+			for _, e := range toBeDeleted {
+				ent := e.(entry)
+				if !isDefaultMount(ent.Path) {
+					vault.DisableSecretsEngine(instance, ent.Path)
+				}
 			}
 		}
 	}
