@@ -7,6 +7,8 @@ labels:
 name: "vault_manager"
 type: "approle"
 mount: "approle/"
+instance:
+  $ref: /services/vault/config/instances/master.yml
 options:
   _type: "approle"
   bind_secret_id: "true"

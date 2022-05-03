@@ -6,6 +6,8 @@ labels:
 
 _path: "file/"
 type: "file"
+instance:
+  $ref: /services/vault/config/instances/master.yml
 description: ""
 options:
   _type: "file"

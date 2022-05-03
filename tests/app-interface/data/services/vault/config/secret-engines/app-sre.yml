@@ -6,6 +6,8 @@ labels:
 
 _path: "app-sre/"
 type: "kv"
+instance:
+  $ref: /services/vault/config/instances/master.yml
 description: ""
 options:
   _type: "kv"

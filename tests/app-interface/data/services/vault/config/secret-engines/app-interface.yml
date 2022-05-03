@@ -6,6 +6,8 @@ labels:
 
 _path: "app-interface/"
 type: "kv"
+instance:
+  $ref: /services/vault/config/instances/master.yml
 description: "app-interface secrets integration engine"
 options:
   _type: "kv"

@@ -7,6 +7,8 @@ labels:
 name: "default"
 type: "oidc"
 mount: "oidc/"
+instance:
+  $ref: /services/vault/config/instances/master.yml
 options:
   _type: "oidc"
   allowed_redirect_uris:

@@ -6,6 +6,8 @@ labels:
 
 _path: "github/"
 type: "github"
+instance:
+  $ref: /services/vault/config/instances/master.yml
 description: "github auth backend"
 settings:
   config:

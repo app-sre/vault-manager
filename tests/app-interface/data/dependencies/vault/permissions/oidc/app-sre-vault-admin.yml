@@ -7,5 +7,7 @@ labels:
 name: app-sre-vault-admin
 service: vault
 description: app-sre vault administrator permission
+instance:
+  $ref: /services/vault/config/instances/master.yml
 vault_policies:
 - $ref: /services/vault/config/policies/app-sre-vault-admin.yml
