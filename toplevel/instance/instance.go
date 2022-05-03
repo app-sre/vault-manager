@@ -45,7 +45,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Instance] failed to retrieve access credentials")
 	}
-	vault.InitClients(instanceCreds)
+	vault.InitClients(instanceCreds, threadPoolSize)
 }
 
 // generates map of instance addresses to access credentials stored in master vault
@@ -54,7 +54,7 @@ func processInstances(instances []instance) (map[string][]*vault.VaultSecret, er
 
 	for _, i := range instances {
 		switch strings.ToLower(i.AuthType) {
-		case "approle":
+		case vault.APPROLE_AUTH:
 			// ensure required values exist
 			if i.RoleID.Field == "" || i.RoleID.Path == "" ||
 				i.SecretID.Field == "" || i.SecretID.Path == "" {
@@ -62,22 +62,28 @@ func processInstances(instances []instance) (map[string][]*vault.VaultSecret, er
 			}
 			instanceCreds[i.Address] = []*vault.VaultSecret{
 				{
+					Name:    vault.ROLE_ID,
+					Type:    vault.APPROLE_AUTH,
 					Path:    i.RoleID.Path,
 					Field:   i.RoleID.Field,
 					Version: i.RoleID.Version,
 				},
 				{
+					Name:    vault.SECRET_ID,
+					Type:    vault.APPROLE_AUTH,
 					Path:    i.SecretID.Path,
 					Field:   i.SecretID.Field,
 					Version: i.SecretID.Version,
 				},
 			}
-		case "token":
+		case vault.TOKEN_AUTH:
 			if i.Token.Field == "" || i.Token.Path == "" {
 				return nil, errors.New("A required token authentication attribute is missing")
 			}
 			instanceCreds[i.Address] = []*vault.VaultSecret{
 				{
+					Name:    vault.TOKEN,
+					Type:    vault.TOKEN_AUTH,
 					Path:    i.Token.Path,
 					Field:   i.Token.Field,
 					Version: i.Token.Version,
