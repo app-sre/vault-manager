@@ -71,9 +71,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Audit] failed to decode audit device configuration")
 	}
-	instancesToDesiredEntries := make(map[string][]entry)
+	instancesToDesiredAudits := make(map[string][]entry)
 	for _, e := range entries {
-		instancesToDesiredEntries[e.Instance.Address] = append(instancesToDesiredEntries[e.Instance.Address], e)
+		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
 	}
 
 	instancesToEnabledAudits := make(map[string]map[string]*api.Audit)
@@ -104,7 +104,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	for _, instance := range instances {
 		// Diff the local configuration with the Vault instance.
 		toBeWritten, toBeDeleted, _ :=
-			vault.DiffItems(asItems(instancesToDesiredEntries[instance]), asItems(instancesToExistingAudits[instance]))
+			vault.DiffItems(asItems(instancesToDesiredAudits[instance]), asItems(instancesToExistingAudits[instance]))
 
 		if dryRun == true {
 			for _, w := range toBeWritten {
