@@ -122,6 +122,13 @@
   vault_policies: vault_policies_v1 {
     name
     rules
+    instance
+    ... on VaultInstanceApprole_v1 {
+      address
+    }
+    ... on VaultInstanceToken_v1 {
+      address
+    }
   }
   vault_entities: users_v1 {
     name
