@@ -129,4 +129,16 @@
       }
     }
   }
+  vault_instances: vault_instances_v1 {
+    name
+    address
+    authType
+    ... on VaultInstanceApprole_v1 {
+      roleID
+      secretID
+    }
+    ... on VaultInstanceToken_v1 {
+      token
+    }
+  }
 }
