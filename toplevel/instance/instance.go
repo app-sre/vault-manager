@@ -15,7 +15,7 @@ type config struct{}
 
 var _ toplevel.Configuration = config{}
 
-type instance struct {
+type Instance struct {
 	Address  string `yaml:"address"`
 	AuthType string `yaml:"authType"`
 	RoleID   secret `yaml:"roleID"`
@@ -37,7 +37,7 @@ func init() {
 // Instead, instance.Apply is utilized to initialize vault instance clients for use by
 // other toplevel integrations
 func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
-	var instances []instance
+	var instances []Instance
 	if err := yaml.Unmarshal(entriesBytes, &instances); err != nil {
 		log.WithError(err).Fatal("[Vault Instance] failed to decode instance configuration")
 	}
@@ -49,7 +49,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 }
 
 // generates map of instance addresses to access credentials stored in master vault
-func processInstances(instances []instance) (map[string][]*vault.VaultSecret, error) {
+func processInstances(instances []Instance) (map[string][]*vault.VaultSecret, error) {
 	instanceCreds := make(map[string][]*vault.VaultSecret)
 
 	for _, i := range instances {
