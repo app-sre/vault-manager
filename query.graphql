@@ -59,6 +59,13 @@
     name
     type
     mount
+    instance
+    ... on VaultInstanceApprole_v1 {
+      address
+    }
+    ... on VaultInstanceToken_v1 {
+      address
+    }
     options {
       ... on VaultApproleOptions_v1 {
         bind_secret_id
