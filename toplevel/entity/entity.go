@@ -10,6 +10,7 @@ import (
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
+	"github.com/app-sre/vault-manager/toplevel/instance"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -30,8 +31,9 @@ type role struct {
 }
 
 type oidcPermission struct {
-	Name    string `yaml:"name"`
-	Service string `yaml:"service"`
+	Name     string            `yaml:"name"`
+	Service  string            `yaml:"service"`
+	Instance instance.Instance `yaml:"instance"`
 }
 
 type entity struct {
@@ -40,6 +42,7 @@ type entity struct {
 	Type     string
 	Metadata interface{}
 	Aliases  []entityAlias
+	Instance instance.Instance
 }
 
 type entityAlias struct {
@@ -48,6 +51,7 @@ type entityAlias struct {
 	Type       string
 	AuthType   string
 	AccessorId string
+	Instance   instance.Instance
 }
 
 var _ vault.Item = entity{}
@@ -80,14 +84,14 @@ func (e entity) CreateOrUpdate(action string) {
 	config := map[string]interface{}{
 		"metadata": e.Metadata,
 	}
-	vault.WriteSecret(path, config)
+	vault.WriteSecret(e.Instance.Address, path, config)
 	log.WithField("path", path).WithField("type", e.Type).Info(
 		fmt.Sprintf("[Vault Identity] entity successfully %s", action))
 }
 
 func (e entity) Delete() {
 	path := filepath.Join("identity", e.Type, "name", e.Name)
-	vault.DeleteSecret(path)
+	vault.DeleteSecret(e.Instance.Address, path)
 	log.WithField("path", path).WithField("type", e.Type).Info(
 		"[Vault Identity] entity successfully deleted")
 }
@@ -120,7 +124,7 @@ func (ea entityAlias) Create(entityId string) {
 		"canonical_id":   entityId,
 		"mount_accessor": ea.AccessorId,
 	}
-	vault.WriteEntityAlias(path, config)
+	vault.WriteEntityAlias(ea.Instance.Address, path, config)
 	log.WithField("path", filepath.Join(path, ea.Name)).WithField("type", ea.AuthType).Info(
 		"[Vault Identity] entity alias successfully written")
 }
@@ -132,14 +136,14 @@ func (ea entityAlias) Update(entityId string) {
 		"canonical_id":   entityId,
 		"mount_accessor": ea.AccessorId,
 	}
-	vault.WriteSecret(path, config)
+	vault.WriteSecret(ea.Instance.Address, path, config)
 	log.WithField("path", filepath.Join(path, ea.Name)).WithField("type", ea.AuthType).Info(
 		"[Vault Identity] entity alias successfully updated")
 }
 
 func (ea entityAlias) Delete() {
 	path := filepath.Join("identity", ea.Type, "id", ea.Id)
-	vault.DeleteSecret(path)
+	vault.DeleteSecret(ea.Instance.Address, path)
 	log.WithField("path", filepath.Join(path, ea.Name)).WithField("type", ea.AuthType).Info(
 		"[Vault Identity] entity alias successfully deleted")
 }
@@ -154,101 +158,100 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
-	desired := generateDesired(entries)
-	populateAliasType(desired)
-
-	// Process data on existing entities/aliases
-	existingEntities, err := createBaseExistingEntities()
-	if err != nil {
-		log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
-	}
-	pruneApproleEntities(&existingEntities)
-	if existingEntities != nil && len(existingEntities) > 0 {
-		getExistingEntitiesDetails(existingEntities, threadPoolSize)
-		populateAliasType(existingEntities)
-		copyIds(desired, existingEntities)
+	instancesToDesired := getDesiredByInstance(entries)
+	for _, desired := range instancesToDesired {
+		populateAliasType(desired)
 	}
 
-	// determine entity changes
-	entitiesToBeWritten, entitiesToBeDeleted, entitiesToBeUpdated :=
-		vault.DiffItems(entriesAsItems(desired), entriesAsItems(existingEntities))
-	// determine entity alias changes
-	aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated :=
-		determineAliasActions(desired, existingEntities, entitiesToBeDeleted)
-
-	// preform actions
-	if dryRun {
-		entitiesDryRunOutput(entitiesToBeWritten, "written")
-		entitiesDryRunOutput(entitiesToBeDeleted, "deleted")
-		entitiesDryRunOutput(entitiesToBeUpdated, "updated")
-		aliasesDryRunOutput(aliasesToBeWritten["id"], "written")
-		aliasesDryRunOutput(aliasesToBeWritten["name"], "written")
-		for _, alias := range aliasesToBeDeleted {
-			log.WithField("name", alias.Key()).WithField("type", alias.(entityAlias).AuthType).Info(
-				fmt.Sprintf("[Dry Run] [Vault Identity] entity alias to be deleted"))
-		}
-		aliasesDryRunOutput(aliasesToBeUpdated, "updated")
-	} else {
-		// TODO: make each action perform concurrently
-		for _, w := range entitiesToBeWritten {
-			w.(entity).CreateOrUpdate("written")
-		}
-		for _, d := range entitiesToBeDeleted {
-			d.(entity).Delete()
-		}
-		for _, u := range entitiesToBeUpdated {
-			u.(entity).CreateOrUpdate("update")
-		}
-		err = performAliasReconcile(aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated)
+	for _, instanceAddr := range instance.InstanceAddresses {
+		// Process data on existing entities/aliases
+		existingEntities, err := createBaseExistingEntities(instanceAddr)
 		if err != nil {
-			log.WithError(err).Fatal(
-				"[Vault Identity] failed to perform entity-alias reconcile operations")
+			log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
+		}
+		pruneApproleEntities(&existingEntities)
+		if existingEntities != nil && len(existingEntities) > 0 {
+			getExistingEntitiesDetails(instanceAddr, existingEntities, threadPoolSize)
+			populateAliasType(existingEntities)
+			copyIds(instancesToDesired[instanceAddr], existingEntities)
+		}
+
+		// determine entity changes
+		entitiesToBeWritten, entitiesToBeDeleted, entitiesToBeUpdated :=
+			vault.DiffItems(entriesAsItems(instancesToDesired[instanceAddr]), entriesAsItems(existingEntities))
+		// determine entity alias changes
+		aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated :=
+			determineAliasActions(instancesToDesired[instanceAddr], existingEntities, entitiesToBeDeleted)
+
+		// preform actions
+		if dryRun {
+			entitiesDryRunOutput(entitiesToBeWritten, "written")
+			entitiesDryRunOutput(entitiesToBeDeleted, "deleted")
+			entitiesDryRunOutput(entitiesToBeUpdated, "updated")
+			aliasesDryRunOutput(aliasesToBeWritten["id"], "written")
+			aliasesDryRunOutput(aliasesToBeWritten["name"], "written")
+			for _, alias := range aliasesToBeDeleted {
+				log.WithField("name", alias.Key()).WithField("type", alias.(entityAlias).AuthType).Info(
+					fmt.Sprintf("[Dry Run] [Vault Identity] entity alias to be deleted"))
+			}
+			aliasesDryRunOutput(aliasesToBeUpdated, "updated")
+		} else {
+			// TODO: make each action perform concurrently
+			for _, w := range entitiesToBeWritten {
+				w.(entity).CreateOrUpdate("written")
+			}
+			for _, d := range entitiesToBeDeleted {
+				d.(entity).Delete()
+			}
+			for _, u := range entitiesToBeUpdated {
+				u.(entity).CreateOrUpdate("update")
+			}
+			err = performAliasReconcile(instanceAddr, aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated)
+			if err != nil {
+				log.WithError(err).Fatal(
+					"[Vault Identity] failed to perform entity-alias reconcile operations")
+			}
 		}
 	}
 }
 
-// generatedDesired accepts the yaml-marshalled result of the `vault_entities` graphql
-// query and returns entity/entity-alias objects
-func generateDesired(entries []user) []entity {
-	desired := []entity{}
-	for _, entry := range entries {
-		var newDesired *entity
-		if entry.Roles != nil {
-			for _, role := range entry.Roles {
-				if role.Permissions != nil {
-					for _, permission := range role.Permissions {
-						if permission.Service == "vault" {
-							if newDesired == nil {
-								newDesired = &entity{
-									Name: entry.OrgUsername,
-									Type: "entity",
-									Aliases: []entityAlias{
-										{
-											Name:     entry.OrgUsername,
-											Type:     "entity-alias",
-											AuthType: "oidc",
-										},
-									},
-									Metadata: map[string]interface{}{
-										"name": entry.Name,
-									},
-								}
-							}
-						}
+// getDesiredByInstance accepts the yaml-marshalled result of the `vault_entities` graphql
+// query and returns entity/entity-alias object slices segmented by vault instances
+func getDesiredByInstance(entries []user) map[string][]entity {
+	instancesToDesired := make(map[string][]entity)
+	for _, u := range entries {
+	roles:
+		for _, r := range u.Roles {
+			for _, p := range r.Permissions {
+				if p.Service == "vault" {
+					newDesired := entity{
+						Name: u.OrgUsername,
+						Type: "entity",
+						Aliases: []entityAlias{
+							{
+								Name:     u.OrgUsername,
+								Type:     "entity-alias",
+								AuthType: "oidc",
+							},
+						},
+						Metadata: map[string]interface{}{
+							"name": u.Name,
+						},
 					}
+					instancesToDesired[p.Instance.Address] = append(instancesToDesired[p.Instance.Address], newDesired)
+					// once traversal of roles -> permissions results in a valid entity
+					// there is no need to continue processing roles for specific user file
+					break roles
 				}
 			}
 		}
-		if newDesired != nil {
-			desired = append(desired, *newDesired)
-		}
 	}
-	return desired
+	return instancesToDesired
 }
 
 // processes all relevant info for entities/entity aliases from single vault api request
-func createBaseExistingEntities() ([]entity, error) {
-	raw := vault.ListEntities()
+func createBaseExistingEntities(instanceAddr string) ([]entity, error) {
+	raw := vault.ListEntities(instanceAddr)
 	if raw == nil {
 		return nil, nil
 	}
@@ -311,6 +314,7 @@ func createBaseExistingEntities() ([]entity, error) {
 				Id:       aliasId,
 				Name:     aliasName,
 				AuthType: mountType,
+				Instance: instance.Instance{Address: instanceAddr},
 			})
 		}
 
@@ -326,7 +330,7 @@ func createBaseExistingEntities() ([]entity, error) {
 
 // performs concurrent requests to retrieve additional details for existing entities/entity aliases
 // these details require explicit requests to vault api for each entitiy/alias
-func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
+func getExistingEntitiesDetails(instanceAddr string, entities []entity, threadPoolSize int) {
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 
 	for i := 0; i < len(entities); i++ {
@@ -335,7 +339,7 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 		go func(e *entity) {
 			defer bwg.Done()
 
-			info := vault.GetEntityInfo(e.Name)
+			info := vault.GetEntityInfo(instanceAddr, e.Name)
 			if info == nil {
 				log.WithError(errors.New(fmt.Sprintf(
 					"No information returned for entity id: %s", e.Id))).Fatal()
@@ -353,7 +357,7 @@ func getExistingEntitiesDetails(entities []entity, threadPoolSize int) {
 
 			// TODO: make this a nested goroutine
 			for j := 0; j < len(e.Aliases); j++ {
-				rawAlias := vault.GetEntityAliasInfo(e.Aliases[j].Id)
+				rawAlias := vault.GetEntityAliasInfo(instanceAddr, e.Aliases[j].Id)
 				mountAccessor, ok := rawAlias["mount_accessor"].(string)
 				if !ok {
 					log.WithError(errors.New(fmt.Sprintf(
@@ -442,13 +446,13 @@ func determineAliasActions(entries, existingEntities []entity, entitiesToBeDelet
 }
 
 // writes, deletes, and/or updates entity aliases
-func performAliasReconcile(aliasesToBeWritten map[string]map[string][]vault.Item,
+func performAliasReconcile(instanceAddr string, aliasesToBeWritten map[string]map[string][]vault.Item,
 	aliasesToBeDeleted []vault.Item, aliasesToBeUpdated map[string][]vault.Item) error {
 	var accessorIds map[string]string
 	// extra work (vault api request) required to organize accessor ids
 	if len(aliasesToBeWritten) > 0 {
 		accessorIds = make(map[string]string)
-		authBackends := vault.ListAuthBackends()
+		authBackends := vault.ListAuthBackends(instanceAddr)
 		for k, v := range authBackends {
 			accessorIds[strings.TrimRight(k, "/")] = v.Accessor
 		}
@@ -470,7 +474,7 @@ func performAliasReconcile(aliasesToBeWritten map[string]map[string][]vault.Item
 			for _, w := range ws {
 				a := w.(entityAlias)
 				a.AccessorId = accessorIds[a.AuthType]
-				newEntity := vault.GetEntityInfo(name)
+				newEntity := vault.GetEntityInfo(instanceAddr, name)
 				if newEntity == nil {
 					return errors.New(fmt.Sprintf(
 						"[Vault Identity] failed to get info for newly created entity: %s", name))
