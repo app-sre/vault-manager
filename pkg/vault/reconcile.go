@@ -162,9 +162,9 @@ func ParseDuration(duration string) (time.Duration, error) {
 }
 
 // DataInSecret compare given data with data stored in the vault secret
-func DataInSecret(data map[string]interface{}, path string) bool {
+func DataInSecret(instanceAddr string, data map[string]interface{}, path string) bool {
 	// read desired secret
-	secret := ReadSecret(path)
+	secret := ReadSecret(instanceAddr, path)
 	if secret == nil {
 		return false
 	}

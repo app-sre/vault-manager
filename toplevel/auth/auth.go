@@ -254,7 +254,7 @@ func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) {
 		if e.Settings != nil {
 			for name, cfg := range e.Settings {
 				path := filepath.Join("auth", e.Path, name)
-				if !vault.DataInSecret(cfg, path) {
+				if !vault.DataInSecret(instanceAddr, cfg, path) {
 					if dryRun == true {
 						log.WithField("path", path).WithField("type", e.Type).Info("[Dry Run] [Vault Auth] auth backend configuration to be written")
 					} else {

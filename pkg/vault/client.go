@@ -142,7 +142,7 @@ func getClient(instanceAddr string) *api.Client {
 
 // write secret to vault
 func WriteSecret(instanceAddr string, secretPath string, secretData map[string]interface{}) {
-	if !DataInSecret(secretData, secretPath) {
+	if !DataInSecret(instanceAddr, secretData, secretPath) {
 		_, err := getClient(instanceAddr).Logical().Write(secretPath, secretData)
 		if err != nil {
 			log.WithError(err).WithField("path", secretPath).Fatalf("[Vault Client] failed to write Vault secret ")
