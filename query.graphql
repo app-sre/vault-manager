@@ -3,11 +3,7 @@
     type
     _path
     description
-    instance
-    ... on VaultInstanceApprole_v1 {
-      address
-    }
-    ... on VaultInstanceToken_v1 {
+    instance {
       address
     }
     options {
@@ -20,11 +16,7 @@
     _path
     type
     description
-    instance
-    ... on VaultInstanceApprole_v1 {
-      address
-    }
-    ... on VaultInstanceToken_v1 {
+    instance {
       address
     }
     settings {
@@ -55,11 +47,7 @@
   vault_secret_engines: vault_secret_engines_v1 {
     _path
     type
-    instance
-    ... on VaultInstanceApprole_v1 {
-      address
-    }
-    ... on VaultInstanceToken_v1 {
+    instance {
       address
     }
     description
@@ -73,11 +61,7 @@
     name
     type
     mount
-    instance
-    ... on VaultInstanceApprole_v1 {
-      address
-    }
-    ... on VaultInstanceToken_v1 {
+    instance {
       address
     }
     options {
@@ -129,11 +113,7 @@
   vault_policies: vault_policies_v1 {
     name
     rules
-    instance
-    ... on VaultInstanceApprole_v1 {
-      address
-    }
-    ... on VaultInstanceToken_v1 {
+    instance {
       address
     }
   }
@@ -145,12 +125,13 @@
       oidc_permissions {
         name
         service
-        instance
-        ... on VaultInstanceApprole_v1 {
-          address
-        }
-        ... on VaultInstanceToken_v1 {
-          address
+        ... on OidcPermissionVault_v1 {
+          vault_policies {
+            name
+          }
+          instance {
+            address
+          }
         }
       }
     }
@@ -167,13 +148,9 @@
           vault_policies {
             name
           }
-        }
-        instance
-        ... on VaultInstanceApprole_v1 {
-          address
-        }
-        ... on VaultInstanceToken_v1 {
-          address
+          instance {
+            address
+          }
         }
       }
     }
@@ -182,22 +159,19 @@
     address
     authType
     ... on VaultInstanceApprole_v1 {
-      roleID
-      ... on VaultSecret_v1 {
+      roleID {
         path
         field
         version
       }
-      secretID
-      ... on VaultSecret_v1 {
+      secretID {
         path
         field
         version
       }
     }
     ... on VaultInstanceToken_v1 {
-      token
-      ... on VaultSecret_v1 {
+      token {
         path
         field
         version
