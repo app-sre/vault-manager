@@ -20,6 +20,13 @@
     _path
     type
     description
+    instance
+    ... on VaultInstanceApprole_v1 {
+      address
+    }
+    ... on VaultInstanceToken_v1 {
+      address
+    }
     settings {
       config {
         ... on VaultAuthConfigGithub_v1 {
