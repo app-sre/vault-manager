@@ -11,5 +11,5 @@ address: "http://127.0.0.1:8200"
 
 authType: "token"
 token:
-  path: "secret/master"
+  path: "secret/data/master"
   field: "rootToken"
