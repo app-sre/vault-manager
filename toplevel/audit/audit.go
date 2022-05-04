@@ -76,34 +76,22 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
 	}
 
-	// call to vault api for each instance to obtain raw enabled audit info
-	instancesToEnabledAudits := make(map[string]map[string]*api.Audit)
-	for _, e := range entries {
-		if _, exists := instancesToEnabledAudits[e.Instance.Address]; !exists {
-			instancesToEnabledAudits[e.Instance.Address] = vault.ListAuditDevices(e.Instance.Address)
-		}
-	}
-
-	// Build a list of all the existing audits for each instance
-	instancesToExistingAudits := make(map[string][]entry)
-	for instance, enabledAudits := range instancesToEnabledAudits {
-		if enabledAudits != nil {
-			for k := range enabledAudits {
-				instancesToExistingAudits[instance] = append(instancesToExistingAudits[instance], entry{
-					Path:        enabledAudits[k].Path,
-					Type:        enabledAudits[k].Type,
-					Description: enabledAudits[k].Description,
-					Options:     enabledAudits[k].Options,
-				})
-			}
-		}
-	}
-
 	// perform reconcile operations for each instance
 	for _, instance := range instance.InstanceAddresses {
+		enabledAudits := vault.ListAuditDevices(instance)
+		// format raw vault api result
+		existingAduits := []entry{}
+		for k := range enabledAudits {
+			existingAduits = append(existingAduits, entry{
+				Path:        enabledAudits[k].Path,
+				Type:        enabledAudits[k].Type,
+				Description: enabledAudits[k].Description,
+				Options:     enabledAudits[k].Options,
+			})
+		}
 		// Diff the local configuration with the Vault instance.
 		toBeWritten, toBeDeleted, _ :=
-			vault.DiffItems(asItems(instancesToDesiredAudits[instance]), asItems(instancesToExistingAudits[instance]))
+			vault.DiffItems(asItems(instancesToDesiredAudits[instance]), asItems(existingAduits))
 
 		if dryRun == true {
 			for _, w := range toBeWritten {
