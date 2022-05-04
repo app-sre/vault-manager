@@ -50,17 +50,21 @@ func InitClients(instanceCreds map[string][]*VaultSecret, threadPoolSize int) {
 
 			accessCreds := make(map[string]string)
 			for _, cred := range s {
-				val := ReadSecret(masterAddress, cred.Path)
-				if len(val.Data) < 1 {
+				raw := ReadSecret(masterAddress, cred.Path)
+				mapped, ok := raw.Data["data"].(map[string]interface{})
+				if !ok {
+					log.Fatalf("[Vault Client] Failed to process raw result at path: `%s`", cred.Path)
+				}
+				if len(mapped) < 1 {
 					log.Fatalf("[Vault Client] Data does not exist at path: `%s`", cred.Path)
 				}
-				if _, exists := val.Data[cred.Field]; !exists {
+				if _, exists := mapped[cred.Field]; !exists {
 					log.Fatalf("[Vault Client] Field `%s` does not exist at path: `%s`", cred.Field, cred.Path)
 				}
-				if _, ok := val.Data[cred.Field].(string); !ok {
+				if _, ok := mapped[cred.Field].(string); !ok {
 					log.Fatalf("[Vault Client] Field `%s` cannot be converted to string", cred.Field)
 				}
-				accessCreds[cred.Name] = val.Data[cred.Field].(string)
+				accessCreds[cred.Name] = mapped[cred.Field].(string)
 			}
 
 			config := api.DefaultConfig()
