@@ -67,7 +67,7 @@ func InitClients(instanceCreds map[string][]*VaultSecret, threadPoolSize int) {
 			config.Address = a
 			client, err := api.NewClient(config)
 			if err != nil {
-				log.WithError(err).Fatal("Failed to initialize Vault client for %s", a)
+				log.WithError(err).Fatalf("Failed to initialize Vault client for %s", a)
 			}
 
 			// at minimum, one element will exist in secrets regardless of type
