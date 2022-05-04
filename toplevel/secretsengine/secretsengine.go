@@ -81,31 +81,20 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredEngines[e.Instance.Address] = append(instancesToDesiredEngines[e.Instance.Address], e)
 	}
 
-	// call to vault api for each instance to obtain raw enabled engine info
-	instancesToEnabledEngines := make(map[string]map[string]*api.MountOutput)
-	for _, e := range entries {
-		if _, exists := instancesToEnabledEngines[e.Instance.Address]; !exists {
-			instancesToEnabledEngines[e.Instance.Address] = vault.ListSecretsEngines(e.Instance.Address)
-		}
-	}
-
-	// Build a list of all the existing engines for each instance
-	instancesToExistingEngines := make(map[string][]entry)
-	for instance, enabledEngines := range instancesToEnabledEngines {
-		for path, engine := range enabledEngines {
-			instancesToExistingEngines[instance] = append(instancesToExistingEngines[instance], entry{
+	// perform reconcile operations for each instance
+	for _, instanceAddr := range instance.InstanceAddresses {
+		enabledSecretEngines := vault.ListSecretsEngines(instanceAddr)
+		existingSecretEngines := []entry{}
+		for path, engine := range enabledSecretEngines {
+			existingSecretEngines = append(existingSecretEngines, entry{
 				Path:        path,
 				Type:        engine.Type,
 				Description: engine.Description,
 				Options:     engine.Options,
 			})
 		}
-	}
-
-	// perform reconcile operations for each instance
-	for _, instance := range instance.InstanceAddresses {
 		toBeWritten, toBeDeleted, toBeUpdated :=
-			vault.DiffItems(asItems(instancesToDesiredEngines[instance]), asItems(instancesToExistingEngines[instance]))
+			vault.DiffItems(asItems(instancesToDesiredEngines[instanceAddr]), asItems(existingSecretEngines))
 
 		if dryRun == true {
 			for _, w := range toBeWritten {
@@ -123,7 +112,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			// TODO(riuvshin): implement tuning
 			for _, e := range toBeWritten {
 				ent := e.(entry)
-				vault.EnableSecretsEngine(instance, ent.Path, &api.MountInput{
+				vault.EnableSecretsEngine(instanceAddr, ent.Path, &api.MountInput{
 					Type:        ent.Type,
 					Description: ent.Description,
 					Options:     ent.Options,
@@ -132,7 +121,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 			for _, e := range toBeUpdated {
 				ent := e.(entry)
-				vault.UpdateSecretsEngine(instance, ent.Path, api.MountConfigInput{
+				vault.UpdateSecretsEngine(instanceAddr, ent.Path, api.MountConfigInput{
 					// vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
 					Description: &ent.Description,
 				})
@@ -141,7 +130,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			for _, e := range toBeDeleted {
 				ent := e.(entry)
 				if !isDefaultMount(ent.Path) {
-					vault.DisableSecretsEngine(instance, ent.Path)
+					vault.DisableSecretsEngine(instanceAddr, ent.Path)
 				}
 			}
 		}
