@@ -10,5 +10,7 @@ quay_username: rh_ee_tester
 
 roles:
 - $ref: /teams/app-sre/roles/app-sre-vault-oidc.yml
+- $ref: /teams/app-sre/roles/app-interface-vault-oidc.yml
+- $ref: /teams/app-sre/roles/app-sre-vault-oidc-secondary.yml
 
 public_gpg_key: nada

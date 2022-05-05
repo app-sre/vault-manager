@@ -1,0 +1,14 @@
+---
+$schema: /vault-config/secret-engine-1.yml
+
+labels:
+  service: vault.local
+
+_path: "app-interface/"
+type: "kv"
+instance:
+  $ref: /services/vault/config/instances/secondary.yml
+description: ""
+options:
+  _type: "kv"
+  version: "1"

@@ -20,4 +20,4 @@ policy_mappings:
   - github_team:
       $ref: /dependencies/vault/permissions/app-sre.yml
     policies:
-      - $ref: /services/vault/config/policies/app-sre-policy.yml
+      - $ref: /services/vault/config/policies/master/app-sre-policy.yml

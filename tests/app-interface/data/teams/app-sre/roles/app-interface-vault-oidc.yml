@@ -2,7 +2,7 @@
 $schema: /access/role-1.yml
 
 labels: {}
-name: app-sre-vault-oidc
+name: app-interface-vault-oidc
 
 permissions: []
 

@@ -1,0 +1,30 @@
+---
+$schema: /vault-config/role-1.yml
+
+labels:
+  service: vault.local
+
+name: "app-interface"
+type: "approle"
+mount: "approle/"
+instance:
+  $ref: /services/vault/config/instances/secondary.yml
+options:
+  _type: "approle"
+  bind_secret_id: "true"
+  local_secret_ids: "false"
+  token_period: "0"
+  secret_id_num_uses: "0"
+  secret_id_ttl: "0"
+  token_explicit_max_ttl: "0"
+  token_max_ttl: "1800"
+  token_no_default_policy: false
+  token_num_uses: "0"
+  token_ttl: "1800"
+  token_type: "default"
+  token_policies:
+    - app-interface-approle-policy
+  policies:
+    - app-interface-approle-policy
+  secret_id_bound_cidrs: []
+  token_bound_cidrs: []
