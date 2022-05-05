@@ -149,7 +149,10 @@ func WriteSecret(instanceAddr string, secretPath string, secretData map[string]i
 	if !DataInSecret(instanceAddr, secretData, secretPath) {
 		_, err := getClient(instanceAddr).Logical().Write(secretPath, secretData)
 		if err != nil {
-			log.WithError(err).WithField("path", secretPath).Fatalf("[Vault Client] failed to write Vault secret ")
+			log.WithError(err).WithFields(log.Fields{
+				"path":     secretPath,
+				"instance": instanceAddr,
+			}).Fatalf("[Vault Client] failed to write Vault secret ")
 		}
 	}
 }
@@ -158,7 +161,10 @@ func WriteSecret(instanceAddr string, secretPath string, secretData map[string]i
 func ReadSecret(instanceAddr string, secretPath string) *api.Secret {
 	secret, err := getClient(instanceAddr).Logical().Read(secretPath)
 	if err != nil {
-		log.WithError(err).WithField("path", secretPath).Fatal("[Vault Client] failed to read Vault secret")
+		log.WithError(err).WithFields(log.Fields{
+			"path":     secretPath,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Client] failed to read Vault secret")
 	}
 	return secret
 }
@@ -167,7 +173,10 @@ func ReadSecret(instanceAddr string, secretPath string) *api.Secret {
 func ListSecrets(instanceAddr string, path string) *api.Secret {
 	secretsList, err := getClient(instanceAddr).Logical().List(path)
 	if err != nil {
-		log.WithError(err).WithField("path", path).Fatal("[Vault Client] failed to list Vault secrets")
+		log.WithError(err).WithFields(log.Fields{
+			"path":     path,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Client] failed to list Vault secrets")
 	}
 	return secretsList
 }
@@ -176,7 +185,10 @@ func ListSecrets(instanceAddr string, path string) *api.Secret {
 func DeleteSecret(instanceAddr string, secretPath string) {
 	_, err := getClient(instanceAddr).Logical().Delete(secretPath)
 	if err != nil {
-		log.WithError(err).WithField("path", secretPath).Fatal("[Vault Client] failed to delete Vault secret")
+		log.WithError(err).WithFields(log.Fields{
+			"path":     secretPath,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Client] failed to delete Vault secret")
 	}
 }
 
@@ -184,7 +196,8 @@ func DeleteSecret(instanceAddr string, secretPath string) {
 func ListAuditDevices(instanceAddr string) map[string]*api.Audit {
 	enabledAuditDevices, err := getClient(instanceAddr).Sys().ListAudit()
 	if err != nil {
-		log.WithError(err).Fatal("[Vault Audit] failed to list audit devices")
+		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+			"[Vault Audit] failed to list audit devices")
 	}
 	return enabledAuditDevices
 }
@@ -192,9 +205,15 @@ func ListAuditDevices(instanceAddr string) map[string]*api.Audit {
 // enable audit device with options
 func EnableAduitDevice(instanceAddr string, path string, options *api.EnableAuditOptions) {
 	if err := getClient(instanceAddr).Sys().EnableAuditWithOptions(path, options); err != nil {
-		log.WithField("path", path).Fatal("[Vault Audit] failed to enable audit device")
+		log.WithFields(log.Fields{
+			"path":     path,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Audit] failed to enable audit device")
 	}
-	log.WithField("path", path).Info("[Vault Audit] audit device is successfully enabled")
+	log.WithFields(log.Fields{
+		"path":     path,
+		"instance": instanceAddr,
+	}).Info("[Vault Audit] audit device is successfully enabled")
 }
 
 // disable audit device
@@ -202,14 +221,18 @@ func DisableAuditDevice(instanceAddr string, path string) {
 	if err := getClient(instanceAddr).Sys().DisableAudit(path); err != nil {
 		log.WithField("path", path).Fatal("[Vault Audit] failed to disable audit device")
 	}
-	log.WithField("path", path).Info("[Vault Audit] audit device is successfully disabled")
+	log.WithFields(log.Fields{
+		"path":     path,
+		"instance": instanceAddr,
+	}).Info("[Vault Audit] audit device is successfully disabled")
 }
 
 // list existing auth backends
 func ListAuthBackends(instanceAddr string) map[string]*api.AuthMount {
 	existingAuthMounts, err := getClient(instanceAddr).Sys().ListAuth()
 	if err != nil {
-		log.WithError(err).Fatal("[Vault Auth] failed to list auth backends from Vault instance")
+		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+			"[Vault Auth] failed to list auth backends from Vault instance")
 	}
 	return existingAuthMounts
 }
@@ -217,11 +240,16 @@ func ListAuthBackends(instanceAddr string) map[string]*api.AuthMount {
 // enable auth backend
 func EnableAuthWithOptions(instanceAddr string, path string, options *api.EnableAuthOptions) {
 	if err := getClient(instanceAddr).Sys().EnableAuthWithOptions(path, options); err != nil {
-		log.WithError(err).WithField("path", path).WithField("type", options.Type).Fatal("[Vault Auth] failed to enable auth backend")
+		log.WithError(err).WithFields(log.Fields{
+			"path":     path,
+			"type":     options.Type,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Auth] failed to enable auth backend")
 	}
 	log.WithFields(log.Fields{
-		"path": path,
-		"type": options.Type,
+		"path":     path,
+		"type":     options.Type,
+		"instance": instanceAddr,
 	}).Info("[Vault Auth] successfully enabled auth backend")
 }
 
@@ -230,14 +258,16 @@ func DisableAuth(instanceAddr string, path string) {
 	if err := getClient(instanceAddr).Sys().DisableAuth(path); err != nil {
 		log.WithError(err).WithField("path", path).Fatal("[Vault Auth] failed to disable auth backend")
 	}
-	log.WithField("path", path).Info("[Vault Auth] successfully disabled auth backend")
+	log.WithField("path", path).WithField("instance", instanceAddr).Info(
+		"[Vault Auth] successfully disabled auth backend")
 }
 
 // list vault policies
 func ListVaultPolicies(instanceAddr string) []string {
 	existingPolicyNames, err := getClient(instanceAddr).Sys().ListPolicies()
 	if err != nil {
-		log.WithError(err).Fatal("[Vault Policy] failed to list Vault policies")
+		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+			"[Vault Policy] failed to list Vault policies")
 	}
 	return existingPolicyNames
 }
@@ -246,7 +276,8 @@ func ListVaultPolicies(instanceAddr string) []string {
 func GetVaultPolicy(instanceAddr string, name string) string {
 	policy, err := getClient(instanceAddr).Sys().GetPolicy(name)
 	if err != nil {
-		log.WithError(err).WithField("name", name).Fatal("[Vault Policy] failed to get existing Vault policy")
+		log.WithError(err).WithField("name", name).WithField("instance", instanceAddr).Fatal(
+			"[Vault Policy] failed to get existing Vault policy")
 	}
 	return policy
 }
@@ -254,17 +285,29 @@ func GetVaultPolicy(instanceAddr string, name string) string {
 // put vault policy
 func PutVaultPolicy(instanceAddr string, name string, rules string) {
 	if err := getClient(instanceAddr).Sys().PutPolicy(name, rules); err != nil {
-		log.WithError(err).WithField("name", name).Fatal("[Vault Policy] failed to write policy to Vault instance")
+		log.WithError(err).WithFields(log.Fields{
+			"name":     name,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Policy] failed to write policy to Vault instance")
 	}
-	log.WithField("name", name).Info("[Vault Policy] policy successfully written to Vault instance")
+	log.WithFields(log.Fields{
+		"name":     name,
+		"instance": instanceAddr,
+	}).Info("[Vault Policy] policy successfully written to Vault instance")
 }
 
 // delete vault policy
 func DeleteVaultPolicy(instanceAddr string, name string) {
 	if err := getClient(instanceAddr).Sys().DeletePolicy(name); err != nil {
-		log.WithError(err).WithField("name", name).Fatal("[Vault Policy] failed to delete vault policy")
+		log.WithError(err).WithFields(log.Fields{
+			"name":     name,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Policy] failed to delete vault policy")
 	}
-	log.WithField("name", name).Info("[Vault Policy] successfully deleted policy from Vault instance")
+	log.WithFields(log.Fields{
+		"name":     name,
+		"instance": instanceAddr,
+	}).Info("[Vault Policy] successfully deleted policy from Vault instance")
 
 }
 
@@ -272,7 +315,8 @@ func DeleteVaultPolicy(instanceAddr string, name string) {
 func ListSecretsEngines(instanceAddr string) map[string]*api.MountOutput {
 	existingMounts, err := getClient(instanceAddr).Sys().ListMounts()
 	if err != nil {
-		log.WithError(err).Fatal("[Vault Secrets engine] failed to list Vault secrets engines")
+		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+			"[Vault Secrets engine] failed to list Vault secrets engines")
 	}
 	return existingMounts
 }
@@ -280,32 +324,53 @@ func ListSecretsEngines(instanceAddr string) map[string]*api.MountOutput {
 // enable secrets engine
 func EnableSecretsEngine(instanceAddr string, path string, mount *api.MountInput) {
 	if err := getClient(instanceAddr).Sys().Mount(path, mount); err != nil {
-		log.WithError(err).WithField("path", path).WithField("type", mount.Type).Fatal("[Vault Secrets engine] failed to enable secrets-engine")
+		log.WithError(err).WithFields(log.Fields{
+			"path":     path,
+			"type":     mount.Type,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Secrets engine] failed to enable secrets-engine")
 	}
-	log.WithField("path", path).WithField("type", mount.Type).Info("[Vault Secrets engine] successfully enabled secrets-engine")
+	log.WithFields(log.Fields{
+		"path":     path,
+		"type":     mount.Type,
+		"instance": instanceAddr,
+	}).Info("[Vault Secrets engine] successfully enabled secrets-engine")
 }
 
 // update secrets engine
 func UpdateSecretsEngine(instanceAddr string, path string, config api.MountConfigInput) {
 	if err := getClient(instanceAddr).Sys().TuneMount(path, config); err != nil {
-		log.WithError(err).WithField("path", path).Fatal("[Vault Secrets engine] failed to update secrets-engine")
+		log.WithError(err).WithFields(log.Fields{
+			"path":     path,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Secrets engine] failed to update secrets-engine")
 	}
-	log.WithField("path", path).Info("[Vault Secrets engine] successfully updated secrets-engine")
+	log.WithFields(log.Fields{
+		"path":     path,
+		"instance": instanceAddr,
+	}).Info("[Vault Secrets engine] successfully updated secrets-engine")
 }
 
 // disable secrets engine
 func DisableSecretsEngine(instanceAddr string, path string) {
 	if err := getClient(instanceAddr).Sys().Unmount(path); err != nil {
-		log.WithError(err).WithField("path", path).Fatal("[Vault Secrets engine] failed to disable secrets-engine")
+		log.WithError(err).WithFields(log.Fields{
+			"path":     path,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Secrets engine] failed to disable secrets-engine")
 	}
-	log.WithField("path", path).Info("[Vault Secrets engine] successfully disabled secrets-engine")
+	log.WithFields(log.Fields{
+		"path":     path,
+		"instance": instanceAddr,
+	}).Info("[Vault Secrets engine] successfully disabled secrets-engine")
 }
 
 // GetVaultVersion returns the vault server version
 func GetVaultVersion(instanceAddr string) string {
 	info, err := getClient(instanceAddr).Sys().Health()
 	if err != nil {
-		log.WithError(err).Fatal("[Vault System] failed to retrieve vault system information")
+		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+			"[Vault System] failed to retrieve vault system information")
 	}
 	return info.Version
 }
@@ -313,7 +378,8 @@ func GetVaultVersion(instanceAddr string) string {
 func ListEntities(instanceAddr string) map[string]interface{} {
 	existingEntities, err := getClient(instanceAddr).Logical().List("identity/entity/id")
 	if err != nil {
-		log.WithError(err).Fatal("[Vault Identity] failed to list Vault entities")
+		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+			"[Vault Identity] failed to list Vault entities")
 	}
 	if existingEntities == nil {
 		return nil
@@ -324,7 +390,8 @@ func ListEntities(instanceAddr string) map[string]interface{} {
 func GetEntityInfo(instanceAddr string, name string) map[string]interface{} {
 	entity, err := getClient(instanceAddr).Logical().Read(fmt.Sprintf("identity/entity/name/%s", name))
 	if err != nil {
-		log.WithError(err).Fatalf("[Vault Identity] failed to get info for entity: %s", name)
+		log.WithError(err).WithField("instance", instanceAddr).Fatalf(
+			"[Vault Identity] failed to get info for entity: %s", name)
 	}
 	if entity == nil {
 		return nil
@@ -335,7 +402,8 @@ func GetEntityInfo(instanceAddr string, name string) map[string]interface{} {
 func GetEntityAliasInfo(instanceAddr string, id string) map[string]interface{} {
 	entityAlias, err := getClient(instanceAddr).Logical().Read(fmt.Sprintf("identity/entity-alias/id/%s", id))
 	if err != nil {
-		log.WithError(err).Fatalf("[Vault Identity] failed to get info for entity alias: %s", id)
+		log.WithError(err).WithField("instance", instanceAddr).Fatalf(
+			"[Vault Identity] failed to get info for entity alias: %s", id)
 	}
 	return entityAlias.Data
 }
@@ -343,14 +411,18 @@ func GetEntityAliasInfo(instanceAddr string, id string) map[string]interface{} {
 func WriteEntityAlias(instanceAddr string, secretPath string, secretData map[string]interface{}) {
 	_, err := getClient(instanceAddr).Logical().Write(secretPath, secretData)
 	if err != nil {
-		log.WithError(err).WithField("path", secretPath).Fatal("[Vault Client] failed to write entity-alias secret")
+		log.WithError(err).WithFields(log.Fields{
+			"path":     secretPath,
+			"instance": instanceAddr,
+		}).Fatal("[Vault Client] failed to write entity-alias secret")
 	}
 }
 
 func ListGroups(instanceAddr string) map[string]interface{} {
 	existingGroups, err := getClient(instanceAddr).Logical().List("identity/group/id")
 	if err != nil {
-		log.WithError(err).Fatal("[Vault Group] failed to list Vault groups")
+		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+			"[Vault Group] failed to list Vault groups")
 	}
 	if existingGroups == nil {
 		return nil
@@ -361,7 +433,8 @@ func ListGroups(instanceAddr string) map[string]interface{} {
 func GetGroupInfo(instanceAddr string, name string) map[string]interface{} {
 	entity, err := getClient(instanceAddr).Logical().Read(fmt.Sprintf("identity/group/name/%s", name))
 	if err != nil {
-		log.WithError(err).Fatalf("[Vault Group] failed to get info for group: %s", name)
+		log.WithError(err).WithField("instance", instanceAddr).Fatalf(
+			"[Vault Group] failed to get info for group: %s", name)
 	}
 	if entity == nil {
 		return nil
