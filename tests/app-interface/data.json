@@ -132,6 +132,20 @@
                             }
                         }
                     }
+                },
+                "instance": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": {
+                        "type": "object",
+                        "properties": {
+                            "$schema": {
+                                "type": "string",
+                                "enum": [
+                                    "/vault-config/instance-1.yml"
+                                ]
+                            }
+                        }
+                    }
                 }
             },
             "oneOf": [
@@ -158,10 +172,25 @@
                                     }
                                 }
                             }
+                        },
+                        "instance": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": {
+                                "type": "object",
+                                "properties": {
+                                    "$schema": {
+                                        "type": "string",
+                                        "enum": [
+                                            "/vault-config/instance-1.yml"
+                                        ]
+                                    }
+                                }
+                            }
                         }
                     },
                     "required": [
-                        "vault_policies"
+                        "vault_policies",
+                        "instance"
                     ]
                 }
             ],
@@ -623,7 +652,6 @@
                                 "$schema": {
                                     "type": "string",
                                     "enum": [
-                                        "/app-sre/saas-file-1.yml",
                                         "/app-sre/saas-file-2.yml"
                                     ]
                                 }
@@ -1305,6 +1333,46 @@
                 "tests"
             ]
         },
+        "/app-interface/template-test-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "description": "a specification for a template test",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/app-interface/template-test-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "resourcePath": {
+                    "type": "string",
+                    "description": "path to resource template to be tested"
+                },
+                "expectedResult": {
+                    "type": "string",
+                    "description": "the exected result of the templating to compare to"
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description",
+                "resourcePath",
+                "expectedResult"
+            ]
+        },
         "/app-sre/app-1.yml": {
             "$schema": "/metaschema-1.json",
             "version": "1.0",
@@ -1802,6 +1870,85 @@
                 "sopsUrl",
                 "architectureDocument",
                 "grafanaUrls"
+            ]
+        },
+        "/app-sre/contract-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/app-sre/contract-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "description": "Name of the contract",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "Long description of the current contract",
+                    "type": "string"
+                },
+                "source": {
+                    "description": "Location of the contract",
+                    "type": "string",
+                    "format": "uri"
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description",
+                "source"
+            ]
+        },
+        "/app-sre/contract-version-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/app-sre/contract-version-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "description": "Contract version name",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "Long description of the current contract version",
+                    "type": "string"
+                },
+                "contract": {
+                    "description": "Contract this version refers to",
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/app-sre/contract-1.yml"
+                },
+                "source": {
+                    "description": "Location of the contract version",
+                    "type": "string",
+                    "format": "uri"
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description",
+                "source"
             ]
         },
         "/app-sre/document-1.yml": {
@@ -2350,271 +2497,6 @@
                 "content"
             ]
         },
-        "/app-sre/saas-file-1.yml": {
-            "$schema": "/metaschema-1.json",
-            "version": "1.0",
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "$schema": {
-                    "type": "string",
-                    "enum": [
-                        "/app-sre/saas-file-1.yml"
-                    ]
-                },
-                "labels": {
-                    "$ref": "/common-1.json#/definitions/labels"
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 40
-                },
-                "description": {
-                    "type": "string"
-                },
-                "app": {
-                    "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": "/app-sre/app-1.yml"
-                },
-                "instance": {
-                    "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": "/dependencies/jenkins-instance-1.yml"
-                },
-                "slack": {
-                    "type": "object",
-                    "properties": {
-                        "output": {
-                            "type": "string",
-                            "enum": [
-                                "events",
-                                "publish"
-                            ]
-                        },
-                        "workspace": {
-                            "$ref": "/common-1.json#/definitions/crossref",
-                            "$schemaRef": "/dependencies/slack-workspace-1.yml"
-                        },
-                        "channel": {
-                            "type": "string"
-                        },
-                        "notifications": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                                "start": {
-                                    "type": "boolean"
-                                }
-                            }
-                        }
-                    },
-                    "required": [
-                        "workspace",
-                        "channel"
-                    ]
-                },
-                "managedResourceTypes": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "authentication": {
-                    "type": "object",
-                    "properties": {
-                        "code": {
-                            "$ref": "/common-1.json#/definitions/vaultSecret"
-                        },
-                        "image": {
-                            "$ref": "/common-1.json#/definitions/vaultSecret"
-                        }
-                    }
-                },
-                "parameters": {
-                    "type": "object"
-                },
-                "secretParameters": {
-                    "type": "array",
-                    "description": "saas file level parameters from vault secrets",
-                    "items": {
-                        "$ref": "/app-sre/vault-secret-parameter-1.yml"
-                    }
-                },
-                "resourceTemplates": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                            "name": {
-                                "type": "string"
-                            },
-                            "url": {
-                                "type": "string",
-                                "format": "uri"
-                            },
-                            "path": {
-                                "type": "string",
-                                "pattern": "^\\/.*"
-                            },
-                            "provider": {
-                                "type": "string",
-                                "enum": [
-                                    "openshift-template",
-                                    "directory"
-                                ]
-                            },
-                            "hash_length": {
-                                "type": "integer"
-                            },
-                            "parameters": {
-                                "type": "object"
-                            },
-                            "secretParameters": {
-                                "type": "array",
-                                "description": "resource template level parameters from vault secrets",
-                                "items": {
-                                    "$ref": "/app-sre/vault-secret-parameter-1.yml"
-                                }
-                            },
-                            "targets": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "namespace": {
-                                            "$ref": "/common-1.json#/definitions/crossref",
-                                            "$schemaRef": "/openshift/namespace-1.yml"
-                                        },
-                                        "ref": {
-                                            "type": "string",
-                                            "pattern": "^([0-9a-f]{40}|master|main|quayio|internal)$"
-                                        },
-                                        "promotion": {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties": {
-                                                "auto": {
-                                                    "type": "boolean"
-                                                },
-                                                "publish": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "string"
-                                                    },
-                                                    "minItems": 1
-                                                },
-                                                "subscribe": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "string"
-                                                    },
-                                                    "minItems": 1
-                                                },
-                                                "promotion_data": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "channel": {
-                                                                "type": "string"
-                                                            },
-                                                            "data": {
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        "type": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    },
-                                                                    "additionalProperties": true
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            "dependencies": {
-                                                "auto": [
-                                                    "subscribe"
-                                                ]
-                                            }
-                                        },
-                                        "parameters": {
-                                            "type": "object"
-                                        },
-                                        "secretParameters": {
-                                            "type": "array",
-                                            "description": "target level parameters from vault secrets",
-                                            "items": {
-                                                "$ref": "/app-sre/vault-secret-parameter-1.yml"
-                                            }
-                                        },
-                                        "upstream": {
-                                            "type": "string"
-                                        },
-                                        "disable": {
-                                            "type": "boolean"
-                                        },
-                                        "delete": {
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "namespace",
-                                        "ref"
-                                    ]
-                                }
-                            }
-                        },
-                        "required": [
-                            "name",
-                            "url",
-                            "path",
-                            "targets"
-                        ]
-                    }
-                },
-                "takeover": {
-                    "type": "boolean"
-                },
-                "compare": {
-                    "type": "boolean"
-                },
-                "timeout": {
-                    "type": "integer"
-                },
-                "publishJobLogs": {
-                    "type": "boolean"
-                },
-                "clusterAdmin": {
-                    "type": "boolean"
-                },
-                "imagePatterns": {
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "pattern": "^(quay\\.io|registry\\.redhat\\.io|[^.]+\\.dkr\\.ecr\\.[^.]+\\.amazonaws\\.com).*$"
-                    }
-                },
-                "use_channel_in_image_tag": {
-                    "type": "boolean"
-                }
-            },
-            "required": [
-                "$schema",
-                "labels",
-                "name",
-                "description",
-                "app",
-                "instance",
-                "slack",
-                "managedResourceTypes",
-                "resourceTemplates",
-                "imagePatterns"
-            ]
-        },
         "/app-sre/saas-file-2.yml": {
             "$schema": "/metaschema-1.json",
             "version": "1.0",
@@ -3109,6 +2991,11 @@
                 "issue": {
                     "type": "string",
                     "pattern": "^APPSRE-\\d+$"
+                },
+                "contractVersion": {
+                    "description": "Contract version",
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/app-sre/contract-version-1.yml"
                 }
             },
             "required": [
@@ -3117,7 +3004,8 @@
                 "app",
                 "sre",
                 "date",
-                "issue"
+                "issue",
+                "contractVersion"
             ]
         },
         "/app-sre/tekton-object-template-1.yml": {
@@ -4320,6 +4208,9 @@
                 },
                 "output_resource_name": {
                     "$ref": "/common-1.json#/definitions/longIdentifier"
+                },
+                "output_format": {
+                    "$ref": "/openshift/terraform-output-format-1.yml"
                 },
                 "allow_object_tagging": {
                     "type": "boolean"
@@ -6156,6 +6047,13 @@
                 "page": {
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/dependencies/status-page-1.yml"
+                },
+                "status": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/dependencies/status-provider-1.yml"
+                    },
+                    "description": "a list of providers that can influence the status of this\nstatus page component\n"
                 }
             },
             "required": [
@@ -6165,6 +6063,189 @@
                 "displayName",
                 "instructions",
                 "page"
+            ]
+        },
+        "/dependencies/status-provider-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/dependencies/status-provider-1.yml"
+                    ]
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "prometheusAlerts": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "namespace": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/openshift/namespace-1.yml"
+                        },
+                        "matchers": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "matchExpression": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "alert": {
+                                                "type": "string"
+                                            },
+                                            "labels": {
+                                                "$ref": "/common-1.json#/definitions/labels"
+                                            }
+                                        }
+                                    },
+                                    "componentStatus": {
+                                        "$ref": "/common-1.json#/definitions/statusPageStatus"
+                                    }
+                                },
+                                "required": [
+                                    "matchExpression",
+                                    "componentStatus"
+                                ]
+                            }
+                        }
+                    },
+                    "required": [
+                        "namespace",
+                        "matchers"
+                    ]
+                },
+                "manual": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "componentStatus": {
+                            "type": "string"
+                        },
+                        "from": {
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "until": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    "required": [
+                        "componentStatus"
+                    ]
+                }
+            },
+            "oneOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "prometheus-alerts"
+                            ]
+                        },
+                        "prometheusAlerts": {
+                            "type": "object",
+                            "description": "config options for the 'prometheus-alerts' status provider",
+                            "additionalProperties": false,
+                            "properties": {
+                                "namespace": {
+                                    "$ref": "/common-1.json#/definitions/crossref",
+                                    "$schemaRef": "/openshift/namespace-1.yml"
+                                },
+                                "matchers": {
+                                    "type": "array",
+                                    "description": "a list of prometheus alert matchers (alertname and labels) and a\ncorresponding status that should be applied to a component if such\na metric was found\n",
+                                    "items": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "matchExpression": {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "alert": {
+                                                        "type": "string",
+                                                        "description": "the alert name to match on"
+                                                    },
+                                                    "labels": {
+                                                        "$ref": "/common-1.json#/definitions/labels",
+                                                        "description": "the alert labels to match on"
+                                                    }
+                                                }
+                                            },
+                                            "componentStatus": {
+                                                "type": "string",
+                                                "description": "the status to apply to the status page component if this a\nmatching prometheus alert was found\n"
+                                            }
+                                        },
+                                        "required": [
+                                            "matchExpression",
+                                            "componentStatus"
+                                        ]
+                                    }
+                                }
+                            },
+                            "required": [
+                                "namespace",
+                                "matchers"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "prometheusAlerts"
+                    ]
+                },
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "manual"
+                            ]
+                        },
+                        "manual": {
+                            "type": "object",
+                            "description": "config options for the 'manual' status provider",
+                            "additionalProperties": false,
+                            "properties": {
+                                "componentStatus": {
+                                    "$ref": "/common-1.json#/definitions/statusPageStatus",
+                                    "description": "the status to apply to the status page component"
+                                },
+                                "from": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": "an optional start date to activate this provider"
+                                },
+                                "until": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": "an optional start date to deactivate this provider"
+                                }
+                            },
+                            "required": [
+                                "componentStatus"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "manual"
+                    ]
+                }
+            ],
+            "required": [
+                "provider"
             ]
         },
         "/kafka/cluster-1.yml": {
@@ -6951,6 +7032,7 @@
                                     "openshift-namespace-labels",
                                     "openshift-resources",
                                     "openshift-rolebindings",
+                                    "openshift-clusterrolebindings",
                                     "openshift-users",
                                     "openshift-vault-secrets",
                                     "openshift-routes",
@@ -7907,6 +7989,9 @@
                                                                 "service": {
                                                                     "type": "string"
                                                                 },
+                                                                "app": {
+                                                                    "type": "string"
+                                                                },
                                                                 "team": {
                                                                     "type": "string"
                                                                 },
@@ -7966,6 +8051,9 @@
                                                                 "app_team": [
                                                                     "service",
                                                                     "env"
+                                                                ],
+                                                                "app": [
+                                                                    "jiralert"
                                                                 ]
                                                             },
                                                             "required": [
@@ -8269,6 +8357,59 @@
                 "openshiftResources"
             ]
         },
+        "/openshift/terraform-output-format-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/openshift/terraform-output-format-1.yml"
+                    ]
+                },
+                "provider": {
+                    "type": "string",
+                    "description": "the provider defines the method of formatting the terraform output\ninto a secret. a provider can declare additional configuration data to\nget the job done or define the format directly\n"
+                },
+                "data": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "patternProperties": {
+                        "^[a-zA-Z0-9_]{0,253}$": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "oneOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "generic-secret"
+                            ]
+                        },
+                        "data": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "patternProperties": {
+                                "^[a-zA-Z0-9_]{0,253}$": {
+                                    "type": "string"
+                                }
+                            },
+                            "description": "the data to use for the secret. the field values can use the\nterraform output variables as jinja2 placeholders\n"
+                        }
+                    },
+                    "required": [
+                        "provider"
+                    ]
+                }
+            ]
+        },
         "/openshift/terraform-resource-1.yml": {
             "$schema": "/metaschema-1.json",
             "version": "1.0",
@@ -8326,6 +8467,9 @@
                 "output_resource_name": {
                     "$ref": "/common-1.json#/definitions/longIdentifier"
                 },
+                "output_format": {
+                    "$ref": "/openshift/terraform-output-format-1.yml"
+                },
                 "defaults": {
                     "type": "string"
                 },
@@ -8380,31 +8524,7 @@
                 "event_notifications": {
                     "type": "array",
                     "items": {
-                        "type": "object",
-                        "properties": {
-                            "event_type": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "destination": {
-                                "type": "string"
-                            },
-                            "destination_type": {
-                                "type": "string",
-                                "enum": [
-                                    "sns",
-                                    "sqs"
-                                ]
-                            },
-                            "filter_prefix": {
-                                "type": "string"
-                            },
-                            "filter_suffix": {
-                                "type": "string"
-                            }
-                        }
+                        "type": "object"
                     }
                 },
                 "sqs_identifier": {
@@ -8524,6 +8644,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "aws_infrastructure_access": {
                             "type": "object",
                             "additionalProperties": false,
@@ -8617,6 +8740,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
                         }
@@ -8638,6 +8764,9 @@
                         },
                         "account": {
                             "$ref": "/aws/tenant_accounts-1.yml#/properties/account"
+                        },
+                        "region": {
+                            "$ref": "/aws/regions-1.yml#/properties/region"
                         },
                         "identifier": {
                             "type": "string"
@@ -8731,6 +8860,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "output_resource_db_name": {
                             "type": "string"
                         },
@@ -8812,6 +8944,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
                         }
@@ -8842,6 +8977,9 @@
                         },
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
                         },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
@@ -8903,6 +9041,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
                         },
@@ -8963,6 +9104,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "mirror": {
                             "$schemaRef": "/dependencies/container-image-mirror-1.yml"
                         },
@@ -9001,6 +9145,9 @@
                         },
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
                         },
                         "defaults": {
                             "type": "string"
@@ -9060,6 +9207,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
                         }
@@ -9090,6 +9240,9 @@
                         },
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
                         },
                         "defaults": {
                             "type": "string"
@@ -9156,6 +9309,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
                         }
@@ -9201,6 +9357,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
                         }
@@ -9235,6 +9394,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
                         }
@@ -9262,6 +9424,9 @@
                         },
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
                         },
                         "region": {
                             "$ref": "/aws/regions-1.yml#/properties/region"
@@ -9414,6 +9579,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
                         }
@@ -9515,6 +9683,9 @@
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
                         },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
                         }
@@ -9550,6 +9721,9 @@
                         },
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
                         },
                         "annotations": {
                             "$ref": "/common-1.json#/definitions/annotations"
@@ -9592,6 +9766,20 @@
                         "syslog",
                         "socket"
                     ]
+                },
+                "instance": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": {
+                        "type": "object",
+                        "properties": {
+                            "$schema": {
+                                "type": "string",
+                                "enum": [
+                                    "/vault-config/instance-1.yml"
+                                ]
+                            }
+                        }
+                    }
                 },
                 "description": {
                     "type": "string"
@@ -9659,6 +9847,7 @@
                 "labels",
                 "_path",
                 "type",
+                "instance",
                 "description",
                 "options"
             ]
@@ -9689,6 +9878,20 @@
                         "github",
                         "oidc"
                     ]
+                },
+                "instance": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": {
+                        "type": "object",
+                        "properties": {
+                            "$schema": {
+                                "type": "string",
+                                "enum": [
+                                    "/vault-config/instance-1.yml"
+                                ]
+                            }
+                        }
+                    }
                 },
                 "description": {
                     "type": "string"
@@ -9818,7 +10021,90 @@
                 "labels",
                 "_path",
                 "type",
+                "instance",
                 "description"
+            ]
+        },
+        "/vault-config/instance-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/vault-config/instance-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "authType": {
+                    "type": "string"
+                },
+                "address": {
+                    "type": "string"
+                },
+                "roleID": {
+                    "$ref": "/common-1.json#/definitions/vaultSecret"
+                },
+                "secretID": {
+                    "$ref": "/common-1.json#/definitions/vaultSecret"
+                },
+                "token": {
+                    "$ref": "/common-1.json#/definitions/vaultSecret"
+                }
+            },
+            "oneOf": [
+                {
+                    "properties": {
+                        "authType": {
+                            "enum": [
+                                "approle"
+                            ]
+                        },
+                        "roleID": {
+                            "$ref": "/common-1.json#/definitions/vaultSecret"
+                        },
+                        "secretID": {
+                            "$ref": "/common-1.json#/definitions/vaultSecret"
+                        }
+                    },
+                    "required": [
+                        "roleID",
+                        "secretID"
+                    ]
+                },
+                {
+                    "properties": {
+                        "authType": {
+                            "enum": [
+                                "token"
+                            ]
+                        },
+                        "token": {
+                            "$ref": "/common-1.json#/definitions/vaultSecret"
+                        }
+                    },
+                    "required": [
+                        "token"
+                    ]
+                }
+            ],
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description",
+                "authType",
+                "address"
             ]
         },
         "/vault-config/policy-1.yml": {
@@ -9839,6 +10125,20 @@
                 "name": {
                     "type": "string"
                 },
+                "instance": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": {
+                        "type": "object",
+                        "properties": {
+                            "$schema": {
+                                "type": "string",
+                                "enum": [
+                                    "/vault-config/instance-1.yml"
+                                ]
+                            }
+                        }
+                    }
+                },
                 "rules": {
                     "type": "string"
                 }
@@ -9847,6 +10147,7 @@
                 "$schema",
                 "labels",
                 "name",
+                "instance",
                 "rules"
             ]
         },
@@ -9874,6 +10175,20 @@
                 },
                 "type": {
                     "type": "string"
+                },
+                "instance": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": {
+                        "type": "object",
+                        "properties": {
+                            "$schema": {
+                                "type": "string",
+                                "enum": [
+                                    "/vault-config/instance-1.yml"
+                                ]
+                            }
+                        }
+                    }
                 },
                 "options": {
                     "type": "object",
@@ -10113,6 +10428,7 @@
                 "name",
                 "mount",
                 "type",
+                "instance",
                 "options"
             ]
         },
@@ -10141,6 +10457,20 @@
                         "kv",
                         "totp"
                     ]
+                },
+                "instance": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": {
+                        "type": "object",
+                        "properties": {
+                            "$schema": {
+                                "type": "string",
+                                "enum": [
+                                    "/vault-config/instance-1.yml"
+                                ]
+                            }
+                        }
+                    }
                 },
                 "description": {
                     "type": "string"
@@ -10179,6 +10509,7 @@
                 "labels",
                 "_path",
                 "type",
+                "instance",
                 "description"
             ]
         },
@@ -10332,6 +10663,17 @@
                     "type": "string",
                     "description": "Kubernetes resource (request, limit) quantity",
                     "pattern": "^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
+                },
+                "statusPageStatus": {
+                    "type": "string",
+                    "description": "a list of supported status page component status",
+                    "enum": [
+                        "operational",
+                        "under_maintenance",
+                        "degraded_performance",
+                        "partial_outage",
+                        "major_outage"
+                    ]
                 }
             }
         },
@@ -10830,6 +11172,12 @@
                     "isRequired": true
                 },
                 {
+                    "name": "instance",
+                    "type": "VaultInstance_v1",
+                    "isInterface": true,
+                    "isRequired": true
+                },
+                {
                     "name": "description",
                     "type": "string",
                     "isRequired": true
@@ -10984,6 +11332,12 @@
                 {
                     "name": "description",
                     "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "instance",
+                    "type": "VaultInstance_v1",
+                    "isInterface": true,
                     "isRequired": true
                 },
                 {
@@ -11245,6 +11599,12 @@
                     "isRequired": true
                 },
                 {
+                    "name": "instance",
+                    "type": "VaultInstance_v1",
+                    "isInterface": true,
+                    "isRequired": true
+                },
+                {
                     "name": "options",
                     "type": "VaultRoleOptions_v1",
                     "isInterface": true,
@@ -11258,6 +11618,12 @@
                 {
                     "name": "name",
                     "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "instance",
+                    "type": "VaultInstance_v1",
+                    "isInterface": true,
                     "isRequired": true
                 },
                 {
@@ -13740,7 +14106,45 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "annotations",
+                    "type": "json"
+                }
+            ]
+        },
+        {
+            "name": "NamespaceTerraformResourceOutputFormat_v1",
+            "isInterface": true,
+            "interfaceResolve": {
+                "strategy": "fieldMap",
+                "field": "provider",
+                "fieldMap": {
+                    "generic-secret": "NamespaceTerraformResourceGenericSecretOutputFormat_v1"
+                }
+            },
+            "fields": [
+                {
+                    "name": "provider",
+                    "type": "string",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "NamespaceTerraformResourceGenericSecretOutputFormat_v1",
+            "interface": "NamespaceTerraformResourceOutputFormat_v1",
+            "fields": [
+                {
+                    "name": "provider",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "data",
                     "type": "json"
                 }
             ]
@@ -13790,6 +14194,11 @@
                 {
                     "name": "output_resource_name",
                     "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
                 },
                 {
                     "name": "annotations",
@@ -13871,6 +14280,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "annotations",
                     "type": "json"
                 }
@@ -13906,6 +14320,11 @@
                 {
                     "name": "output_resource_name",
                     "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
                 },
                 {
                     "name": "annotations",
@@ -13949,6 +14368,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "annotations",
                     "type": "json"
                 }
@@ -13987,6 +14411,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "annotations",
                     "type": "json"
                 },
@@ -14010,6 +14439,10 @@
                     "name": "account",
                     "type": "string",
                     "isRequired": true
+                },
+                {
+                    "name": "region",
+                    "type": "string"
                 },
                 {
                     "name": "identifier",
@@ -14036,6 +14469,11 @@
                 {
                     "name": "output_resource_name",
                     "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
                 },
                 {
                     "name": "output_resource_db_name",
@@ -14118,6 +14556,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "storage_class",
                     "type": "string"
                 },
@@ -14181,6 +14624,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "aws_infrastructure_access",
                     "type": "NamespaceTerraformResourceServiceAccountAWSInfrastructureAccess_v1"
                 },
@@ -14242,6 +14690,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "annotations",
                     "type": "json"
                 }
@@ -14286,6 +14739,11 @@
                 {
                     "name": "output_resource_name",
                     "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
                 },
                 {
                     "name": "annotations",
@@ -14335,6 +14793,11 @@
                 {
                     "name": "output_resource_name",
                     "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
                 },
                 {
                     "name": "specs",
@@ -14392,6 +14855,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "specs",
                     "type": "DynamoDBTableSpecs_v1",
                     "isRequired": true,
@@ -14429,6 +14897,11 @@
                 {
                     "name": "output_resource_name",
                     "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
                 },
                 {
                     "name": "mirror",
@@ -14478,6 +14951,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "storage_class",
                     "type": "string"
                 },
@@ -14522,6 +15000,11 @@
                 {
                     "name": "output_resource_name",
                     "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
                 },
                 {
                     "name": "storage_class",
@@ -14574,6 +15057,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "annotations",
                     "type": "json"
                 }
@@ -14616,6 +15104,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "annotations",
                     "type": "json"
                 }
@@ -14656,6 +15149,11 @@
                 {
                     "name": "output_resource_name",
                     "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
                 },
                 {
                     "name": "annotations",
@@ -14722,6 +15220,11 @@
                     "type": "string"
                 },
                 {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
                     "name": "annotations",
                     "type": "json"
                 }
@@ -14758,6 +15261,11 @@
                 {
                     "name": "output_resource_name",
                     "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
                 },
                 {
                     "name": "annotations",
@@ -15754,7 +16262,9 @@
                 {
                     "name": "name",
                     "type": "string",
-                    "isRequired": true
+                    "isRequired": true,
+                    "isSearchable": true,
+                    "isUnique": true
                 },
                 {
                     "name": "description",
@@ -15870,15 +16380,6 @@
                     }
                 },
                 {
-                    "name": "saasFiles",
-                    "type": "SaasFile_v1",
-                    "isList": true,
-                    "synthetic": {
-                        "schema": "/app-sre/saas-file-1.yml",
-                        "subAttr": "app"
-                    }
-                },
-                {
                     "name": "saasFilesV2",
                     "type": "SaasFile_v2",
                     "isList": true,
@@ -15894,116 +16395,6 @@
                     "synthetic": {
                         "schema": "/app-sre/sre-checkpoint-1.yml",
                         "subAttr": "app"
-                    }
-                }
-            ]
-        },
-        {
-            "name": "SaasFile_v1",
-            "fields": [
-                {
-                    "name": "schema",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "path",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "labels",
-                    "type": "json"
-                },
-                {
-                    "name": "name",
-                    "type": "string",
-                    "isRequired": true,
-                    "isSearchable": true,
-                    "isUnique": true
-                },
-                {
-                    "name": "description",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "app",
-                    "type": "App_v1",
-                    "isRequired": true
-                },
-                {
-                    "name": "instance",
-                    "type": "JenkinsInstance_v1",
-                    "isRequired": true
-                },
-                {
-                    "name": "slack",
-                    "type": "SlackOutput_v1",
-                    "isRequired": true
-                },
-                {
-                    "name": "managedResourceTypes",
-                    "type": "string",
-                    "isRequired": true,
-                    "isList": true
-                },
-                {
-                    "name": "authentication",
-                    "type": "SaasFileAuthentication_v1"
-                },
-                {
-                    "name": "parameters",
-                    "type": "json"
-                },
-                {
-                    "name": "secretParameters",
-                    "type": "SaasSecretParameters_v1",
-                    "isList": true
-                },
-                {
-                    "name": "resourceTemplates",
-                    "type": "SaasResourceTemplate_v1",
-                    "isRequired": true,
-                    "isList": true
-                },
-                {
-                    "name": "imagePatterns",
-                    "type": "string",
-                    "isRequired": true,
-                    "isList": true
-                },
-                {
-                    "name": "takeover",
-                    "type": "boolean"
-                },
-                {
-                    "name": "compare",
-                    "type": "boolean"
-                },
-                {
-                    "name": "timeout",
-                    "type": "int"
-                },
-                {
-                    "name": "publishJobLogs",
-                    "type": "boolean"
-                },
-                {
-                    "name": "clusterAdmin",
-                    "type": "boolean"
-                },
-                {
-                    "name": "use_channel_in_image_tag",
-                    "type": "boolean"
-                },
-                {
-                    "name": "roles",
-                    "type": "Role_v1",
-                    "isList": true,
-                    "synthetic": {
-                        "schema": "/access/role-1.yml",
-                        "subAttr": "owned_saas_files"
                     }
                 }
             ]
@@ -16668,6 +17059,134 @@
             ]
         },
         {
+            "name": "VaultInstance_v1",
+            "isInterface": true,
+            "interfaceResolve": {
+                "strategy": "fieldMap",
+                "field": "authType",
+                "fieldMap": {
+                    "approle": "VaultInstanceApprole_v1",
+                    "token": "VaultInstanceToken_v1"
+                }
+            },
+            "fields": [
+                {
+                    "name": "schema",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "labels",
+                    "type": "json"
+                },
+                {
+                    "name": "name",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "description",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "authType",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "address",
+                    "type": "string",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "VaultInstanceApprole_v1",
+            "interface": "VaultInstance_v1",
+            "fields": [
+                {
+                    "name": "schema",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "labels",
+                    "type": "json"
+                },
+                {
+                    "name": "name",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "description",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "authType",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "address",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "roleID",
+                    "type": "VaultSecret_v1",
+                    "isRequired": true
+                },
+                {
+                    "name": "secretID",
+                    "type": "VaultSecret_v1",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "VaultInstanceToken_v1",
+            "interface": "VaultInstance_v1",
+            "fields": [
+                {
+                    "name": "schema",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "labels",
+                    "type": "json"
+                },
+                {
+                    "name": "name",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "description",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "authType",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "address",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "token",
+                    "type": "VaultSecret_v1",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
             "name": "OidcPermission_v1",
             "isInterface": true,
             "interfaceResolve": {
@@ -16730,6 +17249,12 @@
                 {
                     "name": "description",
                     "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "instance",
+                    "type": "VaultInstance_v1",
+                    "isInterface": true,
                     "isRequired": true
                 },
                 {
@@ -17128,6 +17653,12 @@
                     "isRequired": true
                 },
                 {
+                    "name": "instance",
+                    "type": "VaultInstance_v1",
+                    "isInterface": true,
+                    "isRequired": true
+                },
+                {
                     "name": "settings",
                     "type": "VaultAuthSettings_v1"
                 },
@@ -17477,7 +18008,7 @@
                 },
                 {
                     "name": "owned_saas_files",
-                    "type": "SaasFile_v1",
+                    "type": "SaasFile_v2",
                     "isList": true
                 },
                 {
@@ -17904,6 +18435,45 @@
             ]
         },
         {
+            "name": "TemplateTest_v1",
+            "fields": [
+                {
+                    "name": "schema",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "path",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "labels",
+                    "type": "json"
+                },
+                {
+                    "name": "name",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "description",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "resourcePath",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "expectedResult",
+                    "type": "string",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
             "name": "Query",
             "fields": [
                 {
@@ -18071,6 +18641,13 @@
                     "isList": true
                 },
                 {
+                    "name": "vault_instances_v1",
+                    "type": "VaultInstance_v1",
+                    "isList": true,
+                    "isInterface": true,
+                    "datafileSchema": "/vault-config/instance-1.yml"
+                },
+                {
                     "name": "vault_audit_backends_v1",
                     "type": "VaultAudit_v1",
                     "isList": true,
@@ -18161,12 +18738,6 @@
                     "datafileSchema": "/app-interface/app-interface-sql-query-1.yml"
                 },
                 {
-                    "name": "saas_files_v1",
-                    "type": "SaasFile_v1",
-                    "isList": true,
-                    "datafileSchema": "/app-sre/saas-file-1.yml"
-                },
-                {
                     "name": "saas_files_v2",
                     "type": "SaasFile_v2",
                     "isList": true,
@@ -18190,6 +18761,12 @@
                     "type": "GabiInstance_v1",
                     "isList": true,
                     "datafileSchema": "/app-sre/gabi-instance-1.yml"
+                },
+                {
+                    "name": "template_tests_v1",
+                    "type": "TemplateTest_v1",
+                    "isList": true,
+                    "datafileSchema": "/app-interface/template-test-1.yml"
                 },
                 {
                     "name": "dns_zone_v1",
@@ -18864,6 +19441,12 @@
                     "type": "string"
                 },
                 {
+                    "name": "status",
+                    "type": "StatusProvider_v1",
+                    "isList": true,
+                    "isInterface": true
+                },
+                {
                     "name": "apps",
                     "type": "App_v1",
                     "isList": true,
@@ -19075,6 +19658,118 @@
                     "isRequired": true
                 }
             ]
+        },
+        {
+            "name": "StatusProvider_v1",
+            "isInterface": true,
+            "interfaceResolve": {
+                "strategy": "fieldMap",
+                "field": "provider",
+                "fieldMap": {
+                    "prometheus-alerts": "PrometheusAlertsStatusProvider_v1",
+                    "manual": "ManualStatusProvider_v1"
+                }
+            },
+            "fields": [
+                {
+                    "name": "provider",
+                    "type": "string",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "PrometheusAlertsStatusProvider_v1",
+            "interface": "StatusProvider_v1",
+            "fields": [
+                {
+                    "name": "provider",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "prometheusAlerts",
+                    "type": "PrometheusAlertsStatusProviderConfig_v1",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "PrometheusAlertsStatusProviderConfig_v1",
+            "fields": [
+                {
+                    "name": "namespace",
+                    "type": "Namespace_v1",
+                    "isList": true
+                },
+                {
+                    "name": "matchers",
+                    "type": "PrometheusAlertMatcher_v1",
+                    "isList": true
+                }
+            ]
+        },
+        {
+            "name": "PrometheusAlertMatcher_v1",
+            "fields": [
+                {
+                    "name": "matchExpression",
+                    "type": "PrometheusAlertMatcherExpression_v1",
+                    "isRequired": true
+                },
+                {
+                    "name": "componentStatus",
+                    "type": "string",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "PrometheusAlertMatcherExpression_v1",
+            "fields": [
+                {
+                    "name": "alert",
+                    "type": "string"
+                },
+                {
+                    "name": "labels",
+                    "type": "json"
+                }
+            ]
+        },
+        {
+            "name": "ManualStatusProvider_v1",
+            "interface": "StatusProvider_v1",
+            "fields": [
+                {
+                    "name": "provider",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "manual",
+                    "type": "ManualStatusProviderConfig_v1",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "ManualStatusProviderConfig_v1",
+            "fields": [
+                {
+                    "name": "componentStatus",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "from",
+                    "type": "string"
+                },
+                {
+                    "name": "until",
+                    "type": "string"
+                }
+            ]
         }
     ],
     "data": {
@@ -19088,7 +19783,7 @@
             "saasDeployJobTemplate": "openshift-saas-deploy",
             "hashLength": 7
         },
-        "/dependencies/vault/permissions/oidc/app-sre-vault-admin.yml": {
+        "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml": {
             "$schema": "/access/oidc-permission-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19101,7 +19796,24 @@
             },
             "vault_policies": [
                 {
-                    "$ref": "/services/vault/config/policies/app-sre-vault-admin.yml"
+                    "$ref": "/services/vault/config/policies/master/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/dependencies/vault/permissions/oidc/secondary/app-sre-vault-admin.yml": {
+            "$schema": "/access/oidc-permission-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "app-sre-vault-admin",
+            "service": "vault",
+            "description": "app-sre vault administrator permission",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "vault_policies": [
+                {
+                    "$ref": "/services/vault/config/policies/secondary/app-sre-vault-admin.yml"
                 }
             ]
         },
@@ -19116,28 +19828,7 @@
             "org": "app-sre",
             "team": "vault-app-sre"
         },
-        "/services/vault/config/audit-backends/file-audit.yml": {
-            "$schema": "/vault-config/audit-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "_path": "file/",
-            "type": "file",
-            "instance": {
-                "$ref": "/services/vault/config/instances/master.yml"
-            },
-            "description": "",
-            "options": {
-                "_type": "file",
-                "file_path": "/var/log/vault/vault_audit.log",
-                "format": "json",
-                "log_raw": "false",
-                "hmac_accessor": "true",
-                "mode": "0600",
-                "prefix": ""
-            }
-        },
-        "/services/vault/config/auth-backends/approle.yml": {
+        "/services/vault/config/auth-backends/master/approle.yml": {
             "$schema": "/vault-config/auth-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19149,7 +19840,7 @@
             },
             "description": "approle auth backend"
         },
-        "/services/vault/config/auth-backends/github.yml": {
+        "/services/vault/config/auth-backends/master/github.yml": {
             "$schema": "/vault-config/auth-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19176,13 +19867,13 @@
                     },
                     "policies": [
                         {
-                            "$ref": "/services/vault/config/policies/app-sre-policy.yml"
+                            "$ref": "/services/vault/config/policies/master/app-sre-policy.yml"
                         }
                     ]
                 }
             ]
         },
-        "/services/vault/config/auth-backends/oidc.yml": {
+        "/services/vault/config/auth-backends/master/oidc.yml": {
             "$schema": "/vault-config/auth-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19203,7 +19894,106 @@
                 }
             }
         },
-        "/services/vault/config/policies/app-interface-approle-policy.yml": {
+        "/services/vault/config/auth-backends/secondary/approle.yml": {
+            "$schema": "/vault-config/auth-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "approle/",
+            "type": "approle",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "description": "approle auth backend"
+        },
+        "/services/vault/config/auth-backends/secondary/github.yml": {
+            "$schema": "/vault-config/auth-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "github/",
+            "type": "github",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "description": "github auth backend",
+            "settings": {
+                "config": {
+                    "_type": "github",
+                    "organization": "app-sre",
+                    "base_url": "https://api.github.com/",
+                    "max_ttl": "24h",
+                    "ttl": "12h"
+                }
+            },
+            "policy_mappings": [
+                {
+                    "github_team": {
+                        "$ref": "/dependencies/vault/permissions/app-sre.yml"
+                    },
+                    "policies": [
+                        {
+                            "$ref": "/services/vault/config/policies/secondary/app-sre-policy.yml"
+                        }
+                    ]
+                }
+            ]
+        },
+        "/services/vault/config/auth-backends/secondary/oidc.yml": {
+            "$schema": "/vault-config/auth-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "oidc/",
+            "type": "oidc",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "description": "rh sso auth backend",
+            "settings": {
+                "config": {
+                    "_type": "oidc",
+                    "oidc_discovery_url": "http://localhost:8180/auth/realms/test",
+                    "oidc_client_id": "vault",
+                    "oidc_client_secret": "my-special-client-secret",
+                    "default_role": "default"
+                }
+            }
+        },
+        "/services/vault/config/policies/secondary/app-sre-policy.yml": {
+            "$schema": "/vault-config/policy-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "app-sre-policy",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"totp/app-sre/keys/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"totp/app-sre/code/*\" {\n  capabilities = [\"read\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
+        },
+        "/services/vault/config/policies/secondary/app-sre-vault-admin.yml": {
+            "$schema": "/vault-config/policy-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "vault-oidc-app-sre-policy",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
+        },
+        "/services/vault/config/policies/secondary/app-interface-approle-policy.yml": {
+            "$schema": "/vault-config/policy-1.yml",
+            "labels": {
+                "service": "vault.devshift.net"
+            },
+            "name": "app-interface-approle-policy",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "rules": "path \"app-sre/creds/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/ansible/*\" {\n  capabilities = [\"read\"]\n}\n#app-interface secrets integration\npath \"app-interface/*\" {\n   capabilities = [\"read\"]\n}\n# integrations input/output\npath \"app-sre/integrations-input/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/integrations-output/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\npath \"app-sre/integrations-throughput/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\n"
+        },
+        "/services/vault/config/policies/master/app-interface-approle-policy.yml": {
             "$schema": "/vault-config/policy-1.yml",
             "labels": {
                 "service": "vault.devshift.net"
@@ -19214,7 +20004,7 @@
             },
             "rules": "path \"app-sre/creds/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/ansible/*\" {\n  capabilities = [\"read\"]\n}\n#app-interface secrets integration\npath \"app-interface/*\" {\n   capabilities = [\"read\"]\n}\n# integrations input/output\npath \"app-sre/integrations-input/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/integrations-output/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\npath \"app-sre/integrations-throughput/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\n"
         },
-        "/services/vault/config/policies/app-sre-policy.yml": {
+        "/services/vault/config/policies/master/app-sre-policy.yml": {
             "$schema": "/vault-config/policy-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19225,7 +20015,7 @@
             },
             "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"totp/app-sre/keys/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"totp/app-sre/code/*\" {\n  capabilities = [\"read\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
         },
-        "/services/vault/config/policies/app-sre-vault-admin.yml": {
+        "/services/vault/config/policies/master/app-sre-vault-admin.yml": {
             "$schema": "/vault-config/policy-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19236,7 +20026,7 @@
             },
             "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
         },
-        "/services/vault/config/roles/approles/app-interface.yml": {
+        "/services/vault/config/roles/master/approles/app-interface.yml": {
             "$schema": "/vault-config/role-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19270,7 +20060,7 @@
                 "token_bound_cidrs": []
             }
         },
-        "/services/vault/config/roles/approles/vault-manager.yml": {
+        "/services/vault/config/roles/master/approles/vault-manager.yml": {
             "$schema": "/vault-config/role-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19304,7 +20094,7 @@
                 "token_bound_cidrs": []
             }
         },
-        "/services/vault/config/roles/oidc/default.yml": {
+        "/services/vault/config/roles/master/oidc/default.yml": {
             "$schema": "/vault-config/role-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19350,7 +20140,7 @@
                 "verbose_oidc_logging": true
             }
         },
-        "/services/vault/config/roles/oidc/minimal.yml": {
+        "/services/vault/config/roles/master/oidc/minimal.yml": {
             "$schema": "/vault-config/role-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19379,7 +20169,150 @@
                 "user_claim": "email"
             }
         },
-        "/services/vault/config/secret-engines/app-interface.yml": {
+        "/services/vault/config/roles/secondary/approles/app-interface.yml": {
+            "$schema": "/vault-config/role-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "app-interface",
+            "type": "approle",
+            "mount": "approle/",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "options": {
+                "_type": "approle",
+                "bind_secret_id": "true",
+                "local_secret_ids": "false",
+                "token_period": "0",
+                "secret_id_num_uses": "0",
+                "secret_id_ttl": "0",
+                "token_explicit_max_ttl": "0",
+                "token_max_ttl": "1800",
+                "token_no_default_policy": false,
+                "token_num_uses": "0",
+                "token_ttl": "1800",
+                "token_type": "default",
+                "token_policies": [
+                    "app-interface-approle-policy"
+                ],
+                "policies": [
+                    "app-interface-approle-policy"
+                ],
+                "secret_id_bound_cidrs": [],
+                "token_bound_cidrs": []
+            }
+        },
+        "/services/vault/config/roles/secondary/approles/vault-manager.yml": {
+            "$schema": "/vault-config/role-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "vault_manager",
+            "type": "approle",
+            "mount": "approle/",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "options": {
+                "_type": "approle",
+                "bind_secret_id": "true",
+                "local_secret_ids": "false",
+                "token_period": "0",
+                "secret_id_num_uses": "0",
+                "secret_id_ttl": "0",
+                "token_explicit_max_ttl": "0",
+                "token_max_ttl": "1800",
+                "token_no_default_policy": false,
+                "token_num_uses": "0",
+                "token_ttl": "1800",
+                "token_type": "default",
+                "token_policies": [
+                    "vault-manager-policy"
+                ],
+                "policies": [
+                    "vault-manager-policy"
+                ],
+                "secret_id_bound_cidrs": [],
+                "token_bound_cidrs": []
+            }
+        },
+        "/services/vault/config/roles/secondary/oidc/default.yml": {
+            "$schema": "/vault-config/role-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "default",
+            "type": "oidc",
+            "mount": "oidc/",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "options": {
+                "_type": "oidc",
+                "allowed_redirect_uris": [
+                    "http://localhost:8200/ui/vault/auth/oidc/oidc/callback"
+                ],
+                "bound_audiences": [],
+                "bound_claims": {
+                    "foo": "bar",
+                    "hello": "world"
+                },
+                "bound_claims_type": "string",
+                "bound_subject": "",
+                "claim_mappings": {
+                    "foo": "bar"
+                },
+                "clock_skew_leeway": "30",
+                "expiration_leeway": "20",
+                "groups_claim": "",
+                "max_age": "50",
+                "not_before_leeway": "10",
+                "oidc_scopes": [],
+                "role_type": "oidc",
+                "token_ttl": "1800",
+                "token_max_ttl": "1800",
+                "token_explicit_max_ttl": "0",
+                "token_type": "default",
+                "token_period": "0",
+                "token_policies": [],
+                "token_bound_cidrs": [],
+                "token_no_default_policy": false,
+                "token_num_uses": "0",
+                "user_claim": "email",
+                "verbose_oidc_logging": true
+            }
+        },
+        "/services/vault/config/roles/secondary/oidc/minimal.yml": {
+            "$schema": "/vault-config/role-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "minimal",
+            "type": "oidc",
+            "mount": "oidc/",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "options": {
+                "_type": "oidc",
+                "allowed_redirect_uris": [
+                    "http://localhost:8200/ui/vault/auth/oidc/oidc/callback"
+                ],
+                "role_type": "oidc",
+                "token_ttl": "60",
+                "token_max_ttl": "60",
+                "token_explicit_max_ttl": "0",
+                "token_type": "default",
+                "token_period": "0",
+                "token_policies": [],
+                "token_bound_cidrs": [],
+                "token_no_default_policy": false,
+                "token_num_uses": "0",
+                "user_claim": "email"
+            }
+        },
+        "/services/vault/config/secret-engines/master/app-interface.yml": {
             "$schema": "/vault-config/secret-engine-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19395,7 +20328,7 @@
                 "version": "2"
             }
         },
-        "/services/vault/config/secret-engines/app-sre.yml": {
+        "/services/vault/config/secret-engines/master/app-sre.yml": {
             "$schema": "/vault-config/secret-engine-1.yml",
             "labels": {
                 "service": "vault.local"
@@ -19411,18 +20344,106 @@
                 "version": "1"
             }
         },
+        "/services/vault/config/secret-engines/secondary/app-interface.yml": {
+            "$schema": "/vault-config/secret-engine-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "app-interface/",
+            "type": "kv",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "kv",
+                "version": "1"
+            }
+        },
+        "/services/vault/config/secret-engines/secondary/app-sre.yml": {
+            "$schema": "/vault-config/secret-engine-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "app-sre/",
+            "type": "kv",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "kv",
+                "version": "1"
+            }
+        },
         "/services/vault/config/instances/master.yml": {
             "$schema": "/vault-config/instance-1.yml",
             "labels": {
                 "service": "vault.fedramp.devshift.net"
             },
-            "name": "app-sre-policy",
+            "name": "app-sre-master-vault",
             "description": "Primary FedRamp Vault instance",
             "address": "http://127.0.0.1:8200",
             "authType": "token",
             "token": {
-                "path": "secret/master",
+                "path": "secret/data/master",
                 "field": "rootToken"
+            }
+        },
+        "/services/vault/config/instances/secondary.yml": {
+            "$schema": "/vault-config/instance-1.yml",
+            "labels": {
+                "service": "vault.fedramp.devshift.net"
+            },
+            "name": "app-sre-secondary-vault",
+            "description": "Secondary FedRamp Vault instance",
+            "address": "http://127.0.0.1:8202",
+            "authType": "token",
+            "token": {
+                "path": "secret/data/secondary",
+                "field": "root"
+            }
+        },
+        "/services/vault/config/audit-backends/master/file-audit.yml": {
+            "$schema": "/vault-config/audit-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "file/",
+            "type": "file",
+            "instance": {
+                "$ref": "/services/vault/config/instances/master.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "file",
+                "file_path": "/var/log/vault/vault_audit.log",
+                "format": "json",
+                "log_raw": "false",
+                "hmac_accessor": "true",
+                "mode": "0600",
+                "prefix": ""
+            }
+        },
+        "/services/vault/config/audit-backends/secondary/file-audit.yml": {
+            "$schema": "/vault-config/audit-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "file/",
+            "type": "file",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "file",
+                "file_path": "/var/log/vault/vault_audit.log",
+                "format": "json",
+                "log_raw": "false",
+                "hmac_accessor": "true",
+                "mode": "0600",
+                "prefix": ""
             }
         },
         "/teams/app-sre/roles/app-sre-vault-oidc.yml": {
@@ -19432,7 +20453,29 @@
             "permissions": [],
             "oidc_permissions": [
                 {
-                    "$ref": "/dependencies/vault/permissions/oidc/app-sre-vault-admin.yml"
+                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-sre-vault-oidc-secondary",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/secondary/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/roles/app-interface-vault-oidc.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-interface-vault-oidc",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
                 }
             ]
         },
@@ -19446,6 +20489,12 @@
             "roles": [
                 {
                     "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
                 }
             ],
             "public_gpg_key": "nada"
