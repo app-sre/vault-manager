@@ -90,13 +90,13 @@ func InitClients(instanceCreds map[string][]*VaultSecret, threadPoolSize int) {
 			case TOKEN_AUTH:
 				token = accessCreds[TOKEN]
 			}
-
 			mutex.Lock()
 			defer mutex.Unlock()
 			client.SetToken(token)
 			vaultClients[a] = client
 		}(addr, secrets)
 	}
+	bwg.Wait()
 }
 
 // configureMaster initializes vault client for the master instance
