@@ -3,6 +3,9 @@
         _path
         type
         description
+        instance {
+            address
+        }
         settings {
             config {
                 ... on VaultAuthConfigGithub_v1 {
@@ -32,6 +35,9 @@
         name
         type
         mount
+        instance {
+            address
+        }
         options {
             ... on VaultApproleOptions_v1 {
                 bind_secret_id

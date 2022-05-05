@@ -7,6 +7,10 @@
       oidc_permissions {
         name
         service
+        ... on OidcPermissionVault_v1 {
+        instance {
+          address
+        }
       }
     }
   }

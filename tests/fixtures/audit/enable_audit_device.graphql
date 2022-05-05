@@ -3,6 +3,9 @@
         type
         _path
         description
+        instance {
+          address
+        }
         options {
             ... on VaultAuditOptionsFile_v1 {
                 file_path

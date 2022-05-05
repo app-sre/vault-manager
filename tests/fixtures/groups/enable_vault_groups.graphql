@@ -11,6 +11,9 @@
           vault_policies {
             name
           }
+          instance {
+            address
+          }
         }
       }
     }

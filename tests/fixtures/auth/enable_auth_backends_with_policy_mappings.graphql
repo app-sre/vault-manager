@@ -3,6 +3,9 @@
         _path
         type
         description
+        instance {
+          address
+        }
         settings {
             config {
                 ... on VaultAuthConfigGithub_v1 {
