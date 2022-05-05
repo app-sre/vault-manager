@@ -95,10 +95,16 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 		if dryRun == true {
 			for _, w := range toBeWritten {
-				log.WithField("path", w.Key()).Infof("[Dry Run] [Vault Audit] audit device to be enabled")
+				log.WithFields(log.Fields{
+					"path":     w.Key(),
+					"instance": instance,
+				}).Info("[Dry Run] [Vault Audit] audit device to be enabled")
 			}
 			for _, d := range toBeDeleted {
-				log.WithField("path", d.Key()).Infof("[Dry Run] [Vault Audit] audit device to be disabled")
+				log.WithFields(log.Fields{
+					"path":     d.Key(),
+					"instance": instance,
+				}).Info("[Dry Run] [Vault Audit] audit device to be disabled")
 			}
 		} else {
 			// Write any missing Audit Devices to the Vault instance.

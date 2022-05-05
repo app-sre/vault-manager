@@ -83,15 +83,21 @@ func (g group) CreateOrUpdate(action string) {
 		"metadata":          g.Metadata,
 	}
 	vault.WriteSecret(g.Instance.Address, path, config)
-	log.WithField("path", path).WithField("type", g.Type).Info(
-		fmt.Sprintf("[Vault Identity] group successfully %s", action))
+	log.WithFields(log.Fields{
+		"path":     path,
+		"type":     g.Type,
+		"instance": g.Instance.Address,
+	}).Infof("[Vault Identity] group successfully %s", action)
 }
 
 func (g group) Delete() {
 	path := filepath.Join("identity", g.Type, "name", g.Name)
 	vault.DeleteSecret(g.Instance.Address, path)
-	log.WithField("path", path).WithField("type", g.Type).Info(
-		"[Vault Identity] group successfully deleted")
+	log.WithFields(log.Fields{
+		"path":     path,
+		"type":     g.Type,
+		"instance": g.Instance.Address,
+	}).Info("[Vault Identity] group successfully deleted")
 }
 
 var _ vault.Item = group{}
@@ -124,9 +130,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 		toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(groupsAsItems(desired), groupsAsItems(existing))
 		if dryRun {
-			dryRunOutput(toBeWritten, "written")
-			dryRunOutput(toBeDeleted, "deleted")
-			dryRunOutput(toBeUpdated, "updated")
+			dryRunOutput(instance, toBeWritten, "written")
+			dryRunOutput(instance, toBeDeleted, "deleted")
+			dryRunOutput(instance, toBeUpdated, "updated")
 		} else {
 			for _, w := range toBeWritten {
 				w.(group).CreateOrUpdate("written")
@@ -359,9 +365,12 @@ func groupsAsItems(groups []group) []vault.Item {
 }
 
 // reusable func to output updates on writes, deletes, and updates for groups
-func dryRunOutput(groups []vault.Item, action string) {
+func dryRunOutput(instanceAddr string, groups []vault.Item, action string) {
 	for _, g := range groups {
-		log.WithField("name", g.Key()).WithField("type", g.(group).Type).Info(
-			fmt.Sprintf("[Dry Run] [Vault Identity] group to be %s", action))
+		log.WithFields(log.Fields{
+			"name":     g.Key(),
+			"type":     g.KeyForType(),
+			"instance": instanceAddr,
+		}).Infof("[Dry Run] [Vault Identity] group to be %s", action)
 	}
 }

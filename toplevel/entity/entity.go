@@ -85,15 +85,21 @@ func (e entity) CreateOrUpdate(action string) {
 		"metadata": e.Metadata,
 	}
 	vault.WriteSecret(e.Instance.Address, path, config)
-	log.WithField("path", path).WithField("type", e.Type).Info(
-		fmt.Sprintf("[Vault Identity] entity successfully %s", action))
+	log.WithFields(log.Fields{
+		"name":     e.Key(),
+		"type":     e.KeyForType(),
+		"instance": e.Instance.Address,
+	}).Infof("[Vault Identity] entity successfully %s", action)
 }
 
 func (e entity) Delete() {
 	path := filepath.Join("identity", e.Type, "name", e.Name)
 	vault.DeleteSecret(e.Instance.Address, path)
-	log.WithField("path", path).WithField("type", e.Type).Info(
-		"[Vault Identity] entity successfully deleted")
+	log.WithFields(log.Fields{
+		"name":     e.Key(),
+		"type":     e.KeyForType(),
+		"instance": e.Instance.Address,
+	}).Info("[Vault Identity] entity successfully deleted")
 }
 
 func (e entityAlias) Key() string {
@@ -125,8 +131,11 @@ func (ea entityAlias) Create(entityId string) {
 		"mount_accessor": ea.AccessorId,
 	}
 	vault.WriteEntityAlias(ea.Instance.Address, path, config)
-	log.WithField("path", filepath.Join(path, ea.Name)).WithField("type", ea.AuthType).Info(
-		"[Vault Identity] entity alias successfully written")
+	log.WithFields(log.Fields{
+		"name":     ea.Key(),
+		"type":     ea.AuthType,
+		"instance": ea.Instance.Address,
+	}).Info("[Vault Identity] entity alias successfully created")
 }
 
 func (ea entityAlias) Update(entityId string) {
@@ -137,15 +146,21 @@ func (ea entityAlias) Update(entityId string) {
 		"mount_accessor": ea.AccessorId,
 	}
 	vault.WriteSecret(ea.Instance.Address, path, config)
-	log.WithField("path", filepath.Join(path, ea.Name)).WithField("type", ea.AuthType).Info(
-		"[Vault Identity] entity alias successfully updated")
+	log.WithFields(log.Fields{
+		"name":     ea.Key(),
+		"type":     ea.AuthType,
+		"instance": ea.Instance.Address,
+	}).Info("[Vault Identity] entity alias successfully updated")
 }
 
 func (ea entityAlias) Delete() {
 	path := filepath.Join("identity", ea.Type, "id", ea.Id)
 	vault.DeleteSecret(ea.Instance.Address, path)
-	log.WithField("path", filepath.Join(path, ea.Name)).WithField("type", ea.AuthType).Info(
-		"[Vault Identity] entity alias successfully deleted")
+	log.WithFields(log.Fields{
+		"name":     ea.Key(),
+		"type":     ea.AuthType,
+		"instance": ea.Instance.Address,
+	}).Info("[Vault Identity] entity alias successfully deleted")
 }
 
 func init() {
@@ -185,16 +200,19 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 		// preform actions
 		if dryRun {
-			entitiesDryRunOutput(entitiesToBeWritten, "written")
-			entitiesDryRunOutput(entitiesToBeDeleted, "deleted")
-			entitiesDryRunOutput(entitiesToBeUpdated, "updated")
-			aliasesDryRunOutput(aliasesToBeWritten["id"], "written")
-			aliasesDryRunOutput(aliasesToBeWritten["name"], "written")
+			entitiesDryRunOutput(instanceAddr, entitiesToBeWritten, "written")
+			entitiesDryRunOutput(instanceAddr, entitiesToBeDeleted, "deleted")
+			entitiesDryRunOutput(instanceAddr, entitiesToBeUpdated, "updated")
+			aliasesDryRunOutput(instanceAddr, aliasesToBeWritten["id"], "written")
+			aliasesDryRunOutput(instanceAddr, aliasesToBeWritten["name"], "written")
 			for _, alias := range aliasesToBeDeleted {
-				log.WithField("name", alias.Key()).WithField("type", alias.(entityAlias).AuthType).Info(
-					fmt.Sprintf("[Dry Run] [Vault Identity] entity alias to be deleted"))
+				log.WithFields(log.Fields{
+					"name":     alias.Key(),
+					"type":     alias.(entityAlias).AuthType,
+					"instance": instanceAddr,
+				}).Info("[Dry Run] [Vault Identity] entity alias to be deleted")
 			}
-			aliasesDryRunOutput(aliasesToBeUpdated, "updated")
+			aliasesDryRunOutput(instanceAddr, aliasesToBeUpdated, "updated")
 		} else {
 			// TODO: make each action perform concurrently
 			for _, w := range entitiesToBeWritten {
@@ -564,19 +582,25 @@ func copyIds(entries, existingEntities []entity) {
 }
 
 // reusable func to output updates on writes, deletes, and updates for entities
-func entitiesDryRunOutput(entities []vault.Item, action string) {
+func entitiesDryRunOutput(instanceAddr string, entities []vault.Item, action string) {
 	for _, e := range entities {
-		log.WithField("name", e.Key()).WithField("type", e.(entity).Type).Info(
-			fmt.Sprintf("[Dry Run] [Vault Identity] entity to be %s", action))
+		log.WithFields(log.Fields{
+			"name":     e.Key(),
+			"type":     e.KeyForType(),
+			"instance": instanceAddr,
+		}).Infof("[Dry Run] [Vault Identity] entity to be %s", action)
 	}
 }
 
 // reusable func to output updates on writes, deletes, and updates for entity aliases
-func aliasesDryRunOutput(idsToAliases map[string][]vault.Item, action string) {
+func aliasesDryRunOutput(instanceAddr string, idsToAliases map[string][]vault.Item, action string) {
 	for _, aliases := range idsToAliases {
 		for _, alias := range aliases {
-			log.WithField("name", alias.Key()).WithField("type", alias.(entityAlias).AuthType).Info(
-				fmt.Sprintf("[Dry Run] [Vault Identity] entity alias to be %s", action))
+			log.WithFields(log.Fields{
+				"name":     alias.Key(),
+				"type":     alias.(entityAlias).AuthType,
+				"instance": instanceAddr,
+			}).Infof("[Dry Run] [Vault Identity] entity alias to be %s", action)
 		}
 	}
 }

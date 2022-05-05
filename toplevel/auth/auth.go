@@ -208,7 +208,8 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 					bwg.Wait()
 				}
 
-				policiesMappingsToBeApplied, policiesMappingsToBeDeleted, _ := vault.DiffItems(policyMappingsAsItems(e.PolicyMappings), policyMappingsAsItems(existingPolicyMappings))
+				policiesMappingsToBeApplied, policiesMappingsToBeDeleted, _ :=
+					vault.DiffItems(policyMappingsAsItems(e.PolicyMappings), policyMappingsAsItems(existingPolicyMappings))
 
 				// apply policy mappings
 				for _, pm := range policiesMappingsToBeApplied {
@@ -237,7 +238,11 @@ func enableAuth(instanceAddr string, toBeWritten []vault.Item, dryRun bool) {
 	for _, e := range toBeWritten {
 		ent := e.(entry)
 		if dryRun == true {
-			log.WithField("path", ent.Path).WithField("type", ent.Type).Info("[Dry Run] [Vault Auth] auth backend to be enabled")
+			log.WithFields(log.Fields{
+				"path":     ent.Path,
+				"type":     ent.Type,
+				"instance": instanceAddr,
+			}).Info("[Dry Run] [Vault Auth] auth backend to be enabled")
 		} else {
 			vault.EnableAuthWithOptions(instanceAddr, ent.Path,
 				&api.EnableAuthOptions{
@@ -256,10 +261,12 @@ func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) {
 				path := filepath.Join("auth", e.Path, name)
 				if !vault.DataInSecret(instanceAddr, cfg, path) {
 					if dryRun == true {
-						log.WithField("path", path).WithField("type", e.Type).Info("[Dry Run] [Vault Auth] auth backend configuration to be written")
+						log.WithField("path", path).WithField("type", e.Type).WithField("instance", instanceAddr).Info(
+							"[Dry Run] [Vault Auth] auth backend configuration to be written")
 					} else {
 						vault.WriteSecret(instanceAddr, path, cfg)
-						log.WithField("path", path).WithField("type", e.Type).Info("[Vault Auth] auth backend successfully configured")
+						log.WithField("path", path).WithField("type", e.Type).WithField("instance", instanceAddr).Info(
+							"[Vault Auth] auth backend successfully configured")
 					}
 				}
 			}
@@ -274,7 +281,8 @@ func disableAuth(instanceAddr string, toBeDeleted []vault.Item, dryRun bool) {
 			continue
 		}
 		if dryRun == true {
-			log.WithField("path", ent.Path).WithField("type", ent.Type).Info("[Dry Run] [Vault Auth] auth backend to be disabled")
+			log.WithField("path", ent.Path).WithField("type", ent.Type).WithField("instance", instanceAddr).Info(
+				"[Dry Run] [Vault Auth] auth backend to be disabled")
 		} else {
 			vault.DisableAuth(instanceAddr, ent.Path)
 		}
@@ -283,10 +291,12 @@ func disableAuth(instanceAddr string, toBeDeleted []vault.Item, dryRun bool) {
 
 func writePolicyMapping(instanceAddr string, path string, data map[string]interface{}, dryRun bool) {
 	if dryRun == true {
-		log.WithField("path", path).WithField("policies", data["value"]).Info("[Dry Run] [Vault Auth] policies mapping to be applied")
+		log.WithField("path", path).WithField("policies", data["value"]).WithField("instance", instanceAddr).Info(
+			"[Dry Run] [Vault Auth] policies mapping to be applied")
 	} else {
 		vault.WriteSecret(instanceAddr, path, data)
-		log.WithField("path", path).WithField("policies", data["value"]).Info("[Vault Auth] policies mapping is successfully applied")
+		log.WithField("path", path).WithField("policies", data["value"]).WithField("instance", instanceAddr).Info(
+			"[Vault Auth] policies mapping is successfully applied")
 	}
 }
 func entriesAsItems(xs []entry) (items []vault.Item) {
@@ -300,10 +310,12 @@ func entriesAsItems(xs []entry) (items []vault.Item) {
 
 func deletePolicyMapping(instanceAddr string, path string, dryRun bool) {
 	if dryRun == true {
-		log.WithField("path", path).Info("[Dry Run] [Vault Auth] policies mapping to be deleted")
+		log.WithField("path", path).WithField("instance", instanceAddr).Info(
+			"[Dry Run] [Vault Auth] policies mapping to be deleted")
 	} else {
 		vault.DeleteSecret(instanceAddr, path)
-		log.WithField("path", path).Info("[Vault Auth] policies mapping is successfully deleted")
+		log.WithField("path", path).WithField("instance", instanceAddr).Info(
+			"[Vault Auth] policies mapping is successfully deleted")
 	}
 }
 

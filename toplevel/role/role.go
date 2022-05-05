@@ -65,13 +65,21 @@ func (e entry) Save() {
 		}
 	}
 	vault.WriteSecret(e.Instance.Address, path, options)
-	log.WithField("path", path).WithField("type", e.Type).Info("[Vault Role] role is successfully written")
+	log.WithFields(log.Fields{
+		"path":     path,
+		"type":     e.Type,
+		"instance": e.Instance.Address,
+	}).Info("[Vault Role] role is successfully written to Vault instance")
 }
 
 func (e entry) Delete() {
 	path := filepath.Join("auth", e.Mount, "role", e.Name)
 	vault.DeleteSecret(e.Instance.Address, path)
-	log.WithField("path", path).WithField("type", e.Type).Info("[Vault Role] role is successfully deleted from Vault instance")
+	log.WithFields(log.Fields{
+		"path":     path,
+		"type":     e.Type,
+		"instance": e.Instance.Address,
+	}).Info("[Vault Role] role is successfully deleted from Vault instance")
 }
 
 type config struct{}
@@ -164,10 +172,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 		if dryRun == true {
 			for _, w := range entriesToBeWritten {
-				log.WithField("name", w.Key()).WithField("type", w.(entry).Type).Info("[Dry Run] [Vault Role] role to be written")
+				log.WithField("name", w.Key()).WithField("type", w.(entry).Type).WithField("instance", instance).Info(
+					"[Dry Run] [Vault Role] role to be written")
 			}
 			for _, d := range entriesToBeDeleted {
-				log.WithField("name", d.Key()).WithField("type", d.(entry).Type).Info("[Dry Run] [Vault Role] role to be deleted")
+				log.WithField("name", d.Key()).WithField("type", d.(entry).Type).WithField("instance", instance).Info(
+					"[Dry Run] [Vault Role] role to be deleted")
 			}
 		} else {
 			// Write any missing roles to the Vault instance.

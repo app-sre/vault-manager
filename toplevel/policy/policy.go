@@ -107,14 +107,14 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 		if dryRun == true {
 			for _, w := range toBeWritten {
-				log.Infof("[Dry Run] [Vault Policy] policy to be written='%v'", w.Key())
+				log.WithField("instance", instance).Infof("[Dry Run] [Vault Policy] policy to be written='%v'", w.Key())
 			}
 			for _, d := range toBeDeleted {
 				if isDefaultPolicy(d.Key()) {
 					continue
 				}
 
-				log.Infof("[Dry Run] [Vault Policy] policy to be deleted='%v'", d.Key())
+				log.WithField("instance", instance).Infof("[Dry Run] [Vault Policy] policy to be deleted='%v'", d.Key())
 			}
 		} else {
 			// Write any missing policies to the Vault instance.

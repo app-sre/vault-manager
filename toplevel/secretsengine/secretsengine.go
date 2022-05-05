@@ -98,14 +98,26 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 		if dryRun == true {
 			for _, w := range toBeWritten {
-				log.WithField("path", w.Key()).WithField("type", w.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be enabled")
+				log.WithFields(log.Fields{
+					"path":     w.Key(),
+					"type":     w.(entry).Type,
+					"instance": instanceAddr,
+				}).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be enabled")
 			}
 			for _, u := range toBeUpdated {
-				log.WithField("path", u.Key()).WithField("type", u.(entry).Type).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be updated")
+				log.WithFields(log.Fields{
+					"path":     u.Key(),
+					"type":     u.(entry).Type,
+					"instance": instanceAddr,
+				}).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be updated")
 			}
 			for _, d := range toBeDeleted {
 				if !isDefaultMount(d.Key()) {
-					log.WithField("path", d.Key()).WithField("type", d.(entry).Type).Infof("[Dry Run] [Vault Secrets engine] secrets-engine to be disabled")
+					log.WithFields(log.Fields{
+						"path":     d.Key(),
+						"type":     d.(entry).Type,
+						"instance": instanceAddr,
+					}).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be disabled")
 				}
 			}
 		} else {
