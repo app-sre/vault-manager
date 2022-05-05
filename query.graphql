@@ -126,9 +126,6 @@
         name
         service
         ... on OidcPermissionVault_v1 {
-          vault_policies {
-            name
-          }
           instance {
             address
           }
