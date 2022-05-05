@@ -107,32 +107,30 @@ func init() {
 }
 
 func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
-	var entries []user
-	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
+	var users []user
+	if err := yaml.Unmarshal(entriesBytes, &users); err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
-	instancesToDesired := getDesiredByInstance(entries)
-
-	instancesToEntityNameIdPairs, err := getInstancesToEntityNameIdPairs(entries)
-	if err != nil {
-		log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
-	}
-
-	// perform remaining processing/reconcile per instance
-	for _, instance := range instance.InstanceAddresses {
-		desired := processDesired(instancesToDesired[instance], instancesToEntityNameIdPairs[instance])
-		existing, err := getExistingGroups(instance, threadPoolSize)
+	// perform processing/reconcile per instance
+	for _, instanceAddr := range instance.InstanceAddresses {
+		entityNamesToIds, err := getEntityNamesToIds(instanceAddr)
 		if err != nil {
-			log.WithError(err).Fatalf("[Vault Identity] failed to retrieve existing groups for instance %s", instance)
+			log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
+		}
+		desired := processDesired(instanceAddr, users, entityNamesToIds)
+		existing, err := getExistingGroups(instanceAddr, threadPoolSize)
+		if err != nil {
+			log.WithError(err).Fatalf(
+				"[Vault Identity] failed to retrieve existing groups for instance %s", instanceAddr)
 		}
 		sortSlices(desired)
 		sortSlices(existing)
 
 		toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(groupsAsItems(desired), groupsAsItems(existing))
 		if dryRun {
-			dryRunOutput(instance, toBeWritten, "written")
-			dryRunOutput(instance, toBeDeleted, "deleted")
-			dryRunOutput(instance, toBeUpdated, "updated")
+			dryRunOutput(instanceAddr, toBeWritten, "written")
+			dryRunOutput(instanceAddr, toBeDeleted, "deleted")
+			dryRunOutput(instanceAddr, toBeUpdated, "updated")
 		} else {
 			for _, w := range toBeWritten {
 				w.(group).CreateOrUpdate("written")
@@ -147,30 +145,16 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 }
 
-func getDesiredByInstance(entries []user) map[string][]user {
-	instancesToDesired := make(map[string][]user)
-	for _, u := range entries {
-		for _, r := range u.Roles {
-			for _, p := range r.Permissions {
-				if p.Service == "vault" {
-					instancesToDesired[p.Instance.Address] = append(instancesToDesired[p.Instance.Address], u)
-				}
-			}
-		}
-	}
-	return instancesToDesired
-}
-
 // processDesired accepts the yaml-marshalled result of the `vault_groups` graphql
 // query and returns group objects
-func processDesired(entries []user, entityNamesToIds map[string]string) []group {
+func processDesired(instanceAddr string, users []user, entityNamesToIds map[string]string) []group {
 	desired := []group{}
 	processedGroups := make(map[string]*group)
-	for _, entry := range entries {
-		for _, role := range entry.Roles {
+	for _, user := range users {
+		for _, role := range user.Roles {
 			for _, permission := range role.Permissions {
-				if permission.Service == "vault" {
-					handleNewDesired(processedGroups, permission, role.Name, entityNamesToIds[entry.Name])
+				if permission.Service == "vault" && permission.Instance.Address == instanceAddr {
+					handleNewDesired(processedGroups, permission, role.Name, entityNamesToIds[user.Name])
 				}
 			}
 		}
@@ -294,57 +278,38 @@ func getGroupDetails(g *group, bwg *utils.BoundedWaitGroup) {
 
 // processes result of ListEntites to build a map of entity names to Ids
 // this map is used to determine what groups should contain which entities
-func getInstancesToEntityNameIdPairs(users []user) (map[string]map[string]string, error) {
-	// need to parse the user -> role -> permission chain to find vault instances to reconcile groups for
-	instances := make(map[string]bool)
-	for _, u := range users {
-		for _, r := range u.Roles {
-			for _, p := range r.Permissions {
-				if p.Service == "vault" {
-					if _, exists := instances[p.Instance.Address]; !exists {
-						instances[p.Instance.Address] = true
-					}
-				}
-			}
-		}
+func getEntityNamesToIds(instanceAddr string) (map[string]string, error) {
+	var entityNamesToIds map[string]string
+	raw := vault.ListEntities(instanceAddr)
+	if raw == nil {
+		return make(map[string]string), nil
 	}
-
-	// process existing entities for each instance
-	instancesToEntityNameIdPairs := make(map[string]map[string]string)
-	for instance := range instances {
-		raw := vault.ListEntities(instance)
-		if raw == nil {
-			instancesToEntityNameIdPairs[instance] = make(map[string]string)
-			continue
-		}
-		if _, exists := raw["key_info"]; !exists {
-			return nil, errors.New(
-				"Required `key_info` attribute not found in response from vault.ListEntites()")
-		}
-		existingEntities, ok := raw["key_info"].(map[string]interface{})
+	if _, exists := raw["key_info"]; !exists {
+		return nil, errors.New(
+			"Required `key_info` attribute not found in response from vault.ListEntites()")
+	}
+	existingEntities, ok := raw["key_info"].(map[string]interface{})
+	if !ok {
+		return nil, errors.New(fmt.Sprintf(
+			"Failed to convert `key_info` to map[string]interface{}"))
+	}
+	for id, v := range existingEntities {
+		values, ok := v.(map[string]interface{})
 		if !ok {
 			return nil, errors.New(fmt.Sprintf(
-				"Failed to convert `key_info` to map[string]interface{}"))
+				"Failed to convert value to map[string]interface{} for entity id: %s", id))
 		}
-		for id, v := range existingEntities {
-			values, ok := v.(map[string]interface{})
-			if !ok {
-				return nil, errors.New(fmt.Sprintf(
-					"Failed to convert value to map[string]interface{} for entity id: %s", id))
-			}
-			if _, exists := values["name"]; !exists {
-				return nil, errors.New(fmt.Sprintf(
-					"Required `name` attribute not found for entity id: %s", id))
-			}
-			// initialize map if first for particular instance
-			if instancesToEntityNameIdPairs[instance] == nil {
-				instancesToEntityNameIdPairs[instance] = make(map[string]string)
-			}
-			name := values["name"].(string)
-			instancesToEntityNameIdPairs[instance][name] = id
+		if _, exists := values["name"]; !exists {
+			return nil, errors.New(fmt.Sprintf(
+				"Required `name` attribute not found for entity id: %s", id))
 		}
+		if entityNamesToIds == nil {
+			entityNamesToIds = make(map[string]string)
+		}
+		name := values["name"].(string)
+		entityNamesToIds[name] = id
 	}
-	return instancesToEntityNameIdPairs, nil
+	return entityNamesToIds, nil
 }
 
 // Sorts slices of strings within each group object
