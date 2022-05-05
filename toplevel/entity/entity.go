@@ -237,11 +237,17 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 // query and returns entity/entity-alias object slices segmented by vault instances
 func getDesiredByInstance(entries []user) map[string][]entity {
 	instancesToDesired := make(map[string][]entity)
+	// need to track org name per instance
+	// a user file can ref multi roles but only one should be appended to
+	// new desired per instance
+	existing := make(map[string]map[string]bool)
+	for _, instanceAddr := range instance.InstanceAddresses {
+		existing[instanceAddr] = make(map[string]bool)
+	}
 	for _, u := range entries {
-	roles:
 		for _, r := range u.Roles {
 			for _, p := range r.Permissions {
-				if p.Service == "vault" {
+				if p.Service == "vault" && !existing[p.Instance.Address][u.OrgUsername] {
 					newDesired := entity{
 						Name: u.OrgUsername,
 						Type: "entity",
@@ -250,16 +256,17 @@ func getDesiredByInstance(entries []user) map[string][]entity {
 								Name:     u.OrgUsername,
 								Type:     "entity-alias",
 								AuthType: "oidc",
+								Instance: p.Instance,
 							},
 						},
 						Metadata: map[string]interface{}{
 							"name": u.Name,
 						},
+						Instance: p.Instance,
 					}
 					instancesToDesired[p.Instance.Address] = append(instancesToDesired[p.Instance.Address], newDesired)
-					// once traversal of roles -> permissions results in a valid entity
-					// there is no need to continue processing roles for specific user file
-					break roles
+					// ensure no further entities are added for this user in this instance
+					existing[p.Instance.Address][u.OrgUsername] = true
 				}
 			}
 		}
