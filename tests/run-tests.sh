@@ -90,6 +90,10 @@ docker run -d --name=$VAULT_NAME \
   $VAULT_IMAGE:$VAULT_IMAGE_TAG
 container_alive "http://127.0.0.1:8200" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME
 
+# populate necessary vault access vars to master
+vault kv put secret/master rootToken=root
+vault kv put secret/secondary root=root
+
 # spin up secondary vault server
 docker run -d --name=$VAULT_NAME_SECONDARY \
   --net=host \
