@@ -75,7 +75,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	for _, e := range entries {
 		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
 	}
-
 	// perform reconcile operations for each instance
 	for _, instance := range instance.InstanceAddresses {
 		enabledAudits := vault.ListAuditDevices(instance)

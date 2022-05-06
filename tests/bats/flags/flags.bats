@@ -22,6 +22,7 @@ load ../helpers
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"[Vault Audit] audit device is successfully enabled"*"instance=\"http://127.0.0.1:8200\""*"path=file/"* ]]
+    [[ "${output}" == *"[Vault Audit] audit device is successfully enabled"*"instance=\"http://127.0.0.1:8202\""*"path=file/"* ]]
 
     run vault audit list --detailed
     [ "$status" -eq 0 ]
@@ -31,16 +32,6 @@ load ../helpers
 
     # run same tests against secondary instance
     export VAULT_ADDR=http://127.0.0.1:8202
-
-    run vault audit list --detailed
-    [ "$status" -eq 2 ]
-    # check that no audit devices enabled
-    [[ "${output}" != *"file/"* ]]
-
-    run vault-manager
-    [ "$status" -eq 0 ]
-    # check vault-manager output
-    [[ "${output}" == *"[Vault Audit] audit device is successfully enabled"*"instance=\"http://127.0.0.1:8202\""*"path=file/"* ]]
 
     run vault audit list --detailed
     [ "$status" -eq 0 ]
