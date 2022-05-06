@@ -1,4 +1,27 @@
 {
+  vault_instances: vault_instances_v1 {
+    address
+    authType
+    ... on VaultInstanceApprole_v1 {
+      roleID {
+        path
+        field
+        version
+      }
+      secretID {
+        path
+        field
+        version
+      }
+    }
+    ... on VaultInstanceToken_v1 {
+      token {
+        path
+        field
+        version
+      }
+    }
+  }
     vault_auth_backends: vault_auth_backends_v1 {
         _path
         type

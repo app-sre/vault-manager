@@ -86,9 +86,9 @@ func (e entity) CreateOrUpdate(action string) {
 	}
 	vault.WriteSecret(e.Instance.Address, path, config)
 	log.WithFields(log.Fields{
-		"name":     e.Key(),
-		"type":     e.KeyForType(),
 		"instance": e.Instance.Address,
+		"path":     path,
+		"type":     e.KeyForType(),
 	}).Infof("[Vault Identity] entity successfully %s", action)
 }
 
@@ -96,9 +96,9 @@ func (e entity) Delete() {
 	path := filepath.Join("identity", e.Type, "name", e.Name)
 	vault.DeleteSecret(e.Instance.Address, path)
 	log.WithFields(log.Fields{
-		"name":     e.Key(),
-		"type":     e.KeyForType(),
 		"instance": e.Instance.Address,
+		"path":     path,
+		"type":     e.KeyForType(),
 	}).Info("[Vault Identity] entity successfully deleted")
 }
 
@@ -132,10 +132,10 @@ func (ea entityAlias) Create(entityId string) {
 	}
 	vault.WriteEntityAlias(ea.Instance.Address, path, config)
 	log.WithFields(log.Fields{
-		"name":     ea.Key(),
-		"type":     ea.AuthType,
 		"instance": ea.Instance.Address,
-	}).Info("[Vault Identity] entity alias successfully created")
+		"path":     filepath.Join(path, ea.Name),
+		"type":     ea.AuthType,
+	}).Info("[Vault Identity] entity alias successfully written")
 }
 
 func (ea entityAlias) Update(entityId string) {
@@ -147,9 +147,9 @@ func (ea entityAlias) Update(entityId string) {
 	}
 	vault.WriteSecret(ea.Instance.Address, path, config)
 	log.WithFields(log.Fields{
-		"name":     ea.Key(),
-		"type":     ea.AuthType,
 		"instance": ea.Instance.Address,
+		"path":     filepath.Join(path, ea.Name),
+		"type":     ea.AuthType,
 	}).Info("[Vault Identity] entity alias successfully updated")
 }
 
@@ -157,9 +157,9 @@ func (ea entityAlias) Delete() {
 	path := filepath.Join("identity", ea.Type, "id", ea.Id)
 	vault.DeleteSecret(ea.Instance.Address, path)
 	log.WithFields(log.Fields{
-		"name":     ea.Key(),
-		"type":     ea.AuthType,
 		"instance": ea.Instance.Address,
+		"path":     filepath.Join(path, ea.Name),
+		"type":     ea.AuthType,
 	}).Info("[Vault Identity] entity alias successfully deleted")
 }
 

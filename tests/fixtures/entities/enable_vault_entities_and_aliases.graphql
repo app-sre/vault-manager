@@ -1,4 +1,27 @@
 {
+  vault_instances: vault_instances_v1 {
+    address
+    authType
+    ... on VaultInstanceApprole_v1 {
+      roleID {
+        path
+        field
+        version
+      }
+      secretID {
+        path
+        field
+        version
+      }
+    }
+    ... on VaultInstanceToken_v1 {
+      token {
+        path
+        field
+        version
+      }
+    }
+  }
   vault_entities: users_v1 {
     name
     org_username
@@ -8,8 +31,9 @@
         name
         service
         ... on OidcPermissionVault_v1 {
-        instance {
-          address
+          instance {
+            address
+          }
         }
       }
     }

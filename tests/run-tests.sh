@@ -20,6 +20,9 @@ cleanup () {
   if docker ps -a --format "table {{.Names}}" | grep -qw $VAULT_NAME; then
     docker rm -f $VAULT_NAME
   fi
+  if docker ps -a --format "table {{.Names}}" | grep -qw $VAULT_NAME_SECONDARY; then
+    docker rm -f $VAULT_NAME_SECONDARY
+  fi
   echo "Docker environment cleaned"
 }
 
