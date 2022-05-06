@@ -51,6 +51,9 @@ func InitClients(instanceCreds map[string][]*VaultSecret, threadPoolSize int) {
 			accessCreds := make(map[string]string)
 			for _, cred := range s {
 				raw := ReadSecret(masterAddress, cred.Path)
+				if raw == nil {
+					log.Fatalf("[Vault Client] Failed to retrieve secret from master instance at path %s", cred.Path)
+				}
 				mapped, ok := raw.Data["data"].(map[string]interface{})
 				if !ok {
 					log.Fatalf("[Vault Client] Failed to process raw result at path: `%s`", cred.Path)
