@@ -2,6 +2,7 @@ package instance
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
@@ -18,8 +19,12 @@ var _ toplevel.Configuration = config{}
 var InstanceAddresses []string
 
 type Instance struct {
-	Address  string `yaml:"address"`
-	AuthType string `yaml:"authType"`
+	Address string `yaml:"address"`
+	Auth    auth   `yaml:"auth"`
+}
+
+type auth struct {
+	Provider string `yaml:"provider"`
 	RoleID   secret `yaml:"roleID"`
 	SecretID secret `yaml:"secretID"`
 	Token    secret `yaml:"token"`
@@ -59,42 +64,45 @@ func processInstances(instances []Instance) (map[string][]*vault.VaultSecret, er
 	instanceCreds := make(map[string][]*vault.VaultSecret)
 
 	for _, i := range instances {
-		switch strings.ToLower(i.AuthType) {
+		switch strings.ToLower(i.Auth.Provider) {
 		case vault.APPROLE_AUTH:
 			// ensure required values exist
-			if i.RoleID.Field == "" || i.RoleID.Path == "" ||
-				i.SecretID.Field == "" || i.SecretID.Path == "" {
+			if i.Auth.RoleID.Field == "" || i.Auth.RoleID.Path == "" ||
+				i.Auth.SecretID.Field == "" || i.Auth.SecretID.Path == "" {
 				return nil, errors.New("A required approle authentication attribute is missing")
 			}
 			instanceCreds[i.Address] = []*vault.VaultSecret{
 				{
 					Name:    vault.ROLE_ID,
 					Type:    vault.APPROLE_AUTH,
-					Path:    i.RoleID.Path,
-					Field:   i.RoleID.Field,
-					Version: i.RoleID.Version,
+					Path:    i.Auth.RoleID.Path,
+					Field:   i.Auth.RoleID.Field,
+					Version: i.Auth.RoleID.Version,
 				},
 				{
 					Name:    vault.SECRET_ID,
 					Type:    vault.APPROLE_AUTH,
-					Path:    i.SecretID.Path,
-					Field:   i.SecretID.Field,
-					Version: i.SecretID.Version,
+					Path:    i.Auth.SecretID.Path,
+					Field:   i.Auth.SecretID.Field,
+					Version: i.Auth.SecretID.Version,
 				},
 			}
 		case vault.TOKEN_AUTH:
-			if i.Token.Field == "" || i.Token.Path == "" {
+			if i.Auth.Token.Field == "" || i.Auth.Token.Path == "" {
 				return nil, errors.New("A required token authentication attribute is missing")
 			}
 			instanceCreds[i.Address] = []*vault.VaultSecret{
 				{
 					Name:    vault.TOKEN,
 					Type:    vault.TOKEN_AUTH,
-					Path:    i.Token.Path,
-					Field:   i.Token.Field,
-					Version: i.Token.Version,
+					Path:    i.Auth.Token.Path,
+					Field:   i.Auth.Token.Field,
+					Version: i.Auth.Token.Version,
 				},
 			}
+		default:
+			return nil, errors.New(fmt.Sprintf(
+				"Unable to process `auth` attribute of instance definition with address %s", i.Address))
 		}
 	}
 
