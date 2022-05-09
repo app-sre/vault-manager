@@ -9,7 +9,8 @@ description: "Primary FedRamp Vault instance"
 
 address: "http://127.0.0.1:8200"
 
-authType: "token"
-token:
-  path: "secret/data/master"
-  field: "rootToken"
+auth:
+  provider: "token"
+  token:
+    path: "secret/data/master"
+    field: "rootToken"

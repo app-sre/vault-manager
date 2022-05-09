@@ -8,8 +8,8 @@ name: "app-sre-secondary-vault"
 description: "Secondary FedRamp Vault instance"
 
 address: "http://127.0.0.1:8202"
-
-authType: "token"
-token:
-  path: "secret/data/secondary"
-  field: "root"
+auth:
+  provider: token
+  token:
+    path: "secret/data/secondary"
+    field: "root"

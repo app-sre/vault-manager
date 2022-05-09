@@ -135,17 +135,7 @@
                 },
                 "instance": {
                     "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": {
-                        "type": "object",
-                        "properties": {
-                            "$schema": {
-                                "type": "string",
-                                "enum": [
-                                    "/vault-config/instance-1.yml"
-                                ]
-                            }
-                        }
-                    }
+                    "$schemaRef": "/vault-config/instance-1.yml"
                 }
             },
             "oneOf": [
@@ -175,17 +165,7 @@
                         },
                         "instance": {
                             "$ref": "/common-1.json#/definitions/crossref",
-                            "$schemaRef": {
-                                "type": "object",
-                                "properties": {
-                                    "$schema": {
-                                        "type": "string",
-                                        "enum": [
-                                            "/vault-config/instance-1.yml"
-                                        ]
-                                    }
-                                }
-                            }
+                            "$schemaRef": "/vault-config/instance-1.yml"
                         }
                     },
                     "required": [
@@ -8608,6 +8588,9 @@
                             }
                         }
                     }
+                },
+                "secrets_prefix": {
+                    "type": "string"
                 }
             },
             "oneOf": [
@@ -8683,6 +8666,40 @@
                     "required": [
                         "account",
                         "identifier"
+                    ]
+                },
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "secrets-manager-service-account"
+                            ]
+                        },
+                        "account": {
+                            "$ref": "/aws/tenant_accounts-1.yml#/properties/account"
+                        },
+                        "identifier": {
+                            "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "secrets_prefix": {
+                            "type": "string"
+                        },
+                        "output_resource_name": {
+                            "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "output_format": {
+                            "$ref": "/openshift/terraform-output-format-1.yml"
+                        },
+                        "annotations": {
+                            "$ref": "/common-1.json#/definitions/annotations"
+                        }
+                    },
+                    "required": [
+                        "account",
+                        "identifier",
+                        "secrets_prefix"
                     ]
                 },
                 {
@@ -9769,17 +9786,7 @@
                 },
                 "instance": {
                     "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": {
-                        "type": "object",
-                        "properties": {
-                            "$schema": {
-                                "type": "string",
-                                "enum": [
-                                    "/vault-config/instance-1.yml"
-                                ]
-                            }
-                        }
-                    }
+                    "$schemaRef": "/vault-config/instance-1.yml"
                 },
                 "description": {
                     "type": "string"
@@ -9881,17 +9888,7 @@
                 },
                 "instance": {
                     "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": {
-                        "type": "object",
-                        "properties": {
-                            "$schema": {
-                                "type": "string",
-                                "enum": [
-                                    "/vault-config/instance-1.yml"
-                                ]
-                            }
-                        }
-                    }
+                    "$schemaRef": "/vault-config/instance-1.yml"
                 },
                 "description": {
                     "type": "string"
@@ -10046,10 +10043,35 @@
                 "description": {
                     "type": "string"
                 },
-                "authType": {
+                "address": {
                     "type": "string"
                 },
-                "address": {
+                "auth": {
+                    "$ref": "/vault-config/instance-auth-1.yml"
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description",
+                "address",
+                "auth"
+            ]
+        },
+        "/vault-config/instance-auth-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/vault-config/instance-auth-1.yml"
+                    ]
+                },
+                "provider": {
                     "type": "string"
                 },
                 "roleID": {
@@ -10065,7 +10087,8 @@
             "oneOf": [
                 {
                     "properties": {
-                        "authType": {
+                        "provider": {
+                            "type": "string",
                             "enum": [
                                 "approle"
                             ]
@@ -10084,7 +10107,8 @@
                 },
                 {
                     "properties": {
-                        "authType": {
+                        "provider": {
+                            "type": "string",
                             "enum": [
                                 "token"
                             ]
@@ -10099,12 +10123,7 @@
                 }
             ],
             "required": [
-                "$schema",
-                "labels",
-                "name",
-                "description",
-                "authType",
-                "address"
+                "provider"
             ]
         },
         "/vault-config/policy-1.yml": {
@@ -10127,17 +10146,7 @@
                 },
                 "instance": {
                     "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": {
-                        "type": "object",
-                        "properties": {
-                            "$schema": {
-                                "type": "string",
-                                "enum": [
-                                    "/vault-config/instance-1.yml"
-                                ]
-                            }
-                        }
-                    }
+                    "$schemaRef": "/vault-config/instance-1.yml"
                 },
                 "rules": {
                     "type": "string"
@@ -10178,17 +10187,7 @@
                 },
                 "instance": {
                     "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": {
-                        "type": "object",
-                        "properties": {
-                            "$schema": {
-                                "type": "string",
-                                "enum": [
-                                    "/vault-config/instance-1.yml"
-                                ]
-                            }
-                        }
-                    }
+                    "$schemaRef": "/vault-config/instance-1.yml"
                 },
                 "options": {
                     "type": "object",
@@ -10460,17 +10459,7 @@
                 },
                 "instance": {
                     "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": {
-                        "type": "object",
-                        "properties": {
-                            "$schema": {
-                                "type": "string",
-                                "enum": [
-                                    "/vault-config/instance-1.yml"
-                                ]
-                            }
-                        }
-                    }
+                    "$schemaRef": "/vault-config/instance-1.yml"
                 },
                 "description": {
                     "type": "string"
@@ -11174,7 +11163,6 @@
                 {
                     "name": "instance",
                     "type": "VaultInstance_v1",
-                    "isInterface": true,
                     "isRequired": true
                 },
                 {
@@ -11337,7 +11325,6 @@
                 {
                     "name": "instance",
                     "type": "VaultInstance_v1",
-                    "isInterface": true,
                     "isRequired": true
                 },
                 {
@@ -11601,7 +11588,6 @@
                 {
                     "name": "instance",
                     "type": "VaultInstance_v1",
-                    "isInterface": true,
                     "isRequired": true
                 },
                 {
@@ -11623,7 +11609,6 @@
                 {
                     "name": "instance",
                     "type": "VaultInstance_v1",
-                    "isInterface": true,
                     "isRequired": true
                 },
                 {
@@ -14067,6 +14052,7 @@
                     "s3": "NamespaceTerraformResourceS3_v1",
                     "elasticache": "NamespaceTerraformResourceElastiCache_v1",
                     "aws-iam-service-account": "NamespaceTerraformResourceServiceAccount_v1",
+                    "secrets-manager-service-account": "NamespaceTerraformResourceSecretsManagerServiceAccount_v1",
                     "aws-iam-role": "NamespaceTerraformResourceRole_v1",
                     "sqs": "NamespaceTerraformResourceSQS_v1",
                     "dynamodb": "NamespaceTerraformResourceDynamoDB_v1",
@@ -14650,6 +14636,45 @@
                     "name": "Service",
                     "type": "string",
                     "isList": true
+                }
+            ]
+        },
+        {
+            "name": "NamespaceTerraformResourceSecretsManagerServiceAccount_v1",
+            "interface": "NamespaceTerraformResource_v1",
+            "fields": [
+                {
+                    "name": "provider",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "account",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "identifier",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "secrets_prefix",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "output_resource_name",
+                    "type": "string"
+                },
+                {
+                    "name": "output_format",
+                    "type": "NamespaceTerraformResourceOutputFormat_v1",
+                    "isInterface": true
+                },
+                {
+                    "name": "annotations",
+                    "type": "json"
                 }
             ]
         },
@@ -17060,15 +17085,6 @@
         },
         {
             "name": "VaultInstance_v1",
-            "isInterface": true,
-            "interfaceResolve": {
-                "strategy": "fieldMap",
-                "field": "authType",
-                "fieldMap": {
-                    "approle": "VaultInstanceApprole_v1",
-                    "token": "VaultInstanceToken_v1"
-                }
-            },
             "fields": [
                 {
                     "name": "schema",
@@ -17090,47 +17106,43 @@
                     "isRequired": true
                 },
                 {
-                    "name": "authType",
+                    "name": "address",
                     "type": "string",
                     "isRequired": true
                 },
                 {
-                    "name": "address",
+                    "name": "auth",
+                    "type": "VaultInstanceAuth_v1",
+                    "isInterface": true,
+                    "isRequired": true
+                }
+            ]
+        },
+        {
+            "name": "VaultInstanceAuth_v1",
+            "isInterface": true,
+            "interfaceResolve": {
+                "strategy": "fieldMap",
+                "field": "provider",
+                "fieldMap": {
+                    "approle": "VaultInstanceAuthApprole_v1",
+                    "token": "VaultInstanceAuthToken_v1"
+                }
+            },
+            "fields": [
+                {
+                    "name": "provider",
                     "type": "string",
                     "isRequired": true
                 }
             ]
         },
         {
-            "name": "VaultInstanceApprole_v1",
-            "interface": "VaultInstance_v1",
+            "name": "VaultInstanceAuthApprole_v1",
+            "interface": "VaultInstanceAuth_v1",
             "fields": [
                 {
-                    "name": "schema",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "labels",
-                    "type": "json"
-                },
-                {
-                    "name": "name",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "description",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "authType",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "address",
+                    "name": "provider",
                     "type": "string",
                     "isRequired": true
                 },
@@ -17147,35 +17159,11 @@
             ]
         },
         {
-            "name": "VaultInstanceToken_v1",
-            "interface": "VaultInstance_v1",
+            "name": "VaultInstanceAuthToken_v1",
+            "interface": "VaultInstanceAuth_v1",
             "fields": [
                 {
-                    "name": "schema",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "labels",
-                    "type": "json"
-                },
-                {
-                    "name": "name",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "description",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "authType",
-                    "type": "string",
-                    "isRequired": true
-                },
-                {
-                    "name": "address",
+                    "name": "provider",
                     "type": "string",
                     "isRequired": true
                 },
@@ -17254,7 +17242,6 @@
                 {
                     "name": "instance",
                     "type": "VaultInstance_v1",
-                    "isInterface": true,
                     "isRequired": true
                 },
                 {
@@ -17655,7 +17642,6 @@
                 {
                     "name": "instance",
                     "type": "VaultInstance_v1",
-                    "isInterface": true,
                     "isRequired": true
                 },
                 {
@@ -18644,7 +18630,6 @@
                     "name": "vault_instances_v1",
                     "type": "VaultInstance_v1",
                     "isList": true,
-                    "isInterface": true,
                     "datafileSchema": "/vault-config/instance-1.yml"
                 },
                 {
@@ -20384,10 +20369,12 @@
             "name": "app-sre-master-vault",
             "description": "Primary FedRamp Vault instance",
             "address": "http://127.0.0.1:8200",
-            "authType": "token",
-            "token": {
-                "path": "secret/data/master",
-                "field": "rootToken"
+            "auth": {
+                "provider": "token",
+                "token": {
+                    "path": "secret/data/master",
+                    "field": "rootToken"
+                }
             }
         },
         "/services/vault/config/instances/secondary.yml": {
@@ -20398,10 +20385,12 @@
             "name": "app-sre-secondary-vault",
             "description": "Secondary FedRamp Vault instance",
             "address": "http://127.0.0.1:8202",
-            "authType": "token",
-            "token": {
-                "path": "secret/data/secondary",
-                "field": "root"
+            "auth": {
+                "provider": "token",
+                "token": {
+                    "path": "secret/data/secondary",
+                    "field": "root"
+                }
             }
         },
         "/services/vault/config/audit-backends/master/file-audit.yml": {

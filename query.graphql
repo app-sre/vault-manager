@@ -157,23 +157,23 @@
     auth {
       provider
       ... on VaultInstanceAuthApprole_v1 {
-      roleID {
-        path
-        field
-        version
+        roleID {
+          path
+          field
+          version
+        }
+        secretID {
+          path
+          field
+          version
+        }
       }
-      secretID {
-        path
-        field
-        version
-      }
-    }
       ... on VaultInstanceAuthToken_v1 {
-      token {
-        path
-        field
-        version
-      }
+        token {
+          path
+          field
+          version
+        }
       }
     }
   }
