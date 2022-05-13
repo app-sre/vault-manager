@@ -1,0 +1,30 @@
+---
+$schema: /vault-config/policy-1.yml
+
+labels:
+  service: vault.devshift.net
+
+name: "app-interface-approle-policy"
+instance:
+  $ref: /services/vault/config/instances/master.yml
+rules: |
+  path "app-sre/creds/*" {
+    capabilities = ["read"]
+  }
+  path "app-sre/ansible/*" {
+    capabilities = ["read"]
+  }
+  #app-interface secrets integration
+  path "app-interface/*" {
+     capabilities = ["read"]
+  }
+  # integrations input/output
+  path "app-sre/integrations-input/*" {
+    capabilities = ["read"]
+  }
+  path "app-sre/integrations-output/*" {
+    capabilities = ["create", "update", "read"]
+  }
+  path "app-sre/integrations-throughput/*" {
+    capabilities = ["create", "update", "read"]
+  }

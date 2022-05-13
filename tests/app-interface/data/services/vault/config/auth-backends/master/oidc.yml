@@ -1,0 +1,18 @@
+---
+$schema: /vault-config/auth-1.yml
+
+labels:
+  service: vault.local
+
+_path: "oidc/"
+type: "oidc"
+instance:
+  $ref: /services/vault/config/instances/master.yml
+description: "rh sso auth backend"
+settings:
+  config:
+    _type: "oidc"
+    oidc_discovery_url: "http://localhost:8180/auth/realms/test"
+    oidc_client_id: "vault"
+    oidc_client_secret: "my-special-client-secret"
+    default_role: "default"

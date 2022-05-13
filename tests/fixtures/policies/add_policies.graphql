@@ -1,6 +1,34 @@
 {
+  vault_instances: vault_instances_v1 {
+    address
+    auth {
+      provider
+      ... on VaultInstanceAuthApprole_v1 {
+        roleID {
+          path
+          field
+          version
+        }
+        secretID {
+          path
+          field
+          version
+        }
+      }
+      ... on VaultInstanceAuthToken_v1 {
+        token {
+          path
+          field
+          version
+        }
+      }
+    }
+  }
     vault_policies: vault_policies_v1 {
         name
         rules
+        instance {
+            address
+        }
     }
 }

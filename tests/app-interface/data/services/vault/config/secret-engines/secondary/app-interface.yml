@@ -6,7 +6,9 @@ labels:
 
 _path: "app-interface/"
 type: "kv"
-description: "app-interface secrets integration engine"
+instance:
+  $ref: /services/vault/config/instances/secondary.yml
+description: ""
 options:
   _type: "kv"
-  version: "2"
+  version: "1"

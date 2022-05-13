@@ -5,6 +5,8 @@ labels:
   service: vault.devshift.net
 
 name: "app-interface-approle-policy"
+instance:
+  $ref: /services/vault/config/instances/secondary.yml
 rules: |
   path "app-sre/creds/*" {
     capabilities = ["read"]

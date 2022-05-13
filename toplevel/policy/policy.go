@@ -8,6 +8,7 @@ import (
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
+	"github.com/app-sre/vault-manager/toplevel/instance"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -21,10 +22,11 @@ func init() {
 }
 
 type entry struct {
-	Name        string `yaml:"name"`
-	Rules       string `yaml:"rules"`
-	Type        string `yaml:"type"`
-	Description string `yaml:"description"`
+	Name        string            `yaml:"name"`
+	Rules       string            `yaml:"rules"`
+	Type        string            `yaml:"type"`
+	Instance    instance.Instance `yaml:"instance"`
+	Description string            `yaml:"description"`
 }
 
 var _ vault.Item = entry{}
@@ -56,68 +58,78 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Policy] failed to decode policies configuration")
 	}
-
-	// List the existing policies.
-	existingPolicyNames := vault.ListVaultPolicies()
-
-	// Build a list of all the existing entries.
-	existingPolicies := make([]entry, 0)
-	if existingPolicyNames != nil {
-
-		var mutex = &sync.Mutex{}
-
-		bwg := utils.NewBoundedWaitGroup(threadPoolSize)
-
-		// fill existing policies array in parallel
-		for i := range existingPolicyNames {
-
-			bwg.Add(1)
-
-			go func(i int) {
-
-				name := existingPolicyNames[i]
-
-				policy := vault.GetVaultPolicy(name)
-
-				mutex.Lock()
-
-				existingPolicies = append(existingPolicies, entry{Name: name, Rules: policy})
-
-				defer bwg.Done()
-				defer mutex.Unlock()
-			}(i)
-		}
-		bwg.Wait()
+	instancesToDesiredPolicies := make(map[string][]entry)
+	for _, e := range entries {
+		instancesToDesiredPolicies[e.Instance.Address] = append(instancesToDesiredPolicies[e.Instance.Address], e)
 	}
 
-	// Diff the local configuration with the Vault instance.
-	toBeWritten, toBeDeleted, _ := vault.DiffItems(asItems(entries), asItems(existingPolicies))
-
-	if dryRun == true {
-		for _, w := range toBeWritten {
-			log.Infof("[Dry Run] [Vault Policy] policy to be written='%v'", w.Key())
+	// call to vault api for each instance to obtain raw enabled audit info
+	instancesToExistingPolicyNames := make(map[string][]string)
+	for _, e := range entries {
+		if _, exists := instancesToExistingPolicyNames[e.Instance.Address]; !exists {
+			instancesToExistingPolicyNames[e.Instance.Address] =
+				append(instancesToExistingPolicyNames[e.Instance.Address], vault.ListVaultPolicies(e.Instance.Address)...)
 		}
-		for _, d := range toBeDeleted {
-			if isDefaultPolicy(d.Key()) {
-				continue
+	}
+
+	// Build a list of all the existing policies for each instance
+	instancesToExistingPolicies := make(map[string][]entry)
+	for instance, existingPolicyNames := range instancesToExistingPolicyNames {
+		if existingPolicyNames != nil {
+			var mutex = &sync.Mutex{}
+			bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
+			// fill existing policies array in parallel
+			for i := range existingPolicyNames {
+				bwg.Add(1)
+
+				go func(i int) {
+					name := existingPolicyNames[i]
+					policy := vault.GetVaultPolicy(instance, name)
+
+					mutex.Lock()
+					instancesToExistingPolicies[instance] =
+						append(instancesToExistingPolicies[instance], entry{Name: name, Rules: policy})
+
+					defer bwg.Done()
+					defer mutex.Unlock()
+				}(i)
 			}
-
-			log.Infof("[Dry Run] [Vault Policy] policy to be deleted='%v'", d.Key())
+			bwg.Wait()
 		}
-	} else {
-		// Write any missing policies to the Vault instance.
-		for _, e := range toBeWritten {
-			ent := e.(entry)
-			vault.PutVaultPolicy(ent.Name, ent.Rules)
-		}
+	}
 
-		// Delete any policies from the Vault instance.
-		for _, e := range toBeDeleted {
-			ent := e.(entry)
-			if isDefaultPolicy(ent.Name) {
-				continue
+	// perform reconcile operations for each instance
+	for _, instance := range instance.InstanceAddresses {
+		// Diff the local configuration with the Vault instance.
+		toBeWritten, toBeDeleted, _ :=
+			vault.DiffItems(asItems(instancesToDesiredPolicies[instance]), asItems(instancesToExistingPolicies[instance]))
+
+		if dryRun == true {
+			for _, w := range toBeWritten {
+				log.WithField("instance", instance).Infof("[Dry Run] [Vault Policy] policy to be written='%v'", w.Key())
 			}
-			vault.DeleteVaultPolicy(ent.Name)
+			for _, d := range toBeDeleted {
+				if isDefaultPolicy(d.Key()) {
+					continue
+				}
+
+				log.WithField("instance", instance).Infof("[Dry Run] [Vault Policy] policy to be deleted='%v'", d.Key())
+			}
+		} else {
+			// Write any missing policies to the Vault instance.
+			for _, e := range toBeWritten {
+				ent := e.(entry)
+				vault.PutVaultPolicy(instance, ent.Name, ent.Rules)
+			}
+			// Delete any policies from the Vault instance.
+			for _, e := range toBeDeleted {
+				ent := e.(entry)
+				if isDefaultPolicy(ent.Name) {
+					continue
+				}
+				vault.DeleteVaultPolicy(instance, ent.Name)
+			}
 		}
 	}
 }

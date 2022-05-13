@@ -6,4 +6,6 @@ labels:
 
 _path: "approle/"
 type: "approle"
+instance:
+  $ref: /services/vault/config/instances/master.yml
 description: "approle auth backend"

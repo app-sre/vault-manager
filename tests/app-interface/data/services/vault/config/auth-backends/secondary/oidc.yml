@@ -6,6 +6,8 @@ labels:
 
 _path: "oidc/"
 type: "oidc"
+instance:
+  $ref: /services/vault/config/instances/secondary.yml
 description: "rh sso auth backend"
 settings:
   config:

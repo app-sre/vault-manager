@@ -1,0 +1,16 @@
+---
+$schema: /vault-config/instance-1.yml
+
+labels:
+  service: vault.fedramp.devshift.net
+
+name: "app-sre-master-vault"
+description: "Primary FedRamp Vault instance"
+
+address: "http://127.0.0.1:8200"
+
+auth:
+  provider: "token"
+  token:
+    path: "secret/data/master"
+    field: "rootToken"

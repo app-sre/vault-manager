@@ -132,20 +132,22 @@ func getConfig() (config, error) {
 func resolveConfigPriority(s string) int {
 	var priority int
 	switch s {
-	case "vault_policies":
+	case "vault_instances":
 		priority = 1
-	case "vault_audit_backends":
+	case "vault_policies":
 		priority = 2
-	case "vault_secret_engines":
+	case "vault_audit_backends":
 		priority = 3
-	case "vault_auth_backends":
+	case "vault_secret_engines":
 		priority = 4
-	case "vault_roles":
+	case "vault_auth_backends":
 		priority = 5
-	case "vault_entities":
+	case "vault_roles":
 		priority = 6
-	case "vault_groups":
+	case "vault_entities":
 		priority = 7
+	case "vault_groups":
+		priority = 8
 	default:
 		priority = 0
 	}

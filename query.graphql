@@ -3,6 +3,9 @@
     type
     _path
     description
+    instance {
+      address
+    }
     options {
       ... on VaultAuditOptionsFile_v1 {
         file_path
@@ -13,6 +16,9 @@
     _path
     type
     description
+    instance {
+      address
+    }
     settings {
       config {
         ... on VaultAuthConfigGithub_v1 {
@@ -41,6 +47,9 @@
   vault_secret_engines: vault_secret_engines_v1 {
     _path
     type
+    instance {
+      address
+    }
     description
     options {
       ... on VaultSecretEngineOptionsKV_v1 {
@@ -52,6 +61,9 @@
     name
     type
     mount
+    instance {
+      address
+    }
     options {
       ... on VaultApproleOptions_v1 {
         bind_secret_id
@@ -101,6 +113,9 @@
   vault_policies: vault_policies_v1 {
     name
     rules
+    instance {
+      address
+    }
   }
   vault_entities: users_v1 {
     name
@@ -110,6 +125,11 @@
       oidc_permissions {
         name
         service
+        ... on OidcPermissionVault_v1 {
+          instance {
+            address
+          }
+        }
       }
     }
   }
@@ -125,6 +145,34 @@
           vault_policies {
             name
           }
+          instance {
+            address
+          }
+        }
+      }
+    }
+  }
+  vault_instances: vault_instances_v1 {
+    address
+    auth {
+      provider
+      ... on VaultInstanceAuthApprole_v1 {
+        roleID {
+          path
+          field
+          version
+        }
+        secretID {
+          path
+          field
+          version
+        }
+      }
+      ... on VaultInstanceAuthToken_v1 {
+        token {
+          path
+          field
+          version
         }
       }
     }

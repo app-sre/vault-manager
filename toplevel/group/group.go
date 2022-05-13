@@ -10,6 +10,7 @@ import (
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
+	"github.com/app-sre/vault-manager/toplevel/instance"
 	log "github.com/sirupsen/logrus"
 
 	"gopkg.in/yaml.v2"
@@ -30,10 +31,11 @@ type role struct {
 }
 
 type oidcPermission struct {
-	Name        string        `yaml:"name"`
-	Description string        `yaml:"description"`
-	Service     string        `yaml:"service"`
-	Policies    []vaultPolicy `yaml:"vault_policies"`
+	Name        string            `yaml:"name"`
+	Description string            `yaml:"description"`
+	Service     string            `yaml:"service"`
+	Instance    instance.Instance `yaml:"instance"`
+	Policies    []vaultPolicy     `yaml:"vault_policies"`
 }
 
 type vaultPolicy struct {
@@ -44,6 +46,7 @@ type group struct {
 	Name      string
 	Id        string
 	Type      string
+	Instance  instance.Instance
 	Metadata  map[string]interface{}
 	Policies  []string
 	EntityIds []string
@@ -79,16 +82,22 @@ func (g group) CreateOrUpdate(action string) {
 		"policies":          g.Policies,
 		"metadata":          g.Metadata,
 	}
-	vault.WriteSecret(path, config)
-	log.WithField("path", path).WithField("type", g.Type).Info(
-		fmt.Sprintf("[Vault Identity] group successfully %s", action))
+	vault.WriteSecret(g.Instance.Address, path, config)
+	log.WithFields(log.Fields{
+		"path":     path,
+		"type":     g.Type,
+		"instance": g.Instance.Address,
+	}).Infof("[Vault Identity] group successfully %s", action)
 }
 
 func (g group) Delete() {
 	path := filepath.Join("identity", g.Type, "name", g.Name)
-	vault.DeleteSecret(path)
-	log.WithField("path", path).WithField("type", g.Type).Info(
-		"[Vault Identity] group successfully deleted")
+	vault.DeleteSecret(g.Instance.Address, path)
+	log.WithFields(log.Fields{
+		"path":     path,
+		"type":     g.Type,
+		"instance": g.Instance.Address,
+	}).Info("[Vault Identity] group successfully deleted")
 }
 
 var _ vault.Item = group{}
@@ -98,52 +107,54 @@ func init() {
 }
 
 func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
-	var entries []user
-	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
+	var users []user
+	if err := yaml.Unmarshal(entriesBytes, &users); err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
-	entityNamesToIds, err := getEntityNamesToIds()
-	if err != nil {
-		log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
-	}
-
-	desired := processDesired(entries, entityNamesToIds)
-	existing, err := getExistingGroups(threadPoolSize)
-	sortSlices(desired)
-	sortSlices(existing)
-
-	toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(groupsAsItems(desired), groupsAsItems(existing))
-	if dryRun {
-		dryRunOutput(toBeWritten, "written")
-		dryRunOutput(toBeDeleted, "deleted")
-		dryRunOutput(toBeUpdated, "updated")
-	} else {
-		for _, w := range toBeWritten {
-			w.(group).CreateOrUpdate("written")
+	// perform processing/reconcile per instance
+	for _, instanceAddr := range instance.InstanceAddresses {
+		entityNamesToIds, err := getEntityNamesToIds(instanceAddr)
+		if err != nil {
+			log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
 		}
-		for _, d := range toBeDeleted {
-			d.(group).Delete()
+		desired := processDesired(instanceAddr, users, entityNamesToIds)
+		existing, err := getExistingGroups(instanceAddr, threadPoolSize)
+		if err != nil {
+			log.WithError(err).Fatalf(
+				"[Vault Identity] failed to retrieve existing groups for instance %s", instanceAddr)
 		}
-		for _, u := range toBeUpdated {
-			u.(group).CreateOrUpdate("updated")
+		sortSlices(desired)
+		sortSlices(existing)
+
+		toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(groupsAsItems(desired), groupsAsItems(existing))
+		if dryRun {
+			dryRunOutput(instanceAddr, toBeWritten, "written")
+			dryRunOutput(instanceAddr, toBeDeleted, "deleted")
+			dryRunOutput(instanceAddr, toBeUpdated, "updated")
+		} else {
+			for _, w := range toBeWritten {
+				w.(group).CreateOrUpdate("written")
+			}
+			for _, d := range toBeDeleted {
+				d.(group).Delete()
+			}
+			for _, u := range toBeUpdated {
+				u.(group).CreateOrUpdate("updated")
+			}
 		}
 	}
 }
 
 // processDesired accepts the yaml-marshalled result of the `vault_groups` graphql
 // query and returns group objects
-func processDesired(entries []user, entityNamesToIds map[string]string) []group {
+func processDesired(instanceAddr string, users []user, entityNamesToIds map[string]string) []group {
 	desired := []group{}
 	processedGroups := make(map[string]*group)
-	for _, entry := range entries {
-		if entry.Roles != nil {
-			for _, role := range entry.Roles {
-				if role.Permissions != nil {
-					for _, permission := range role.Permissions {
-						if permission.Service == "vault" {
-							handleNewDesired(processedGroups, permission, role.Name, entityNamesToIds[entry.Name])
-						}
-					}
+	for _, user := range users {
+		for _, role := range user.Roles {
+			for _, permission := range role.Permissions {
+				if permission.Service == "vault" && permission.Instance.Address == instanceAddr {
+					handleNewDesired(processedGroups, permission, role.Name, entityNamesToIds[user.Name])
 				}
 			}
 		}
@@ -165,6 +176,7 @@ func handleNewDesired(processedGroups map[string]*group, permission oidcPermissi
 		processedGroups[roleName] = &group{
 			Name:      roleName,
 			Type:      "group",
+			Instance:  permission.Instance,
 			EntityIds: []string{entityId}, // note that this could potentially be empty
 			Policies:  policies,
 			Metadata: map[string]interface{}{
@@ -188,8 +200,8 @@ func handleNewDesired(processedGroups map[string]*group, permission oidcPermissi
 }
 
 // returns list of existing vault groups
-func getExistingGroups(threadPoolSize int) ([]group, error) {
-	raw := vault.ListGroups()
+func getExistingGroups(instanceAddr string, threadPoolSize int) ([]group, error) {
+	raw := vault.ListGroups(instanceAddr)
 	if raw == nil {
 		return nil, nil
 	}
@@ -219,6 +231,9 @@ func getExistingGroups(threadPoolSize int) ([]group, error) {
 			Name: name,
 			Id:   id,
 			Type: "group",
+			Instance: instance.Instance{
+				Address: instanceAddr,
+			},
 		})
 	}
 	// make separate call for each group to retrieve necessary details
@@ -233,7 +248,7 @@ func getExistingGroups(threadPoolSize int) ([]group, error) {
 // goroutine function
 func getGroupDetails(g *group, bwg *utils.BoundedWaitGroup) {
 	defer bwg.Done()
-	info := vault.GetGroupInfo(g.Name)
+	info := vault.GetGroupInfo(g.Instance.Address, g.Name)
 	if info == nil {
 		log.WithError(errors.New(fmt.Sprintf(
 			"No information returned for group: %s", g.Name))).Fatal()
@@ -263,9 +278,9 @@ func getGroupDetails(g *group, bwg *utils.BoundedWaitGroup) {
 
 // processes result of ListEntites to build a map of entity names to Ids
 // this map is used to determine what groups should contain which entities
-func getEntityNamesToIds() (map[string]string, error) {
+func getEntityNamesToIds(instanceAddr string) (map[string]string, error) {
 	var entityNamesToIds map[string]string
-	raw := vault.ListEntities()
+	raw := vault.ListEntities(instanceAddr)
 	if raw == nil {
 		return make(map[string]string), nil
 	}
@@ -315,9 +330,12 @@ func groupsAsItems(groups []group) []vault.Item {
 }
 
 // reusable func to output updates on writes, deletes, and updates for groups
-func dryRunOutput(groups []vault.Item, action string) {
+func dryRunOutput(instanceAddr string, groups []vault.Item, action string) {
 	for _, g := range groups {
-		log.WithField("name", g.Key()).WithField("type", g.(group).Type).Info(
-			fmt.Sprintf("[Dry Run] [Vault Identity] group to be %s", action))
+		log.WithFields(log.Fields{
+			"name":     g.Key(),
+			"type":     g.KeyForType(),
+			"instance": instanceAddr,
+		}).Infof("[Dry Run] [Vault Identity] group to be %s", action)
 	}
 }
