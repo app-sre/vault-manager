@@ -3,6 +3,7 @@
 package vault
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -12,6 +13,11 @@ import (
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 )
+
+type AuthBundle struct {
+	SecretEngine string
+	VaultSecrets []*VaultSecret
+}
 
 type VaultSecret struct {
 	Name    string
@@ -28,78 +34,109 @@ const (
 	TOKEN        = "token"
 	APPROLE_AUTH = "approle"
 	TOKEN_AUTH   = "token"
+	KV_V1        = "kv_v1"
+	KV_V2        = "kv_v2"
 )
 
 var masterAddress string
 var vaultClients map[string]*api.Client
 
-func InitClients(instanceCreds map[string][]*VaultSecret, threadPoolSize int) {
+// Called once with toplevel/instance
+// Creates global map of all vault clients defined in a-i
+// This allows reconciliation of multiple vault instances
+func InitClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
 	vaultClients = make(map[string]*api.Client)
-
 	configureMaster(vaultClients)
 
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 	var mutex = &sync.Mutex{}
-
 	// read access credentials for other vault instances and configure clients
-	for addr, secrets := range instanceCreds {
+	for addr, bundle := range instanceCreds {
 		bwg.Add(1)
-
-		go func(a string, s []*VaultSecret) {
-			defer bwg.Done()
-
-			accessCreds := make(map[string]string)
-			for _, cred := range s {
-				raw := ReadSecret(masterAddress, cred.Path)
-				if raw == nil {
-					log.Fatalf("[Vault Client] Failed to retrieve secret from master instance at path %s", cred.Path)
-				}
-				mapped, ok := raw.Data["data"].(map[string]interface{})
-				if !ok {
-					log.Fatalf("[Vault Client] Failed to process raw result at path: `%s`", cred.Path)
-				}
-				if len(mapped) < 1 {
-					log.Fatalf("[Vault Client] Data does not exist at path: `%s`", cred.Path)
-				}
-				if _, exists := mapped[cred.Field]; !exists {
-					log.Fatalf("[Vault Client] Field `%s` does not exist at path: `%s`", cred.Field, cred.Path)
-				}
-				if _, ok := mapped[cred.Field].(string); !ok {
-					log.Fatalf("[Vault Client] Field `%s` cannot be converted to string", cred.Field)
-				}
-				accessCreds[cred.Name] = mapped[cred.Field].(string)
-			}
-
-			config := api.DefaultConfig()
-			config.Address = a
-			client, err := api.NewClient(config)
-			if err != nil {
-				log.WithError(err).Fatalf("Failed to initialize Vault client for %s", a)
-			}
-
-			// at minimum, one element will exist in secrets regardless of type
-			// type is same across all VaultSecrets associated with a particular instance address
-			var token string
-			switch s[0].Type {
-			case APPROLE_AUTH:
-				t, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
-					"role_id":   accessCreds[ROLE_ID],
-					"secret_id": accessCreds[SECRET_ID],
-				})
-				if err != nil {
-					log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
-				}
-				token = t.Auth.ClientToken
-			case TOKEN_AUTH:
-				token = accessCreds[TOKEN]
-			}
-			mutex.Lock()
-			defer mutex.Unlock()
-			client.SetToken(token)
-			vaultClients[a] = client
-		}(addr, secrets)
+		go createClient(addr, bundle, &bwg, mutex)
 	}
 	bwg.Wait()
+}
+
+// goroutine support function for InitClients()
+// initializes one vault client
+func createClient(a string, b AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sync.Mutex) {
+	defer bwg.Done()
+
+	accessCreds := make(map[string]string)
+	for _, cred := range b.VaultSecrets {
+		processedCred, err := processAccessCredential(cred, b.SecretEngine)
+		if err != nil {
+			log.WithError(err).Fatal()
+		}
+		accessCreds[cred.Name] = processedCred
+	}
+
+	// Init new client
+	config := api.DefaultConfig()
+	config.Address = a
+	client, err := api.NewClient(config)
+	if err != nil {
+		log.WithError(err).Fatalf("Failed to initialize Vault client for %s", a)
+	}
+
+	// at minimum, one element will exist in secrets regardless of type
+	// type is same across all VaultSecrets associated with a particular instance address
+	var token string
+	switch b.VaultSecrets[0].Type {
+	case APPROLE_AUTH:
+		t, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
+			"role_id":   accessCreds[ROLE_ID],
+			"secret_id": accessCreds[SECRET_ID],
+		})
+		if err != nil {
+			log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
+		}
+		token = t.Auth.ClientToken
+	case TOKEN_AUTH:
+		token = accessCreds[TOKEN]
+	}
+	// add new address/client pair to global
+	mutex.Lock()
+	defer mutex.Unlock()
+	client.SetToken(token)
+	vaultClients[a] = client
+}
+
+// attempts to read/proccess a single access credential for a particular vault instance
+func processAccessCredential(cred *VaultSecret, secretEngine string) (string, error) {
+	raw := ReadSecret(masterAddress, cred.Path)
+	if raw == nil {
+		log.Fatalf("[Vault Client] Failed to retrieve secret from master instance at path %s", cred.Path)
+	}
+	// vault api returns different payload depending on version
+	switch secretEngine {
+	case KV_V1:
+		if _, exists := raw.Data[cred.Field]; !exists {
+			return "", errors.New(fmt.Sprintf("[Vault Client] Field `%s` does not exist at path: `%s`", cred.Field, cred.Path))
+		}
+		if _, ok := raw.Data[cred.Field].(string); !ok {
+			return "", errors.New(fmt.Sprintf("[Vault Client] Field `%s` cannot be converted to string", cred.Field))
+		}
+		return raw.Data[cred.Field].(string), nil
+	case KV_V2:
+		mapped, ok := raw.Data["data"].(map[string]interface{})
+		if !ok {
+			return "", errors.New(fmt.Sprintf("[Vault Client] Failed to process raw result at path: `%s`", cred.Path))
+		}
+		if len(mapped) < 1 {
+			return "", errors.New(fmt.Sprintf("[Vault Client] Data does not exist at path: `%s`", cred.Path))
+		}
+		if _, exists := mapped[cred.Field]; !exists {
+			return "", errors.New(fmt.Sprintf("[Vault Client] Field `%s` does not exist at path: `%s`", cred.Field, cred.Path))
+		}
+		if _, ok := mapped[cred.Field].(string); !ok {
+			return "", errors.New(fmt.Sprintf("[Vault Client] Field `%s` cannot be converted to string", cred.Field))
+		}
+		return mapped[cred.Field].(string), nil
+	default:
+		return "", errors.New(fmt.Sprintf("[Vault Client] Unsupported secret engine type %s", secretEngine))
+	}
 }
 
 // configureMaster initializes vault client for the master instance
