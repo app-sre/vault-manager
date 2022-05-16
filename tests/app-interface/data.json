@@ -1814,7 +1814,55 @@
                                             }
                                         },
                                         "auto_resolve_age": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "enum": [
+                                                1,
+                                                2,
+                                                3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                15,
+                                                18,
+                                                21,
+                                                24,
+                                                30,
+                                                36,
+                                                48,
+                                                72,
+                                                96,
+                                                120,
+                                                144,
+                                                168,
+                                                192,
+                                                216,
+                                                240,
+                                                288,
+                                                312,
+                                                336,
+                                                360,
+                                                384,
+                                                408,
+                                                432,
+                                                456,
+                                                480,
+                                                504,
+                                                528,
+                                                552,
+                                                576,
+                                                600,
+                                                624,
+                                                648,
+                                                672,
+                                                696,
+                                                720
+                                            ]
                                         },
                                         "allowed_domains": {
                                             "type": "array",
@@ -2231,6 +2279,26 @@
                     "required": [
                         "cmd"
                     ]
+                },
+                "managed": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "namespace": {
+                                "$ref": "/common-1.json#/definitions/crossref",
+                                "$schemaRef": "/openshift/namespace-1.yml"
+                            },
+                            "spec": {
+                                "$ref": "/app-sre/integration-spec-1.yml"
+                            }
+                        },
+                        "required": [
+                            "namespace",
+                            "spec"
+                        ]
+                    }
                 }
             },
             "required": [
@@ -2239,6 +2307,179 @@
                 "name",
                 "description",
                 "schemas"
+            ]
+        },
+        "/app-sre/integration-spec-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/app-sre/integration-spec-1.yml"
+                    ]
+                },
+                "cache": {
+                    "type": "boolean",
+                    "description": "integration requires cache"
+                },
+                "command": {
+                    "type": "string",
+                    "description": "command to run",
+                    "enum": [
+                        "qontract-reconcile",
+                        "e2e-tests",
+                        "app-interface-reporter"
+                    ]
+                },
+                "disableUnleash": {
+                    "type": "boolean",
+                    "description": "disable integration interaction with unleash instance"
+                },
+                "environmentAware": {
+                    "type": "boolean",
+                    "description": "integration is aware of the environment it is running in"
+                },
+                "extraArgs": {
+                    "type": "string",
+                    "description": "additional arguments to pass to integration"
+                },
+                "extraEnv": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "description": "additional environment variables to set for the integration",
+                        "additionalProperties": false,
+                        "properties": {
+                            "secretName": {
+                                "type": "string",
+                                "description": "secret name to get environment variable from"
+                            },
+                            "secretKey": {
+                                "type": "string",
+                                "description": "secret key to get value from and to use as the environment variable name"
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "environment variable name"
+                            },
+                            "value": {
+                                "type": "string",
+                                "description": "environment variable value"
+                            }
+                        },
+                        "oneOf": [
+                            {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "secretName": {
+                                        "type": "string"
+                                    },
+                                    "secretKey": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "secretName",
+                                    "secretKey"
+                                ]
+                            },
+                            {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "value": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "value"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "internalCertificates": {
+                    "type": "boolean",
+                    "description": "integration requires internal certificates to execute"
+                },
+                "logs": {
+                    "type": "object",
+                    "description": "ship logs to providers (cloudwatch is enabled by default)",
+                    "additionalProperties": false,
+                    "properties": {
+                        "slack": {
+                            "type": "boolean",
+                            "description": "ship logs to slack"
+                        }
+                    }
+                },
+                "resources": {
+                    "$ref": "/openshift/deploy-resources-1.yml"
+                },
+                "shards": {
+                    "type": "integer",
+                    "description": "number of shards to run integration with"
+                },
+                "sleepDurationSecs": {
+                    "type": "integer",
+                    "description": "time to sleep in seconds between integration executions"
+                },
+                "state": {
+                    "type": "boolean",
+                    "description": "integration is stateful"
+                },
+                "storage": {
+                    "type": "string",
+                    "description": "size of cache storage"
+                },
+                "trigger": {
+                    "type": "boolean",
+                    "description": "integration is an openshift-saas-deploy trigger"
+                },
+                "cron": {
+                    "type": "string",
+                    "description": "cron expression for integration execution",
+                    "pattern": "(((\\d+,)+\\d+|(\\d+(\\/|-)\\d+)|\\d+|\\*) ?){5}"
+                },
+                "dashdotdb": {
+                    "type": "boolean",
+                    "description": "integration interacts with dashdotdb"
+                },
+                "concurrencyPolicy": {
+                    "type": "string",
+                    "description": "how to treat concurrent executions of the integration",
+                    "enum": [
+                        "Allow",
+                        "Forbid",
+                        "Replace"
+                    ]
+                },
+                "restartPolicy": {
+                    "type": "string",
+                    "description": "restarts of the integration",
+                    "enum": [
+                        "Always",
+                        "OnFailure",
+                        "Never"
+                    ]
+                },
+                "successfulJobHistoryLimit": {
+                    "type": "integer",
+                    "description": "number of history records reserved for successful integration executions"
+                },
+                "failedJobHistoryLimit": {
+                    "type": "integer",
+                    "description": "number of history records reserved for failed integration executions"
+                }
+            },
+            "required": [
+                "resources"
             ]
         },
         "/app-sre/pipelines-provider-1.yml": {
@@ -10074,6 +10315,13 @@
                 "provider": {
                     "type": "string"
                 },
+                "secretEngine": {
+                    "type": "string",
+                    "enum": [
+                        "kv_v1",
+                        "kv_v2"
+                    ]
+                },
                 "roleID": {
                     "$ref": "/common-1.json#/definitions/vaultSecret"
                 },
@@ -10123,7 +10371,8 @@
                 }
             ],
             "required": [
-                "provider"
+                "provider",
+                "secretEngine"
             ]
         },
         "/vault-config/policy-1.yml": {
@@ -16405,7 +16654,7 @@
                     }
                 },
                 {
-                    "name": "saasFilesV2",
+                    "name": "saasFiles",
                     "type": "SaasFile_v2",
                     "isList": true,
                     "synthetic": {
@@ -17134,6 +17383,11 @@
                     "name": "provider",
                     "type": "string",
                     "isRequired": true
+                },
+                {
+                    "name": "secretEngine",
+                    "type": "string",
+                    "isRequired": true
                 }
             ]
         },
@@ -17143,6 +17397,11 @@
             "fields": [
                 {
                     "name": "provider",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "secretEngine",
                     "type": "string",
                     "isRequired": true
                 },
@@ -17164,6 +17423,11 @@
             "fields": [
                 {
                     "name": "provider",
+                    "type": "string",
+                    "isRequired": true
+                },
+                {
+                    "name": "secretEngine",
                     "type": "string",
                     "isRequired": true
                 },
@@ -18052,6 +18316,138 @@
             ]
         },
         {
+            "name": "IntegrationSpecExtraEnv_v1",
+            "fields": [
+                {
+                    "name": "secretName",
+                    "type": "string"
+                },
+                {
+                    "name": "secretKey",
+                    "type": "string"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "value",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "IntegrationSpecLogs_v1",
+            "fields": [
+                {
+                    "name": "slack",
+                    "type": "boolean"
+                }
+            ]
+        },
+        {
+            "name": "IntegrationSpec_v1",
+            "fields": [
+                {
+                    "name": "cache",
+                    "type": "boolean"
+                },
+                {
+                    "name": "command",
+                    "type": "string"
+                },
+                {
+                    "name": "disableUnleash",
+                    "type": "boolean"
+                },
+                {
+                    "name": "environmentAware",
+                    "type": "boolean"
+                },
+                {
+                    "name": "extraArgs",
+                    "type": "string"
+                },
+                {
+                    "name": "extraEnv",
+                    "type": "IntegrationSpecExtraEnv_v1",
+                    "isList": true
+                },
+                {
+                    "name": "internalCertificates",
+                    "type": "boolean"
+                },
+                {
+                    "name": "logs",
+                    "type": "IntegrationSpecLogs_v1"
+                },
+                {
+                    "name": "resources",
+                    "type": "DeployResources_v1",
+                    "isRequired": true
+                },
+                {
+                    "name": "shards",
+                    "type": "int"
+                },
+                {
+                    "name": "sleepDurationSecs",
+                    "type": "int"
+                },
+                {
+                    "name": "state",
+                    "type": "boolean"
+                },
+                {
+                    "name": "storage",
+                    "type": "string"
+                },
+                {
+                    "name": "trigger",
+                    "type": "boolean"
+                },
+                {
+                    "name": "cron",
+                    "type": "string"
+                },
+                {
+                    "name": "dashdotdb",
+                    "type": "boolean"
+                },
+                {
+                    "name": "concurrencyPolicy",
+                    "type": "string"
+                },
+                {
+                    "name": "restartPolicy",
+                    "type": "string"
+                },
+                {
+                    "name": "successfulJobHistoryLimit",
+                    "type": "int"
+                },
+                {
+                    "name": "failedJobHistoryLimit",
+                    "type": "int"
+                }
+            ]
+        },
+        {
+            "name": "IntegrationManaged_v1",
+            "fields": [
+                {
+                    "name": "namespace",
+                    "type": "Namespace_v1",
+                    "isRequired": true
+                },
+                {
+                    "name": "spec",
+                    "type": "IntegrationSpec_v1",
+                    "isRequired": true
+                }
+            ]
+        },
+        {
             "name": "Integration_v1",
             "datafile": "/app-sre/integration-1.yml",
             "fields": [
@@ -18092,6 +18488,11 @@
                 {
                     "name": "pr_check",
                     "type": "IntegrationPrCheck_v1"
+                },
+                {
+                    "name": "managed",
+                    "type": "IntegrationManaged_v1",
+                    "isList": true
                 }
             ]
         },
@@ -19813,6 +20214,101 @@
             "org": "app-sre",
             "team": "vault-app-sre"
         },
+        "/teams/app-sre/roles/app-interface-vault-oidc.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-interface-vault-oidc",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-sre-vault-oidc-secondary",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/secondary/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/roles/app-sre-vault-oidc.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-sre-vault-oidc",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/users/tester.yml": {
+            "$schema": "/access/user-1.yml",
+            "labels": {},
+            "name": "The Tester",
+            "org_username": "tester",
+            "github_username": "tester0",
+            "quay_username": "rh_ee_tester",
+            "roles": [
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
+                }
+            ],
+            "public_gpg_key": "nada"
+        },
+        "/services/vault/config/audit-backends/master/file-audit.yml": {
+            "$schema": "/vault-config/audit-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "file/",
+            "type": "file",
+            "instance": {
+                "$ref": "/services/vault/config/instances/master.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "file",
+                "file_path": "/var/log/vault/vault_audit.log",
+                "format": "json",
+                "log_raw": "false",
+                "hmac_accessor": "true",
+                "mode": "0600",
+                "prefix": ""
+            }
+        },
+        "/services/vault/config/audit-backends/secondary/file-audit.yml": {
+            "$schema": "/vault-config/audit-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "file/",
+            "type": "file",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "file",
+                "file_path": "/var/log/vault/vault_audit.log",
+                "format": "json",
+                "log_raw": "false",
+                "hmac_accessor": "true",
+                "mode": "0600",
+                "prefix": ""
+            }
+        },
         "/services/vault/config/auth-backends/master/approle.yml": {
             "$schema": "/vault-config/auth-1.yml",
             "labels": {
@@ -19945,38 +20441,39 @@
                 }
             }
         },
-        "/services/vault/config/policies/secondary/app-sre-policy.yml": {
-            "$schema": "/vault-config/policy-1.yml",
+        "/services/vault/config/instances/master.yml": {
+            "$schema": "/vault-config/instance-1.yml",
             "labels": {
-                "service": "vault.local"
+                "service": "vault.fedramp.devshift.net"
             },
-            "name": "app-sre-policy",
-            "instance": {
-                "$ref": "/services/vault/config/instances/secondary.yml"
-            },
-            "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"totp/app-sre/keys/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"totp/app-sre/code/*\" {\n  capabilities = [\"read\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
+            "name": "app-sre-master-vault",
+            "description": "Primary FedRamp Vault instance",
+            "address": "http://127.0.0.1:8200",
+            "auth": {
+                "provider": "token",
+                "secretEngine": "kv_v2",
+                "token": {
+                    "path": "secret/data/master",
+                    "field": "rootToken"
+                }
+            }
         },
-        "/services/vault/config/policies/secondary/app-sre-vault-admin.yml": {
-            "$schema": "/vault-config/policy-1.yml",
+        "/services/vault/config/instances/secondary.yml": {
+            "$schema": "/vault-config/instance-1.yml",
             "labels": {
-                "service": "vault.local"
+                "service": "vault.fedramp.devshift.net"
             },
-            "name": "vault-oidc-app-sre-policy",
-            "instance": {
-                "$ref": "/services/vault/config/instances/secondary.yml"
-            },
-            "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
-        },
-        "/services/vault/config/policies/secondary/app-interface-approle-policy.yml": {
-            "$schema": "/vault-config/policy-1.yml",
-            "labels": {
-                "service": "vault.devshift.net"
-            },
-            "name": "app-interface-approle-policy",
-            "instance": {
-                "$ref": "/services/vault/config/instances/secondary.yml"
-            },
-            "rules": "path \"app-sre/creds/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/ansible/*\" {\n  capabilities = [\"read\"]\n}\n#app-interface secrets integration\npath \"app-interface/*\" {\n   capabilities = [\"read\"]\n}\n# integrations input/output\npath \"app-sre/integrations-input/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/integrations-output/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\npath \"app-sre/integrations-throughput/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\n"
+            "name": "app-sre-secondary-vault",
+            "description": "Secondary FedRamp Vault instance",
+            "address": "http://127.0.0.1:8202",
+            "auth": {
+                "provider": "token",
+                "secretEngine": "kv_v2",
+                "token": {
+                    "path": "secret/data/secondary",
+                    "field": "root"
+                }
+            }
         },
         "/services/vault/config/policies/master/app-interface-approle-policy.yml": {
             "$schema": "/vault-config/policy-1.yml",
@@ -20008,6 +20505,39 @@
             "name": "vault-oidc-app-sre-policy",
             "instance": {
                 "$ref": "/services/vault/config/instances/master.yml"
+            },
+            "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
+        },
+        "/services/vault/config/policies/secondary/app-interface-approle-policy.yml": {
+            "$schema": "/vault-config/policy-1.yml",
+            "labels": {
+                "service": "vault.devshift.net"
+            },
+            "name": "app-interface-approle-policy",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "rules": "path \"app-sre/creds/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/ansible/*\" {\n  capabilities = [\"read\"]\n}\n#app-interface secrets integration\npath \"app-interface/*\" {\n   capabilities = [\"read\"]\n}\n# integrations input/output\npath \"app-sre/integrations-input/*\" {\n  capabilities = [\"read\"]\n}\npath \"app-sre/integrations-output/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\npath \"app-sre/integrations-throughput/*\" {\n  capabilities = [\"create\", \"update\", \"read\"]\n}\n"
+        },
+        "/services/vault/config/policies/secondary/app-sre-policy.yml": {
+            "$schema": "/vault-config/policy-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "app-sre-policy",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"totp/app-sre/keys/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"totp/app-sre/code/*\" {\n  capabilities = [\"read\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
+        },
+        "/services/vault/config/policies/secondary/app-sre-vault-admin.yml": {
+            "$schema": "/vault-config/policy-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "vault-oidc-app-sre-policy",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
             },
             "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
         },
@@ -20360,141 +20890,7 @@
                 "_type": "kv",
                 "version": "1"
             }
-        },
-        "/services/vault/config/instances/master.yml": {
-            "$schema": "/vault-config/instance-1.yml",
-            "labels": {
-                "service": "vault.fedramp.devshift.net"
-            },
-            "name": "app-sre-master-vault",
-            "description": "Primary FedRamp Vault instance",
-            "address": "http://127.0.0.1:8200",
-            "auth": {
-                "provider": "token",
-                "token": {
-                    "path": "secret/data/master",
-                    "field": "rootToken"
-                }
-            }
-        },
-        "/services/vault/config/instances/secondary.yml": {
-            "$schema": "/vault-config/instance-1.yml",
-            "labels": {
-                "service": "vault.fedramp.devshift.net"
-            },
-            "name": "app-sre-secondary-vault",
-            "description": "Secondary FedRamp Vault instance",
-            "address": "http://127.0.0.1:8202",
-            "auth": {
-                "provider": "token",
-                "token": {
-                    "path": "secret/data/secondary",
-                    "field": "root"
-                }
-            }
-        },
-        "/services/vault/config/audit-backends/master/file-audit.yml": {
-            "$schema": "/vault-config/audit-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "_path": "file/",
-            "type": "file",
-            "instance": {
-                "$ref": "/services/vault/config/instances/master.yml"
-            },
-            "description": "",
-            "options": {
-                "_type": "file",
-                "file_path": "/var/log/vault/vault_audit.log",
-                "format": "json",
-                "log_raw": "false",
-                "hmac_accessor": "true",
-                "mode": "0600",
-                "prefix": ""
-            }
-        },
-        "/services/vault/config/audit-backends/secondary/file-audit.yml": {
-            "$schema": "/vault-config/audit-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "_path": "file/",
-            "type": "file",
-            "instance": {
-                "$ref": "/services/vault/config/instances/secondary.yml"
-            },
-            "description": "",
-            "options": {
-                "_type": "file",
-                "file_path": "/var/log/vault/vault_audit.log",
-                "format": "json",
-                "log_raw": "false",
-                "hmac_accessor": "true",
-                "mode": "0600",
-                "prefix": ""
-            }
-        },
-        "/teams/app-sre/roles/app-sre-vault-oidc.yml": {
-            "$schema": "/access/role-1.yml",
-            "labels": {},
-            "name": "app-sre-vault-oidc",
-            "permissions": [],
-            "oidc_permissions": [
-                {
-                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
-                }
-            ]
-        },
-        "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml": {
-            "$schema": "/access/role-1.yml",
-            "labels": {},
-            "name": "app-sre-vault-oidc-secondary",
-            "permissions": [],
-            "oidc_permissions": [
-                {
-                    "$ref": "/dependencies/vault/permissions/oidc/secondary/app-sre-vault-admin.yml"
-                }
-            ]
-        },
-        "/teams/app-sre/roles/app-interface-vault-oidc.yml": {
-            "$schema": "/access/role-1.yml",
-            "labels": {},
-            "name": "app-interface-vault-oidc",
-            "permissions": [],
-            "oidc_permissions": [
-                {
-                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
-                }
-            ]
-        },
-        "/teams/app-sre/users/tester.yml": {
-            "$schema": "/access/user-1.yml",
-            "labels": {},
-            "name": "The Tester",
-            "org_username": "tester",
-            "github_username": "tester0",
-            "quay_username": "rh_ee_tester",
-            "roles": [
-                {
-                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
-                },
-                {
-                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
-                },
-                {
-                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
-                }
-            ],
-            "public_gpg_key": "nada"
         }
     },
-    "resources": {
-        "/tmp": {
-            "path": "/tmp",
-            "content": "",
-            "$schema": null,
-            "sha256sum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        }
-    }
+    "resources": {}
 }
