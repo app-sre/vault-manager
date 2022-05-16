@@ -12,5 +12,5 @@ auth:
   provider: token
   secretEngine: "kv_v2"
   token:
-    path: "secret/data/secondary"
+    path: "secret/secondary"
     field: "root"
