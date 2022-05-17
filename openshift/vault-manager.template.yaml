@@ -35,6 +35,8 @@ objects:
           env:
           - name: GRAPHQL_QUERY_FILE
             value: ${GRAPHQL_QUERY_FILE}
+          - name: DISABLE_IDENTITY
+            value: ${DISABLE_IDENTITY}
           - name: GRAPHQL_SERVER
             valueFrom:
               secretKeyRef:
@@ -108,4 +110,7 @@ parameters:
   value: '/query.graphql'
 - name: VAULT_ADDR
   description: vault endpoint URL
+  value: ''
+- name: DISABLE_IDENTITY
+  description: disables entity and group toplevels when set
   value: ''
