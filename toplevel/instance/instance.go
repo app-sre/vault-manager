@@ -24,10 +24,11 @@ type Instance struct {
 }
 
 type auth struct {
-	Provider string `yaml:"provider"`
-	RoleID   secret `yaml:"roleID"`
-	SecretID secret `yaml:"secretID"`
-	Token    secret `yaml:"token"`
+	Provider     string `yaml:"provider"`
+	SecretEngine string `yaml:"secretEngine"`
+	RoleID       secret `yaml:"roleID"`
+	SecretID     secret `yaml:"secretID"`
+	Token        secret `yaml:"token"`
 }
 
 type secret struct {
@@ -60,10 +61,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 }
 
 // generates map of instance addresses to access credentials stored in master vault
-func processInstances(instances []Instance) (map[string][]*vault.VaultSecret, error) {
-	instanceCreds := make(map[string][]*vault.VaultSecret)
+func processInstances(instances []Instance) (map[string]vault.AuthBundle, error) {
+	instanceCreds := make(map[string]vault.AuthBundle)
 
 	for _, i := range instances {
+		bundle := vault.AuthBundle{
+			SecretEngine: i.Auth.SecretEngine,
+		}
 		switch strings.ToLower(i.Auth.Provider) {
 		case vault.APPROLE_AUTH:
 			// ensure required values exist
@@ -71,18 +75,18 @@ func processInstances(instances []Instance) (map[string][]*vault.VaultSecret, er
 				i.Auth.SecretID.Field == "" || i.Auth.SecretID.Path == "" {
 				return nil, errors.New("A required approle authentication attribute is missing")
 			}
-			instanceCreds[i.Address] = []*vault.VaultSecret{
+			bundle.VaultSecrets = []*vault.VaultSecret{
 				{
 					Name:    vault.ROLE_ID,
 					Type:    vault.APPROLE_AUTH,
-					Path:    i.Auth.RoleID.Path,
+					Path:    formatSecretPath(i.Auth.RoleID.Path, i.Auth.SecretEngine),
 					Field:   i.Auth.RoleID.Field,
 					Version: i.Auth.RoleID.Version,
 				},
 				{
 					Name:    vault.SECRET_ID,
 					Type:    vault.APPROLE_AUTH,
-					Path:    i.Auth.SecretID.Path,
+					Path:    formatSecretPath(i.Auth.SecretID.Path, i.Auth.SecretEngine),
 					Field:   i.Auth.SecretID.Field,
 					Version: i.Auth.SecretID.Version,
 				},
@@ -91,11 +95,11 @@ func processInstances(instances []Instance) (map[string][]*vault.VaultSecret, er
 			if i.Auth.Token.Field == "" || i.Auth.Token.Path == "" {
 				return nil, errors.New("A required token authentication attribute is missing")
 			}
-			instanceCreds[i.Address] = []*vault.VaultSecret{
+			bundle.VaultSecrets = []*vault.VaultSecret{
 				{
 					Name:    vault.TOKEN,
 					Type:    vault.TOKEN_AUTH,
-					Path:    i.Auth.Token.Path,
+					Path:    formatSecretPath(i.Auth.Token.Path, i.Auth.SecretEngine),
 					Field:   i.Auth.Token.Field,
 					Version: i.Auth.Token.Version,
 				},
@@ -104,7 +108,22 @@ func processInstances(instances []Instance) (map[string][]*vault.VaultSecret, er
 			return nil, errors.New(fmt.Sprintf(
 				"Unable to process `auth` attribute of instance definition with address %s", i.Address))
 		}
+		instanceCreds[i.Address] = bundle
 	}
 
 	return instanceCreds, nil
+}
+
+// process secret path for kv v2
+// kv v2 api inserts /data/ between the root engine name and remaining path
+func formatSecretPath(secret string, secretEngine string) string {
+	if secretEngine == vault.KV_V2 {
+		sliced := strings.SplitN(secret, "/", 2)
+		if len(sliced) < 2 {
+			log.Fatal("[Vault Instance] Error processessing kv_v2 secret path")
+		}
+		return fmt.Sprintf("%s/data/%s", sliced[0], sliced[1])
+	} else {
+		return secret
+	}
 }

@@ -2,6 +2,7 @@
   vault_instances: vault_instances_v1 {
     address
     auth {
+      secretEngine
       provider
       ... on VaultInstanceAuthApprole_v1 {
         roleID {

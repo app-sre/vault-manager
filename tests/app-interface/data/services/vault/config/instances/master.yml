@@ -8,9 +8,9 @@ name: "app-sre-master-vault"
 description: "Primary FedRamp Vault instance"
 
 address: "http://127.0.0.1:8200"
-
 auth:
   provider: "token"
+  secretEngine: "kv_v2"
   token:
-    path: "secret/data/master"
+    path: "secret/master"
     field: "rootToken"

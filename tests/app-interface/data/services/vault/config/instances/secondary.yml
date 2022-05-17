@@ -10,6 +10,7 @@ description: "Secondary FedRamp Vault instance"
 address: "http://127.0.0.1:8202"
 auth:
   provider: token
+  secretEngine: "kv_v2"
   token:
-    path: "secret/data/secondary"
+    path: "secret/secondary"
     field: "root"
