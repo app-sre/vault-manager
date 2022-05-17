@@ -61,6 +61,12 @@ func main() {
 		log.WithError(err).Fatal("failed to parse config")
 	}
 
+	// remove disabled toplevels
+	if _, set := os.LookupEnv("DISABLE_IDENTITY"); set {
+		delete(cfg, "vault_entities")
+		delete(cfg, "vault_groups")
+	}
+
 	topLevelConfigs := []TopLevelConfig{}
 
 	for key := range cfg {
