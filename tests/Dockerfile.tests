@@ -11,6 +11,13 @@ RUN yum install -y epel-release && \
     yum install -y $PACKAGES && \
     rpm -q --queryformat "" $PACKAGES
 
+RUN yum install -y \
+      ca-certificates \
+      && \
+    yum clean all && \
+    update-ca-trust enable && \
+    update-ca-trust extract
+
 RUN git clone https://github.com/sstephenson/bats.git && \
     git --git-dir=bats/.git checkout -b $BATS_VERSION $BATS_VERSION >/dev/null && \
     bats/install.sh /usr/local

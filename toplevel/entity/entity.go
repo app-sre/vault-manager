@@ -344,10 +344,11 @@ func createBaseExistingEntities(instanceAddr string) ([]entity, error) {
 		}
 
 		processed = append(processed, entity{
-			Name:    name,
-			Id:      id,
-			Type:    "entity", // used for reconcile and output
-			Aliases: processedAliases,
+			Name:     name,
+			Id:       id,
+			Type:     "entity", // used for reconcile and output
+			Aliases:  processedAliases,
+			Instance: instance.Instance{Address: instanceAddr},
 		})
 	}
 	return processed, nil
