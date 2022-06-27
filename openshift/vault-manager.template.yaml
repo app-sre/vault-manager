@@ -14,6 +14,8 @@ objects:
       app: vault-manager
     annotations:
       ignore-check.kube-linter.io/minimum-three-replicas: "vault-manager design does not adequately account for multiple replicas"
+      ignore-check.kube-linter.io/no-readiness-probe: "vault-manager is not getting traffic"
+      ignore-check.kube-linter.io/no-liveness-probe: "vault-manager is monitored for being stuck"
     name: vault-manager
   spec:
     replicas: ${{REPLICAS}}
