@@ -3,6 +3,10 @@ kind: Template
 metadata:
   name: vault-manager
 objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: vault-manager
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
