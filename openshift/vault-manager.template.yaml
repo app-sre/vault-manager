@@ -12,6 +12,8 @@ objects:
   metadata:
     labels:
       app: vault-manager
+    annotations:
+      ignore-check.kube-linter.io/minimum-three-replicas: "vault-manager design does not adequately account for multiple replicas"
     name: vault-manager
   spec:
     replicas: ${{REPLICAS}}
