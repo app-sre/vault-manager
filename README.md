@@ -13,10 +13,13 @@ docker run --rm -t \
            -e VAULT_AUTHTYPE=approle \
            -e VAULT_ROLE_ID=<APPROLE_ROLE_ID> \
            -e VAULT_SECRET_ID=<APPROLE_SECRET_ID> \
+           -e DISABLE_IDENTITY=true \
            quay.io/app-sre/vault-manager:latest -dry-run
 ```
 Note that running vault-manager with -dry-run flag will only print planned actions,
 remove this flag to make changes enter into effect
+
+Note that `DISABLE_IDENTITY` is currently required for commercial usage.
 
 ## Flags
 - `-dry-run`, default=false<br>
