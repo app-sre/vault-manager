@@ -205,7 +205,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return err
 	}
 
-	pruneApproleEntities(&existingEntities)
+	pruneNonOidcEntities(&existingEntities)
 
 	if existingEntities != nil && len(existingEntities) > 0 {
 		err := getExistingEntitiesDetails(address, existingEntities, threadPoolSize)
@@ -361,21 +361,36 @@ func createBaseExistingEntities(instanceAddr string) ([]entity, error) {
 				return nil, errors.New(fmt.Sprintf(
 					"Failed to convert element within `aliases` to map[string]interface{} for entity id: %s", id))
 			}
+
 			if _, exists := vals["id"]; !exists {
 				return nil, errors.New(fmt.Sprintf(
 					"Required `id` attribute not found on alias element for entity id: %s", id))
 			}
 			aliasId := vals["id"].(string)
+
 			if _, exists := vals["name"]; !exists {
 				return nil, errors.New(fmt.Sprintf(
-					"Required `name` attribute not found on alias element for entity-alias id: %s", id))
+					"Required `name` attribute not found on alias element for entity id: %s", id))
 			}
 			aliasName := vals["name"].(string)
+
+			mountType := ""
 			if _, exists := vals["mount_type"]; !exists {
-				return nil, errors.New(fmt.Sprintf(
-					"Required `mount_type` attribute not found on alias element for entity-alias id: %s", id))
+				accessor, exists := vals["mount_accessor"]
+				if !exists {
+					return nil, errors.New(fmt.Sprintf(
+						"Required `mount_accessor` attribute not found on alias element for entity id: %s", id))
+				}
+				// some aliases do not contain mount_type. avoid error for these as irrelevant to current reconcile
+				// ex: userpass entity-aliases
+				if strings.Contains(accessor.(string), "oidc") {
+					return nil, errors.New(fmt.Sprintf(
+						"Required `mount_type` attribute not found on alias element for entity id: %s", id))
+				}
+			} else {
+				mountType = vals["mount_type"].(string)
 			}
-			mountType := vals["mount_type"].(string)
+
 			processedAliases = append(processedAliases, entityAlias{
 				Id:       aliasId,
 				Name:     aliasName,
@@ -470,13 +485,14 @@ func getExistingEntitiesDetails(instanceAddr string, entities []entity, threadPo
 	return nil
 }
 
-// removes existing entities that have been flagged as being connected to approles
+// removes existing entities that have been flagged as being connected to approles, github, etc
 // from inclusion in reconcile process
-func pruneApproleEntities(entities *[]entity) {
+func pruneNonOidcEntities(entities *[]entity) {
 	var isOidc bool
 	i := 0
 	for _, e := range *entities {
 		isOidc = true
+		// ignore entire entity if a single alias is not oidc type
 		for _, a := range e.Aliases {
 			if a.AuthType != "oidc" {
 				isOidc = false
