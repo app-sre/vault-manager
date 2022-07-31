@@ -164,7 +164,7 @@ func ParseDuration(duration string) (time.Duration, error) {
 // DataInSecret compare given data with data stored in the vault secret
 func DataInSecret(instanceAddr string, data map[string]interface{}, path string) bool {
 	// read desired secret
-	secret := ReadSecret(instanceAddr, path)
+	secret := ReadSecret(instanceAddr, path, KV_V1)
 	if secret == nil {
 		return false
 	}
@@ -179,7 +179,7 @@ func DataInSecret(instanceAddr string, data map[string]interface{}, path string)
 			continue
 		}
 
-		if fmt.Sprintf("%v", secret.Data[k]) == fmt.Sprintf("%v", v) {
+		if fmt.Sprintf("%v", secret[k]) == fmt.Sprintf("%v", v) {
 			continue
 		}
 		return false

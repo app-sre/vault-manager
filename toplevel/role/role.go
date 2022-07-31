@@ -140,7 +140,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 									Name:    roles[i].(string),
 									Type:    existingAuthBackends[authBackend].Type,
 									Mount:   authBackend,
-									Options: vault.ReadSecret(instance, path).Data,
+									Options: vault.ReadSecret(instance, path, vault.KV_V1),
 								})
 
 							defer bwg.Done()
