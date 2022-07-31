@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -31,6 +32,11 @@ type policyMapping struct {
 	Type        string                   `yaml:"type"`
 	Description string                   `yaml:"description"`
 }
+
+const (
+	OIDC_CLIENT_SECRET        = "oidc_client_secret"
+	OIDC_CLIENT_SECRET_KV_VER = "oidc_client_secret_kv_version"
+)
 
 var _ vault.Item = entry{}
 
@@ -163,7 +169,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 							policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", teams[team].(string))
 
-							policiesMappedToEntity := vault.ReadSecret(instanceAddr, policyMappingPath).Data["value"].(string)
+							policiesMappedToEntity := vault.ReadSecret(instanceAddr, policyMappingPath, vault.KV_V1)["value"].(string)
 
 							policies := make([]map[string]interface{}, 0)
 
@@ -257,6 +263,10 @@ func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) {
 	// configure auth mounts
 	for _, e := range entries {
 		if e.Settings != nil {
+			if e.Type == "oidc" {
+				getOidcClientSecret(instanceAddr, e.Settings)
+				fmt.Println(e.Settings)
+			}
 			for name, cfg := range e.Settings {
 				path := filepath.Join("auth", e.Path, name)
 				if !vault.DataInSecret(instanceAddr, cfg, path) {
@@ -326,4 +336,19 @@ func policyMappingsAsItems(xs []policyMapping) (items []vault.Item) {
 	}
 
 	return
+}
+
+// retrieves client secret at vault location specified in oidc auth definition
+func getOidcClientSecret(instanceAddr string, settings map[string]map[string]interface{}) {
+	// logic to check existence of keys before referencing is unnecessary due to schema validation
+	cfg := settings["config"]
+	engineVersion := cfg[OIDC_CLIENT_SECRET_KV_VER].(string)
+	location := cfg[OIDC_CLIENT_SECRET].(map[string]interface{})
+	path := vault.FormatSecretPath(location["path"].(string), engineVersion)
+	field := location["field"].(string)
+	secret, err := vault.ProcessVaultCredential(path, field, engineVersion)
+	if err != nil {
+		log.WithError(err).Fatal("[Vault Auth] failed to retrieve `oidc_client_secret`")
+	}
+	cfg[OIDC_CLIENT_SECRET] = secret
 }
