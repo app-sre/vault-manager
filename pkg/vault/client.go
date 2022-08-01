@@ -203,6 +203,9 @@ func ReadSecret(instanceAddr, secretPath, engineVersion string) map[string]inter
 			"engineVersion": engineVersion,
 		}).Fatal("[Vault Client] failed to read Vault secret")
 	}
+	if raw == nil {
+		return nil
+	}
 	// vault api returns different payload depending on version
 	switch engineVersion {
 	case KV_V1:

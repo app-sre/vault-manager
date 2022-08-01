@@ -3,7 +3,6 @@
 package auth
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -265,7 +264,6 @@ func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) {
 		if e.Settings != nil {
 			if e.Type == "oidc" {
 				getOidcClientSecret(instanceAddr, e.Settings)
-				fmt.Println(e.Settings)
 			}
 			for name, cfg := range e.Settings {
 				path := filepath.Join("auth", e.Path, name)
@@ -343,7 +341,7 @@ func getOidcClientSecret(instanceAddr string, settings map[string]map[string]int
 	// logic to check existence of keys before referencing is unnecessary due to schema validation
 	cfg := settings["config"]
 	engineVersion := cfg[OIDC_CLIENT_SECRET_KV_VER].(string)
-	location := cfg[OIDC_CLIENT_SECRET].(map[string]interface{})
+	location := cfg[OIDC_CLIENT_SECRET].(map[interface{}]interface{})
 	path := vault.FormatSecretPath(location["path"].(string), engineVersion)
 	field := location["field"].(string)
 	secret, err := vault.ProcessVaultCredential(path, field, engineVersion)
