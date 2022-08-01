@@ -208,6 +208,9 @@ func ReadSecret(instanceAddr, secretPath, engineVersion string) map[string]inter
 	case KV_V1:
 		return raw.Data
 	case KV_V2:
+		if len(raw.Data) == 0 {
+			return nil
+		}
 		mapped, ok := raw.Data["data"].(map[string]interface{})
 		if !ok {
 			log.WithError(err).WithFields(log.Fields{
