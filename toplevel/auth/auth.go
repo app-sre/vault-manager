@@ -3,7 +3,6 @@
 package auth
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -341,22 +340,13 @@ func policyMappingsAsItems(xs []policyMapping) (items []vault.Item) {
 func getOidcClientSecret(instanceAddr string, settings map[string]map[string]interface{}) {
 	// logic to check existence of keys before referencing is unnecessary due to schema validation
 	cfg := settings["config"]
-<<<<<<< HEAD
 	engineVersion := cfg[vault.OIDC_CLIENT_SECRET_KV_VER].(string)
 	location := cfg[vault.OIDC_CLIENT_SECRET].(map[interface{}]interface{})
-=======
-	engineVersion := cfg[OIDC_CLIENT_SECRET_KV_VER].(string)
-	location := cfg[OIDC_CLIENT_SECRET].(map[string]interface{})
->>>>>>> 95f3d66... refactor oidc auth to pull from vault for secret
 	path := vault.FormatSecretPath(location["path"].(string), engineVersion)
 	field := location["field"].(string)
 	secret, err := vault.ProcessVaultCredential(path, field, engineVersion)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Auth] failed to retrieve `oidc_client_secret`")
 	}
-<<<<<<< HEAD
 	cfg[vault.OIDC_CLIENT_SECRET] = secret
-=======
-	cfg[OIDC_CLIENT_SECRET] = secret
->>>>>>> 95f3d66... refactor oidc auth to pull from vault for secret
 }
