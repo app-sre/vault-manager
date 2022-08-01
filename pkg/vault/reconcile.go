@@ -17,6 +17,11 @@ type Item interface {
 	KeyForType() string
 }
 
+const (
+	OIDC_CLIENT_SECRET        = "oidc_client_secret"
+	OIDC_CLIENT_SECRET_KV_VER = "oidc_client_secret_kv_version"
+)
+
 // DiffItems is a pure function that determines what changes need to be made to
 // a Vault instance in order to reach the desired state.
 func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated []Item) {
@@ -30,14 +35,17 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 	}
 
 	if len(existing) == 0 && len(desired) != 0 {
+		fmt.Println("LEN FAIL")
 		toBeWritten = desired
 	} else {
 		for _, item := range desired {
 			itemType := item.KeyForType()
 			if !in(item, existing) {
 				if !deepComparisonForName(item.Key(), existingNames) {
+					fmt.Println("DEEP NAME FAIL")
 					toBeWritten = append(toBeWritten, item)
 				} else if !keyDescription(item, existing) && itemType == "kv" {
+					fmt.Println("DESCRIPTION FAIL")
 					toBeUpdated = append(toBeUpdated, item)
 				} else if (itemType == "entity" || itemType == "entity-alias" || itemType == "group") &&
 					deepComparisonForName(item.Key(), existingNames) {
@@ -175,7 +183,7 @@ func DataInSecret(instanceAddr string, data map[string]interface{}, path string)
 				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
 			}
 			v = int64(dur.Seconds())
-		} else if k == "oidc_client_secret" { // not returned from ReadSecret()
+		} else if k == OIDC_CLIENT_SECRET || k == OIDC_CLIENT_SECRET_KV_VER { // not returned from ReadSecret()
 			continue
 		}
 

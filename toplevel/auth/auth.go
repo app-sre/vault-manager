@@ -32,11 +32,6 @@ type policyMapping struct {
 	Description string                   `yaml:"description"`
 }
 
-const (
-	OIDC_CLIENT_SECRET        = "oidc_client_secret"
-	OIDC_CLIENT_SECRET_KV_VER = "oidc_client_secret_kv_version"
-)
-
 var _ vault.Item = entry{}
 
 var _ vault.Item = policyMapping{}
@@ -340,13 +335,13 @@ func policyMappingsAsItems(xs []policyMapping) (items []vault.Item) {
 func getOidcClientSecret(instanceAddr string, settings map[string]map[string]interface{}) {
 	// logic to check existence of keys before referencing is unnecessary due to schema validation
 	cfg := settings["config"]
-	engineVersion := cfg[OIDC_CLIENT_SECRET_KV_VER].(string)
-	location := cfg[OIDC_CLIENT_SECRET].(map[interface{}]interface{})
+	engineVersion := cfg[vault.OIDC_CLIENT_SECRET_KV_VER].(string)
+	location := cfg[vault.OIDC_CLIENT_SECRET].(map[interface{}]interface{})
 	path := vault.FormatSecretPath(location["path"].(string), engineVersion)
 	field := location["field"].(string)
 	secret, err := vault.ProcessVaultCredential(path, field, engineVersion)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Auth] failed to retrieve `oidc_client_secret`")
 	}
-	cfg[OIDC_CLIENT_SECRET] = secret
+	cfg[vault.OIDC_CLIENT_SECRET] = secret
 }
