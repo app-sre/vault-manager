@@ -35,14 +35,17 @@ func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated 
 	}
 
 	if len(existing) == 0 && len(desired) != 0 {
+		fmt.Println("LEN FAIL")
 		toBeWritten = desired
 	} else {
 		for _, item := range desired {
 			itemType := item.KeyForType()
 			if !in(item, existing) {
 				if !deepComparisonForName(item.Key(), existingNames) {
+					fmt.Println("DEEP NAME FAIL")
 					toBeWritten = append(toBeWritten, item)
 				} else if !keyDescription(item, existing) && itemType == "kv" {
+					fmt.Println("DESCRIPTION FAIL")
 					toBeUpdated = append(toBeUpdated, item)
 				} else if (itemType == "entity" || itemType == "entity-alias" || itemType == "group") &&
 					deepComparisonForName(item.Key(), existingNames) {

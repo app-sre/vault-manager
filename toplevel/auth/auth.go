@@ -32,11 +32,6 @@ type policyMapping struct {
 	Description string                   `yaml:"description"`
 }
 
-const (
-	OIDC_CLIENT_SECRET        = "oidc_client_secret"
-	OIDC_CLIENT_SECRET_KV_VER = "oidc_client_secret_kv_version"
-)
-
 var _ vault.Item = entry{}
 
 var _ vault.Item = policyMapping{}
