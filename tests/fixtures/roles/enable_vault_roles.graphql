@@ -43,8 +43,13 @@
                 ... on VaultAuthConfigOidc_v1 {
                     oidc_discovery_url
                     oidc_client_id
-                    oidc_client_secret
                     default_role
+                    oidc_client_secret_kv_version
+                    oidc_client_secret {
+                      path
+                      field
+                      version
+                    }
                 }
             }
         }
