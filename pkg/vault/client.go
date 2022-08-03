@@ -195,6 +195,8 @@ func WriteSecret(instanceAddr string, secretPath string, secretData map[string]i
 
 // read secret from vault and return the secret map
 func ReadSecret(instanceAddr, secretPath, engineVersion string) map[string]interface{} {
+	// vault manager does not support reverting and should always reference latest data within a-i
+	// therefore, secret version is not specified for KV V2 secrets
 	raw, err := getClient(instanceAddr).Logical().Read(secretPath)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
