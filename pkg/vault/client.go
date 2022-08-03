@@ -40,32 +40,40 @@ const (
 
 var masterAddress string
 var vaultClients map[string]*api.Client
+var InstanceAddresses []string
 
 // Called once with toplevel/instance
 // Creates global map of all vault clients defined in a-i
 // This allows reconciliation of multiple vault instances
 func InitClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
 	vaultClients = make(map[string]*api.Client)
-	configureMaster(vaultClients)
+	configureMaster()
 
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 	var mutex = &sync.Mutex{}
 	// read access credentials for other vault instances and configure clients
 	for addr, bundle := range instanceCreds {
-		bwg.Add(1)
-		go createClient(addr, bundle, &bwg, mutex)
+		if addr != masterAddress {
+			bwg.Add(1)
+			go createClient(addr, bundle, &bwg, mutex)
+		}
 	}
 	bwg.Wait()
+
+	// set global for reference by toplevels to determine instances for reconciliation
+	for address := range vaultClients {
+		InstanceAddresses = append(InstanceAddresses, address)
+	}
 }
 
 // goroutine support function for InitClients()
 // initializes one vault client
-func createClient(a string, b AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sync.Mutex) {
+func createClient(addr string, bundle AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sync.Mutex) {
 	defer bwg.Done()
 
 	accessCreds := make(map[string]string)
-	for _, cred := range b.VaultSecrets {
-		processedCred, err := ProcessVaultCredential(cred.Path, cred.Field, b.SecretEngine)
+	for _, cred := range bundle.VaultSecrets {
+		processedCred, err := GetVaultSecretField(masterAddress, cred.Path, cred.Field, bundle.SecretEngine)
 		if err != nil {
 			log.WithError(err).Fatal()
 		}
@@ -74,23 +82,27 @@ func createClient(a string, b AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sy
 
 	// Init new client
 	config := api.DefaultConfig()
-	config.Address = a
+	config.Address = addr
 	client, err := api.NewClient(config)
 	if err != nil {
-		log.WithError(err).Fatalf("Failed to initialize Vault client for %s", a)
+		log.WithError(errors.New((fmt.Sprintf("Failed to initialize Vault client for %s", addr))))
+		log.WithError(err)
+		return // skip entire reconcilation for this instance
 	}
 
 	// at minimum, one element will exist in secrets regardless of type
 	// type is same across all VaultSecrets associated with a particular instance address
 	var token string
-	switch b.VaultSecrets[0].Type {
+	switch bundle.VaultSecrets[0].Type {
 	case APPROLE_AUTH:
 		t, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
 			"role_id":   accessCreds[ROLE_ID],
 			"secret_id": accessCreds[SECRET_ID],
 		})
 		if err != nil {
-			log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
+			log.WithError(errors.New(fmt.Sprintf("[Vault Client] failed to login to %s with AppRole credentials", addr)))
+			log.WithError(err)
+			return // skip entire reconcilation for this instance
 		}
 		token = t.Auth.ClientToken
 	case TOKEN_AUTH:
@@ -100,23 +112,23 @@ func createClient(a string, b AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sy
 	mutex.Lock()
 	defer mutex.Unlock()
 	client.SetToken(token)
-	vaultClients[a] = client
+	vaultClients[addr] = client
 }
 
 // attempts to read/proccess a single access credential for a particular vault instance
-func ProcessVaultCredential(path, field, engineVersion string) (string, error) {
-	secret := ReadSecret(masterAddress, path, engineVersion)
+func GetVaultSecretField(instanceAddr, path, field, engineVersion string) (string, error) {
+	secret := ReadSecret(instanceAddr, path, engineVersion)
 	if secret == nil {
-		return "", errors.New(
-			fmt.Sprintf("[Vault Client] Failed to retrieve secret from master instance at path %s", path))
+		return "", errors.New(fmt.Sprintf(
+			"[Vault Client] Failed to retrieve secret from %s instance at path %s", instanceAddr, path))
 	}
 	if _, exists := secret[field]; !exists {
-		return "", errors.New(
-			fmt.Sprintf("[Vault Client] Field `%s` does not exist at path: `%s`", field, path))
+		return "", errors.New(fmt.Sprintf(
+			"[Vault Client] Field `%s` does not exist at path: `%s` within %s", field, path, instanceAddr))
 	}
 	if _, ok := secret[field].(string); !ok {
-		return "", errors.New(
-			fmt.Sprintf("[Vault Client] Field `%s` cannot be converted to string", field))
+		return "", errors.New(fmt.Sprintf(
+			"[Vault Client] Field `%s` cannot be converted to string", field))
 	}
 	return secret[field].(string), nil
 }
@@ -124,7 +136,7 @@ func ProcessVaultCredential(path, field, engineVersion string) (string, error) {
 // configureMaster initializes vault client for the master instance
 // This is the only client configured using environment variables
 // env vars: VAULT_ADDR, VAULT_AUTHTYPE, VAULT_ROLE_ID, VAULT_SECRET_ID, VAULT_TOKEN
-func configureMaster(instanceCreds map[string]*api.Client) {
+func configureMaster() {
 	masterVaultCFG := api.DefaultConfig()
 	masterVaultCFG.Address = mustGetenv("VAULT_ADDR")
 

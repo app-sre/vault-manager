@@ -112,7 +112,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
 	// perform processing/reconcile per instance
-	for _, instanceAddr := range instance.InstanceAddresses {
+	for _, instanceAddr := range vault.InstanceAddresses {
 		entityNamesToIds, err := getEntityNamesToIds(instanceAddr)
 		if err != nil {
 			log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")

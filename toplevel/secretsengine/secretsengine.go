@@ -82,7 +82,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// perform reconcile operations for each instance
-	for _, instanceAddr := range instance.InstanceAddresses {
+	for _, instanceAddr := range vault.InstanceAddresses {
 		enabledSecretEngines := vault.ListSecretsEngines(instanceAddr)
 		existingSecretEngines := []entry{}
 		for path, engine := range enabledSecretEngines {

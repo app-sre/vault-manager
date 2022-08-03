@@ -76,7 +76,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
 	}
 	// perform reconcile operations for each instance
-	for _, instance := range instance.InstanceAddresses {
+	for _, instance := range vault.InstanceAddresses {
 		enabledAudits := vault.ListAuditDevices(instance)
 		// format raw vault api result
 		existingAduits := []entry{}

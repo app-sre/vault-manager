@@ -117,7 +117,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// perform reconcile process per instance
-	for _, instanceAddr := range instance.InstanceAddresses {
+	for _, instanceAddr := range vault.InstanceAddresses {
 		// Get the existing auth backends
 		existingAuthMounts := vault.ListAuthBackends(instanceAddr)
 
@@ -339,7 +339,7 @@ func getOidcClientSecret(instanceAddr string, settings map[string]map[string]int
 	location := cfg[vault.OIDC_CLIENT_SECRET].(map[interface{}]interface{})
 	path := vault.FormatSecretPath(location["path"].(string), engineVersion)
 	field := location["field"].(string)
-	secret, err := vault.ProcessVaultCredential(path, field, engineVersion)
+	secret, err := vault.GetVaultSecretField(instanceAddr, path, field, engineVersion)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Auth] failed to retrieve `oidc_client_secret`")
 	}

@@ -178,7 +178,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		populateAliasType(desired)
 	}
 
-	for _, instanceAddr := range instance.InstanceAddresses {
+	for _, instanceAddr := range vault.InstanceAddresses {
 		// Process data on existing entities/aliases
 		existingEntities, err := createBaseExistingEntities(instanceAddr)
 		if err != nil {
@@ -241,7 +241,7 @@ func getDesiredByInstance(entries []user) map[string][]entity {
 	// a user file can ref multi roles but only one should be appended to
 	// new desired per instance
 	existing := make(map[string]map[string]bool)
-	for _, instanceAddr := range instance.InstanceAddresses {
+	for _, instanceAddr := range vault.InstanceAddresses {
 		existing[instanceAddr] = make(map[string]bool)
 	}
 	for _, u := range entries {

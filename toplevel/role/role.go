@@ -165,7 +165,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// perform reconcile operations for each instance
-	for _, instance := range instance.InstanceAddresses {
+	for _, instance := range vault.InstanceAddresses {
 		// Diff the local configuration with the Vault instance.
 		entriesToBeWritten, entriesToBeDeleted, _ :=
 			vault.DiffItems(asItems(instancesToDesiredRoles[instance]), asItems(instancesToExistingRoles[instance]))
