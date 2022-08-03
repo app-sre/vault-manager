@@ -169,6 +169,8 @@ func ParseDuration(duration string) (time.Duration, error) {
 // DataInSecret compare given data with data stored in the vault secret
 func DataInSecret(instanceAddr string, data map[string]interface{}, path string) bool {
 	// read desired secret
+	// KV V1 is harded coded as all logic related to calling DataInSecret is internal resource reconciliation
+	// vault utilizes KV V1 for storing this info
 	secret := ReadSecret(instanceAddr, path, KV_V1)
 	if secret == nil {
 		return false
