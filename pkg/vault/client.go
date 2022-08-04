@@ -200,6 +200,8 @@ func RemoveInstanceFromReconciliation() {
 		InstanceAddresses = append(InstanceAddresses[:indexToRemove], InstanceAddresses[indexToRemove+1:]...)
 		fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", invalid))
 	}
+	// clear invalid
+	InvalidInstances = nil
 }
 
 // return proper secret path format based upon kv version
@@ -365,13 +367,14 @@ func DisableAuth(instanceAddr string, path string) {
 }
 
 // list vault policies
-func ListVaultPolicies(instanceAddr string) []string {
+func ListVaultPolicies(instanceAddr string) ([]string, error) {
 	existingPolicyNames, err := getClient(instanceAddr).Sys().ListPolicies()
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatal(
-			"[Vault Policy] failed to list Vault policies")
+		log.WithError(err)
+		return nil, errors.New(fmt.Sprintf(
+			"[Vault Policy] failed to list Vault policies for %s", instanceAddr))
 	}
-	return existingPolicyNames
+	return existingPolicyNames, nil
 }
 
 // get vault policy
