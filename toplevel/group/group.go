@@ -115,13 +115,18 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	for _, instanceAddr := range vault.InstanceAddresses {
 		entityNamesToIds, err := getEntityNamesToIds(instanceAddr)
 		if err != nil {
-			log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
+			log.WithError(err)
+			fmt.Println(fmt.Sprintf("[Vault Identity] failed to parse existing entities for %s", instanceAddr))
+			vault.AddInvalid(instanceAddr)
+			continue
 		}
 		desired := processDesired(instanceAddr, users, entityNamesToIds)
 		existing, err := getExistingGroups(instanceAddr, threadPoolSize)
 		if err != nil {
-			log.WithError(err).Fatalf(
-				"[Vault Identity] failed to retrieve existing groups for instance %s", instanceAddr)
+			log.WithError(err)
+			fmt.Println(fmt.Sprintf("[Vault Identity] failed to retrieve existing groups for instance %s", instanceAddr))
+			vault.AddInvalid(instanceAddr)
+			continue
 		}
 		sortSlices(desired)
 		sortSlices(existing)

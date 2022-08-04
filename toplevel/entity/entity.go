@@ -234,6 +234,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			}
 		}
 	}
+	// removes instances that generated errors from remaining reconciliation process
+	// this is necessary due to dependencies between toplevels
+	vault.RemoveInstanceFromReconciliation()
 }
 
 // getDesiredByInstance accepts the yaml-marshalled result of the `vault_entities` graphql
