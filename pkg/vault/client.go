@@ -41,6 +41,7 @@ const (
 var masterAddress string
 var vaultClients map[string]*api.Client
 var InstanceAddresses []string
+var InvalidInstances []string
 
 // Called once with toplevel/instance
 // Creates global map of all vault clients defined in a-i
@@ -53,6 +54,7 @@ func InitClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
 	var mutex = &sync.Mutex{}
 	// read access credentials for other vault instances and configure clients
 	for addr, bundle := range instanceCreds {
+		// client already configured separately for master
 		if addr != masterAddress {
 			bwg.Add(1)
 			go createClient(addr, bundle, &bwg, mutex)
@@ -73,6 +75,7 @@ func createClient(addr string, bundle AuthBundle, bwg *utils.BoundedWaitGroup, m
 
 	accessCreds := make(map[string]string)
 	for _, cred := range bundle.VaultSecrets {
+		// masterAddress hard-coded because all "child" vault access credentials must be pulled from master
 		processedCred, err := GetVaultSecretField(masterAddress, cred.Path, cred.Field, bundle.SecretEngine)
 		if err != nil {
 			log.WithError(err).Fatal()
@@ -85,8 +88,9 @@ func createClient(addr string, bundle AuthBundle, bwg *utils.BoundedWaitGroup, m
 	config.Address = addr
 	client, err := api.NewClient(config)
 	if err != nil {
-		log.WithError(errors.New((fmt.Sprintf("Failed to initialize Vault client for %s", addr))))
 		log.WithError(err)
+		fmt.Println(fmt.Sprintf("Failed to initialize Vault client for %s", addr))
+		fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
 		return // skip entire reconcilation for this instance
 	}
 
@@ -100,8 +104,9 @@ func createClient(addr string, bundle AuthBundle, bwg *utils.BoundedWaitGroup, m
 			"secret_id": accessCreds[SECRET_ID],
 		})
 		if err != nil {
-			log.WithError(errors.New(fmt.Sprintf("[Vault Client] failed to login to %s with AppRole credentials", addr)))
 			log.WithError(err)
+			fmt.Println(fmt.Sprintf("[Vault Client] failed to login to %s with AppRole credentials", addr))
+			fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
 			return // skip entire reconcilation for this instance
 		}
 		token = t.Auth.ClientToken
@@ -172,10 +177,29 @@ func configureMaster() {
 
 // returns the vault client associated with instance address
 func getClient(instanceAddr string) *api.Client {
-	if vaultClients[instanceAddr] == nil {
-		log.Fatalf("[Vault Client] client does not exist for address: %s", instanceAddr)
-	}
+
 	return vaultClients[instanceAddr]
+}
+
+// Removes an instance from the global slice utilized by toplevels to target instances for reconciliation
+func RemoveInstanceFromReconciliation() {
+	for _, invalid := range InvalidInstances {
+		indexToRemove := -1
+		for i, addr := range InstanceAddresses {
+			if addr == invalid {
+				indexToRemove = i
+				break
+			}
+		}
+		// unable to find the instance in global list
+		// this should never occur
+		if indexToRemove == -1 {
+			log.Fatal("[Vault Client] unable to find instance to remove")
+		}
+		// remove the instance from global
+		InstanceAddresses = append(InstanceAddresses[:indexToRemove], InstanceAddresses[indexToRemove+1:]...)
+		fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", invalid))
+	}
 }
 
 // return proper secret path format based upon kv version

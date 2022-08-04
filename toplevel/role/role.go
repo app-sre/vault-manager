@@ -3,6 +3,7 @@
 package role
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -106,9 +107,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 	// Get the existing auth backends
 	instancesToExistingAuths := make(map[string]map[string]*api.MountOutput)
-	for _, e := range entries {
-		if _, exists := instancesToExistingAuths[e.Instance.Address]; !exists {
-			instancesToExistingAuths[e.Instance.Address] = vault.ListAuthBackends(e.Instance.Address)
+	for _, addr := range vault.InstanceAddresses {
+		if _, exists := instancesToExistingAuths[addr]; !exists {
+			instancesToExistingAuths[addr] = vault.ListAuthBackends(addr)
 		}
 	}
 
@@ -153,19 +154,25 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		}
 	}
 
-	addOptionalOidcDefaults(instancesToDesiredRoles)
-	err := pruneUnsupported(instancesToDesiredRoles)
-	if err != nil {
-		log.WithError(err).Fatal("[Vault Role] failed to determine vault version")
-	}
-
-	err = unmarshallOptionObjects(instancesToDesiredRoles)
-	if err != nil {
-		log.WithError(err).Fatal("[Vault Role] failed to unmarshal oidc options of desired role")
-	}
-
 	// perform reconcile operations for each instance
 	for _, instance := range vault.InstanceAddresses {
+		addOptionalOidcDefaults(instance, instancesToDesiredRoles[instance])
+		err := pruneUnsupported(instance, instancesToDesiredRoles[instance])
+		if err != nil {
+			log.WithError(err)
+			fmt.Println(fmt.Sprintf("[Vault Role] failed to determine vault version for %s", instance))
+			vault.InvalidInstances = append(vault.InvalidInstances, instance)
+			continue
+		}
+
+		err = unmarshallOptionObjects(instancesToDesiredRoles[instance])
+		if err != nil {
+			log.WithError(err)
+			fmt.Println(fmt.Sprintf("[Vault Role] failed to unmarshal oidc options of desired role for %s", instance))
+			vault.InvalidInstances = append(vault.InvalidInstances, instance)
+			continue
+		}
+
 		// Diff the local configuration with the Vault instance.
 		entriesToBeWritten, entriesToBeDeleted, _ :=
 			vault.DiffItems(asItems(instancesToDesiredRoles[instance]), asItems(instancesToExistingRoles[instance]))
@@ -191,6 +198,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			}
 		}
 	}
+
+	// removes instances that generated errors from remaining reconciliation process
+	// this is necessary due to dependencies between toplevels
+	vault.RemoveInstanceFromReconciliation()
 }
 
 func asItems(xs []entry) (items []vault.Item) {
@@ -204,24 +215,22 @@ func asItems(xs []entry) (items []vault.Item) {
 
 // unmarshals select options attributes which are defined within schema as objects
 // limitation within yaml unmarshal causes theses attributes to be initially unmarshalled as strings
-func unmarshallOptionObjects(instancesToDesiredRoles map[string][]entry) error {
-	for _, roles := range instancesToDesiredRoles {
-		for _, role := range roles {
-			if strings.ToLower(role.Type) == "oidc" {
-				for k := range role.Options {
-					if k == "bound_claims" || k == "claim_mappings" {
-						converted, err := utils.UnmarshalJsonObj(k, role.Options[k])
-						if err != nil {
-							return err
-						}
-						// avoid assignment if result of unmarshal call is nil bc it will
-						// set type of option[k] to map[string]interface{}
-						// causing failure in reflect.deepequal check even when both are nil
-						if converted == nil {
-							continue
-						}
-						role.Options[k] = converted
+func unmarshallOptionObjects(roles []entry) error {
+	for _, role := range roles {
+		if strings.ToLower(role.Type) == "oidc" {
+			for k := range role.Options {
+				if k == "bound_claims" || k == "claim_mappings" {
+					converted, err := utils.UnmarshalJsonObj(k, role.Options[k])
+					if err != nil {
+						return err
 					}
+					// avoid assignment if result of unmarshal call is nil bc it will
+					// set type of option[k] to map[string]interface{}
+					// causing failure in reflect.deepequal check even when both are nil
+					if converted == nil {
+						continue
+					}
+					role.Options[k] = converted
 				}
 			}
 		}
@@ -231,7 +240,7 @@ func unmarshallOptionObjects(instancesToDesiredRoles map[string][]entry) error {
 
 // addOptionalOidcDefaults adds optional attributes and corresponding default values to desired oidc roles
 // this circumvents defining every attribute within desired oidc roles
-func addOptionalOidcDefaults(instancesToDesiredRoles map[string][]entry) {
+func addOptionalOidcDefaults(instance string, roles []entry) {
 	defaults := map[string]interface{}{
 		"bound_audiences":      []string{},
 		"bound_claims":         nil,
@@ -246,15 +255,13 @@ func addOptionalOidcDefaults(instancesToDesiredRoles map[string][]entry) {
 		"oidc_scopes":          []string{},
 		"verbose_oidc_logging": false,
 	}
-	for _, roles := range instancesToDesiredRoles {
-		for _, role := range roles {
-			if strings.ToLower(role.Type) == "oidc" {
-				for k, v := range defaults {
-					// denotes that attr was not included in definition and graphql assigned nil
-					// proceed with assigning default value that api would assign if attribute was omitted
-					if role.Options[k] == nil {
-						role.Options[k] = v
-					}
+	for _, role := range roles {
+		if strings.ToLower(role.Type) == "oidc" {
+			for k, v := range defaults {
+				// denotes that attr was not included in definition and graphql assigned nil
+				// proceed with assigning default value that api would assign if attribute was omitted
+				if role.Options[k] == nil {
+					role.Options[k] = v
 				}
 			}
 		}
@@ -262,19 +269,17 @@ func addOptionalOidcDefaults(instancesToDesiredRoles map[string][]entry) {
 }
 
 // remove attributes not supported in commercial but in fedramp variant
-func pruneUnsupported(instancesToDesiredRoles map[string][]entry) error {
-	for instance, roles := range instancesToDesiredRoles {
-		current, err := version.NewVersion(vault.GetVaultVersion(instance))
-		if err != nil {
-			return err
-		}
-		// https://github.com/hashicorp/vault/blob/main/CHANGELOG.md#170
-		threshold, err := version.NewVersion("1.7.0")
-		if current.LessThan(threshold) {
-			for _, role := range roles {
-				if strings.ToLower(role.Type) == "oidc" {
-					delete(role.Options, "max_age")
-				}
+func pruneUnsupported(instance string, roles []entry) error {
+	current, err := version.NewVersion(vault.GetVaultVersion(instance))
+	if err != nil {
+		return err
+	}
+	// https://github.com/hashicorp/vault/blob/main/CHANGELOG.md#170
+	threshold, err := version.NewVersion("1.7.0")
+	if current.LessThan(threshold) {
+		for _, role := range roles {
+			if strings.ToLower(role.Type) == "oidc" {
+				delete(role.Options, "max_age")
 			}
 		}
 	}
