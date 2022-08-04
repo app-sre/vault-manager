@@ -161,7 +161,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		if err != nil {
 			log.WithError(err)
 			fmt.Println(fmt.Sprintf("[Vault Role] failed to determine vault version for %s", instance))
-			vault.InvalidInstances = append(vault.InvalidInstances, instance)
+			vault.AddInvalid(instance)
 			continue
 		}
 
@@ -169,7 +169,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		if err != nil {
 			log.WithError(err)
 			fmt.Println(fmt.Sprintf("[Vault Role] failed to unmarshal oidc options of desired role for %s", instance))
-			vault.InvalidInstances = append(vault.InvalidInstances, instance)
+			vault.AddInvalid(instance)
 			continue
 		}
 

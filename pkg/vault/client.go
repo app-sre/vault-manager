@@ -41,7 +41,7 @@ const (
 var masterAddress string
 var vaultClients map[string]*api.Client
 var InstanceAddresses []string
-var InvalidInstances []string
+var invalidInstances []string
 
 // Called once with toplevel/instance
 // Creates global map of all vault clients defined in a-i
@@ -175,6 +175,10 @@ func configureMaster() {
 	masterAddress = masterVaultCFG.Address
 }
 
+func AddInvalid(instanceAddr string) {
+	invalidInstances = append(invalidInstances, instanceAddr)
+}
+
 // returns the vault client associated with instance address
 func getClient(instanceAddr string) *api.Client {
 
@@ -183,7 +187,7 @@ func getClient(instanceAddr string) *api.Client {
 
 // Removes an instance from the global slice utilized by toplevels to target instances for reconciliation
 func RemoveInstanceFromReconciliation() {
-	for _, invalid := range InvalidInstances {
+	for _, invalid := range invalidInstances {
 		indexToRemove := -1
 		for i, addr := range InstanceAddresses {
 			if addr == invalid {
@@ -201,7 +205,7 @@ func RemoveInstanceFromReconciliation() {
 		fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", invalid))
 	}
 	// clear invalid
-	InvalidInstances = nil
+	invalidInstances = nil
 }
 
 // return proper secret path format based upon kv version

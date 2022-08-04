@@ -3,6 +3,8 @@
 package auth
 
 import (
+	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -231,6 +233,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			}
 		}
 	}
+	// removes instances that generated errors from remaining reconciliation process
+	// this is necessary due to dependencies between toplevels
+	vault.RemoveInstanceFromReconciliation()
 }
 
 func enableAuth(instanceAddr string, toBeWritten []vault.Item, dryRun bool) {
@@ -258,7 +263,12 @@ func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) {
 	for _, e := range entries {
 		if e.Settings != nil {
 			if e.Type == "oidc" {
-				getOidcClientSecret(instanceAddr, e.Settings)
+				err := getOidcClientSecret(instanceAddr, e.Settings)
+				if err != nil {
+					fmt.Println(err)
+					vault.AddInvalid(instanceAddr)
+					continue
+				}
 			}
 			for name, cfg := range e.Settings {
 				path := filepath.Join("auth", e.Path, name)
@@ -332,7 +342,7 @@ func policyMappingsAsItems(xs []policyMapping) (items []vault.Item) {
 }
 
 // retrieves client secret at vault location specified in oidc auth definition
-func getOidcClientSecret(instanceAddr string, settings map[string]map[string]interface{}) {
+func getOidcClientSecret(instanceAddr string, settings map[string]map[string]interface{}) error {
 	// logic to check existence of keys before referencing is unnecessary due to schema validation
 	cfg := settings["config"]
 	engineVersion := cfg[vault.OIDC_CLIENT_SECRET_KV_VER].(string)
@@ -341,7 +351,10 @@ func getOidcClientSecret(instanceAddr string, settings map[string]map[string]int
 	field := location["field"].(string)
 	secret, err := vault.GetVaultSecretField(instanceAddr, path, field, engineVersion)
 	if err != nil {
-		log.WithError(err).Fatal("[Vault Auth] failed to retrieve `oidc_client_secret`")
+		log.WithError(err)
+		return errors.New(fmt.Sprintf(
+			"[Vault Auth] failed to retrieve `oidc_client_secret` for %s", instanceAddr))
 	}
 	cfg[vault.OIDC_CLIENT_SECRET] = secret
+	return nil
 }

@@ -72,7 +72,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			if err != nil {
 				log.WithError(err)
 				fmt.Println(fmt.Sprintf("[Vault Policy] failed to list existing policies for %s", addr))
-				vault.InvalidInstances = append(vault.InvalidInstances, addr)
+				vault.AddInvalid(addr)
 				continue
 			}
 			instancesToExistingPolicyNames[addr] =
