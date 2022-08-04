@@ -182,7 +182,10 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		// Process data on existing entities/aliases
 		existingEntities, err := createBaseExistingEntities(instanceAddr)
 		if err != nil {
-			log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
+			log.WithError(err)
+			fmt.Println(fmt.Sprintf("[Vault Identity] failed to parse existing entities for %s", instanceAddr))
+			vault.AddInvalid(instanceAddr)
+			continue
 		}
 		pruneApproleEntities(&existingEntities)
 		if existingEntities != nil && len(existingEntities) > 0 {
