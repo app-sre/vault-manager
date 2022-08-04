@@ -79,14 +79,14 @@ func processInstances(instances []Instance) (map[string]vault.AuthBundle, error)
 				{
 					Name:    vault.ROLE_ID,
 					Type:    vault.APPROLE_AUTH,
-					Path:    formatSecretPath(i.Auth.RoleID.Path, i.Auth.SecretEngine),
+					Path:    vault.FormatSecretPath(i.Auth.RoleID.Path, i.Auth.SecretEngine),
 					Field:   i.Auth.RoleID.Field,
 					Version: i.Auth.RoleID.Version,
 				},
 				{
 					Name:    vault.SECRET_ID,
 					Type:    vault.APPROLE_AUTH,
-					Path:    formatSecretPath(i.Auth.SecretID.Path, i.Auth.SecretEngine),
+					Path:    vault.FormatSecretPath(i.Auth.SecretID.Path, i.Auth.SecretEngine),
 					Field:   i.Auth.SecretID.Field,
 					Version: i.Auth.SecretID.Version,
 				},
@@ -99,7 +99,7 @@ func processInstances(instances []Instance) (map[string]vault.AuthBundle, error)
 				{
 					Name:    vault.TOKEN,
 					Type:    vault.TOKEN_AUTH,
-					Path:    formatSecretPath(i.Auth.Token.Path, i.Auth.SecretEngine),
+					Path:    vault.FormatSecretPath(i.Auth.Token.Path, i.Auth.SecretEngine),
 					Field:   i.Auth.Token.Field,
 					Version: i.Auth.Token.Version,
 				},
@@ -112,18 +112,4 @@ func processInstances(instances []Instance) (map[string]vault.AuthBundle, error)
 	}
 
 	return instanceCreds, nil
-}
-
-// process secret path for kv v2
-// kv v2 api inserts /data/ between the root engine name and remaining path
-func formatSecretPath(secret string, secretEngine string) string {
-	if secretEngine == vault.KV_V2 {
-		sliced := strings.SplitN(secret, "/", 2)
-		if len(sliced) < 2 {
-			log.Fatal("[Vault Instance] Error processessing kv_v2 secret path")
-		}
-		return fmt.Sprintf("%s/data/%s", sliced[0], sliced[1])
-	} else {
-		return secret
-	}
 }

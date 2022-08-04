@@ -17,6 +17,11 @@ type Item interface {
 	KeyForType() string
 }
 
+const (
+	OIDC_CLIENT_SECRET        = "oidc_client_secret"
+	OIDC_CLIENT_SECRET_KV_VER = "oidc_client_secret_kv_version"
+)
+
 // DiffItems is a pure function that determines what changes need to be made to
 // a Vault instance in order to reach the desired state.
 func DiffItems(desired, existing []Item) (toBeWritten, toBeDeleted, toBeUpdated []Item) {
@@ -164,7 +169,9 @@ func ParseDuration(duration string) (time.Duration, error) {
 // DataInSecret compare given data with data stored in the vault secret
 func DataInSecret(instanceAddr string, data map[string]interface{}, path string) bool {
 	// read desired secret
-	secret := ReadSecret(instanceAddr, path)
+	// KV V1 is harded coded as all logic related to calling DataInSecret is internal resource reconciliation
+	// vault utilizes KV V1 for storing this info
+	secret := ReadSecret(instanceAddr, path, KV_V1)
 	if secret == nil {
 		return false
 	}
@@ -175,11 +182,11 @@ func DataInSecret(instanceAddr string, data map[string]interface{}, path string)
 				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
 			}
 			v = int64(dur.Seconds())
-		} else if k == "oidc_client_secret" { // not returned from ReadSecret()
+		} else if k == OIDC_CLIENT_SECRET || k == OIDC_CLIENT_SECRET_KV_VER { // not returned from ReadSecret()
 			continue
 		}
 
-		if fmt.Sprintf("%v", secret.Data[k]) == fmt.Sprintf("%v", v) {
+		if fmt.Sprintf("%v", secret[k]) == fmt.Sprintf("%v", v) {
 			continue
 		}
 		return false

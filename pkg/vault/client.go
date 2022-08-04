@@ -65,7 +65,7 @@ func createClient(a string, b AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sy
 
 	accessCreds := make(map[string]string)
 	for _, cred := range b.VaultSecrets {
-		processedCred, err := processAccessCredential(cred, b.SecretEngine)
+		processedCred, err := ProcessVaultCredential(cred.Path, cred.Field, b.SecretEngine)
 		if err != nil {
 			log.WithError(err).Fatal()
 		}
@@ -104,39 +104,21 @@ func createClient(a string, b AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sy
 }
 
 // attempts to read/proccess a single access credential for a particular vault instance
-func processAccessCredential(cred *VaultSecret, secretEngine string) (string, error) {
-	raw := ReadSecret(masterAddress, cred.Path)
-	if raw == nil {
-		log.Fatalf("[Vault Client] Failed to retrieve secret from master instance at path %s", cred.Path)
+func ProcessVaultCredential(path, field, engineVersion string) (string, error) {
+	secret := ReadSecret(masterAddress, path, engineVersion)
+	if secret == nil {
+		return "", errors.New(
+			fmt.Sprintf("[Vault Client] Failed to retrieve secret from master instance at path %s", path))
 	}
-	// vault api returns different payload depending on version
-	switch secretEngine {
-	case KV_V1:
-		if _, exists := raw.Data[cred.Field]; !exists {
-			return "", errors.New(fmt.Sprintf("[Vault Client] Field `%s` does not exist at path: `%s`", cred.Field, cred.Path))
-		}
-		if _, ok := raw.Data[cred.Field].(string); !ok {
-			return "", errors.New(fmt.Sprintf("[Vault Client] Field `%s` cannot be converted to string", cred.Field))
-		}
-		return raw.Data[cred.Field].(string), nil
-	case KV_V2:
-		mapped, ok := raw.Data["data"].(map[string]interface{})
-		if !ok {
-			return "", errors.New(fmt.Sprintf("[Vault Client] Failed to process raw result at path: `%s`", cred.Path))
-		}
-		if len(mapped) < 1 {
-			return "", errors.New(fmt.Sprintf("[Vault Client] Data does not exist at path: `%s`", cred.Path))
-		}
-		if _, exists := mapped[cred.Field]; !exists {
-			return "", errors.New(fmt.Sprintf("[Vault Client] Field `%s` does not exist at path: `%s`", cred.Field, cred.Path))
-		}
-		if _, ok := mapped[cred.Field].(string); !ok {
-			return "", errors.New(fmt.Sprintf("[Vault Client] Field `%s` cannot be converted to string", cred.Field))
-		}
-		return mapped[cred.Field].(string), nil
-	default:
-		return "", errors.New(fmt.Sprintf("[Vault Client] Unsupported secret engine type %s", secretEngine))
+	if _, exists := secret[field]; !exists {
+		return "", errors.New(
+			fmt.Sprintf("[Vault Client] Field `%s` does not exist at path: `%s`", field, path))
 	}
+	if _, ok := secret[field].(string); !ok {
+		return "", errors.New(
+			fmt.Sprintf("[Vault Client] Field `%s` cannot be converted to string", field))
+	}
+	return secret[field].(string), nil
 }
 
 // configureMaster initializes vault client for the master instance
@@ -184,6 +166,20 @@ func getClient(instanceAddr string) *api.Client {
 	return vaultClients[instanceAddr]
 }
 
+// return proper secret path format based upon kv version
+// kv v2 api inserts /data/ between the root engine name and remaining path
+func FormatSecretPath(secret string, secretEngine string) string {
+	if secretEngine == KV_V2 {
+		sliced := strings.SplitN(secret, "/", 2)
+		if len(sliced) < 2 {
+			log.Fatal("[Vault Instance] Error processessing kv_v2 secret path")
+		}
+		return fmt.Sprintf("%s/data/%s", sliced[0], sliced[1])
+	} else {
+		return secret
+	}
+}
+
 // write secret to vault
 func WriteSecret(instanceAddr string, secretPath string, secretData map[string]interface{}) {
 	if !DataInSecret(instanceAddr, secretData, secretPath) {
@@ -197,16 +193,46 @@ func WriteSecret(instanceAddr string, secretPath string, secretData map[string]i
 	}
 }
 
-// read secret from vault
-func ReadSecret(instanceAddr string, secretPath string) *api.Secret {
-	secret, err := getClient(instanceAddr).Logical().Read(secretPath)
+// read secret from vault and return the secret map
+func ReadSecret(instanceAddr, secretPath, engineVersion string) map[string]interface{} {
+	// vault manager does not support reverting and should always reference latest data within a-i
+	// therefore, secret version is not specified for KV V2 secrets
+	raw, err := getClient(instanceAddr).Logical().Read(secretPath)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
-			"path":     secretPath,
-			"instance": instanceAddr,
+			"path":          secretPath,
+			"instance":      instanceAddr,
+			"engineVersion": engineVersion,
 		}).Fatal("[Vault Client] failed to read Vault secret")
 	}
-	return secret
+	if raw == nil {
+		return nil
+	}
+	// vault api returns different payload depending on version
+	switch engineVersion {
+	case KV_V1:
+		return raw.Data
+	case KV_V2:
+		if len(raw.Data) == 0 {
+			return nil
+		}
+		mapped, ok := raw.Data["data"].(map[string]interface{})
+		if !ok {
+			log.WithError(err).WithFields(log.Fields{
+				"path":          secretPath,
+				"instance":      instanceAddr,
+				"engineVersion": engineVersion,
+			}).Fatal("[Vault Client] failed to process `data` from result of read")
+		}
+		return mapped
+	default:
+		log.WithError(err).WithFields(log.Fields{
+			"path":          secretPath,
+			"instance":      instanceAddr,
+			"engineVersion": engineVersion,
+		}).Fatal("[Vault Client] unsupported KV engine version passed to ReadSecret()")
+		return nil
+	}
 }
 
 // list secrets

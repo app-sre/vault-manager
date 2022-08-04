@@ -96,6 +96,7 @@ container_alive "http://127.0.0.1:8200" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT
 # populate necessary vault access vars to master
 vault kv put secret/master rootToken=root
 vault kv put secret/secondary root=root
+vault kv put secret/oidc client-secret=my-special-client-secret
 
 # spin up secondary vault server
 docker run -d --name=$VAULT_NAME_SECONDARY \
@@ -107,6 +108,11 @@ docker run -d --name=$VAULT_NAME_SECONDARY \
   -v /tmp/:/var/log/vault/:Z \
   $VAULT_IMAGE:$VAULT_IMAGE_TAG
 container_alive "http://127.0.0.1:8202" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME_SECONDARY
+
+# populate oidc client secret in secondary
+export VAULT_ADDR=http://127.0.0.1:8202
+vault kv put secret/oidc client-secret=my-special-client-secret
+export VAULT_ADDR=http://127.0.0.1:8200
 
 # run test suite
 for test in $(find bats/ -type f | grep .bats | grep -v entities | grep -v groups); do
