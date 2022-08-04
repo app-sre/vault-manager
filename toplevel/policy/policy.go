@@ -3,6 +3,7 @@
 package policy
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
@@ -63,28 +64,37 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredPolicies[e.Instance.Address] = append(instancesToDesiredPolicies[e.Instance.Address], e)
 	}
 
-	// call to vault api for each instance to obtain raw enabled audit info
+	// call to vault api for each instance to obtain raw existing policy infos
 	instancesToExistingPolicyNames := make(map[string][]string)
-	for _, e := range entries {
-		if _, exists := instancesToExistingPolicyNames[e.Instance.Address]; !exists {
-			instancesToExistingPolicyNames[e.Instance.Address] =
-				append(instancesToExistingPolicyNames[e.Instance.Address], vault.ListVaultPolicies(e.Instance.Address)...)
+	for _, addr := range vault.InstanceAddresses {
+		if _, exists := instancesToExistingPolicyNames[addr]; !exists {
+			existingPolicies, err := vault.ListVaultPolicies(addr)
+			if err != nil {
+				log.WithError(err)
+				fmt.Println(fmt.Sprintf("[Vault Policy] failed to list existing policies for %s", addr))
+				vault.InvalidInstances = append(vault.InvalidInstances, addr)
+				continue
+			}
+			instancesToExistingPolicyNames[addr] =
+				append(instancesToExistingPolicyNames[addr], existingPolicies...)
 		}
 	}
 
+	vault.RemoveInstanceFromReconciliation()
+
 	// Build a list of all the existing policies for each instance
 	instancesToExistingPolicies := make(map[string][]entry)
-	for instance, existingPolicyNames := range instancesToExistingPolicyNames {
-		if existingPolicyNames != nil {
+	for _, instance := range vault.InstanceAddresses {
+		if instancesToExistingPolicyNames[instance] != nil {
 			var mutex = &sync.Mutex{}
 			bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 
 			// fill existing policies array in parallel
-			for i := range existingPolicyNames {
+			for i := range instancesToExistingPolicyNames[instance] {
 				bwg.Add(1)
 
 				go func(i int) {
-					name := existingPolicyNames[i]
+					name := instancesToExistingPolicyNames[instance][i]
 					policy := vault.GetVaultPolicy(instance, name)
 
 					mutex.Lock()
