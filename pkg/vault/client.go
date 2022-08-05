@@ -340,13 +340,14 @@ func DisableAuditDevice(instanceAddr string, path string) {
 }
 
 // list existing auth backends
-func ListAuthBackends(instanceAddr string) map[string]*api.AuthMount {
+func ListAuthBackends(instanceAddr string) (map[string]*api.AuthMount, error) {
 	existingAuthMounts, err := getClient(instanceAddr).Sys().ListAuth()
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatal(
-			"[Vault Auth] failed to list auth backends from Vault instance")
+		log.WithError(err)
+		return nil, errors.New(fmt.Sprintf(
+			"[Vault Auth] failed to list auth backends for %s", instanceAddr))
 	}
-	return existingAuthMounts
+	return existingAuthMounts, nil
 }
 
 // enable auth backend
@@ -374,13 +375,13 @@ func DisableAuth(instanceAddr string, path string) {
 		"[Vault Auth] successfully disabled auth backend")
 }
 
-// list vault policies
+// returns a list of existing policy names for a specific instance
 func ListVaultPolicies(instanceAddr string) ([]string, error) {
 	existingPolicyNames, err := getClient(instanceAddr).Sys().ListPolicies()
 	if err != nil {
 		log.WithError(err)
 		return nil, errors.New(fmt.Sprintf(
-			"[Vault Policy] failed to list Vault policies for %s", instanceAddr))
+			"[Vault Policy] failed to list existing policies for %s", instanceAddr))
 	}
 	return existingPolicyNames, nil
 }

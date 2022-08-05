@@ -109,7 +109,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	instancesToExistingAuths := make(map[string]map[string]*api.MountOutput)
 	for _, addr := range vault.InstanceAddresses {
 		if _, exists := instancesToExistingAuths[addr]; !exists {
-			instancesToExistingAuths[addr] = vault.ListAuthBackends(addr)
+			existingAuths, err := vault.ListAuthBackends(addr)
+			if err != nil {
+				fmt.Println(err)
+				vault.AddInvalid(addr)
+				continue
+			}
+			instancesToExistingAuths[addr] = existingAuths
 		}
 	}
 
@@ -153,6 +159,9 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			}
 		}
 	}
+
+	// account for errors encountered with creating existing auth map earlier
+	vault.RemoveInstanceFromReconciliation()
 
 	// perform reconcile operations for each instance
 	for _, instance := range vault.InstanceAddresses {

@@ -229,8 +229,8 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			}
 			err = performAliasReconcile(instanceAddr, aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated)
 			if err != nil {
-				log.WithError(err).Fatal(
-					"[Vault Identity] failed to perform entity-alias reconcile operations")
+				fmt.Println("[Vault Identity Alias Reconcile] " + err.Error())
+				vault.AddInvalid(instanceAddr)
 			}
 		}
 	}
@@ -484,7 +484,10 @@ func performAliasReconcile(instanceAddr string, aliasesToBeWritten map[string]ma
 	// extra work (vault api request) required to organize accessor ids
 	if len(aliasesToBeWritten) > 0 {
 		accessorIds = make(map[string]string)
-		authBackends := vault.ListAuthBackends(instanceAddr)
+		authBackends, err := vault.ListAuthBackends(instanceAddr)
+		if err != nil {
+			return err
+		}
 		for k, v := range authBackends {
 			accessorIds[strings.TrimRight(k, "/")] = v.Accessor
 		}
