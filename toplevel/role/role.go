@@ -111,7 +111,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		if _, exists := instancesToExistingAuths[addr]; !exists {
 			existingAuths, err := vault.ListAuthBackends(addr)
 			if err != nil {
-				fmt.Println(err)
 				vault.AddInvalid(addr)
 				continue
 			}

@@ -121,7 +121,11 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	// perform reconcile process per instance
 	for _, instanceAddr := range vault.InstanceAddresses {
 		// Get the existing auth backends
-		existingAuthMounts := vault.ListAuthBackends(instanceAddr)
+		existingAuthMounts, err := vault.ListAuthBackends(instanceAddr)
+		if err != nil {
+			vault.AddInvalid(instanceAddr)
+			continue
+		}
 
 		// Build a array of all the existing entries.
 		existingBackends := make([]entry, 0)

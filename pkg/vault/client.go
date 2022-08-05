@@ -343,9 +343,10 @@ func DisableAuditDevice(instanceAddr string, path string) {
 func ListAuthBackends(instanceAddr string) (map[string]*api.AuthMount, error) {
 	existingAuthMounts, err := getClient(instanceAddr).Sys().ListAuth()
 	if err != nil {
-		log.WithError(err)
-		return nil, errors.New(fmt.Sprintf(
-			"[Vault Auth] failed to list auth backends for %s", instanceAddr))
+		log.WithError(err).WithFields(log.Fields{
+			"instance": instanceAddr,
+		}).Info("[Vault Auth] failed to list auth backends")
+		return nil, errors.New("failed to list auth backends")
 	}
 	return existingAuthMounts, nil
 }
@@ -357,7 +358,7 @@ func EnableAuthWithOptions(instanceAddr string, path string, options *api.Enable
 			"path":     path,
 			"type":     options.Type,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Auth] failed to enable auth backend")
+		}).Info("[Vault Auth] failed to enable auth backend")
 	}
 	log.WithFields(log.Fields{
 		"path":     path,
