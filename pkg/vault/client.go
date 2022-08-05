@@ -47,6 +47,7 @@ var invalidInstances []string
 // Creates global map of all vault clients defined in a-i
 // This allows reconciliation of multiple vault instances
 func InitClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
+	InstanceAddresses = make(map[string]bool)
 	vaultClients = make(map[string]*api.Client)
 	configureMaster()
 
