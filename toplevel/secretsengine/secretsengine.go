@@ -66,10 +66,9 @@ func init() {
 	toplevel.RegisterConfiguration("vault_secret_engines", config{})
 }
 
+// TODO(dwelch) refactor into multiple functions
 // Apply ensures that an instance of Vault's secrets engine are configured
 // exactly as provided.
-//
-// This function exits the program if an error occurs.
 func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	// Unmarshal the list of configured secrets engines.
 	var entries []entry
@@ -82,8 +81,17 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// perform reconcile operations for each instance
-	for _, instanceAddr := range vault.InstanceAddresses {
-		enabledSecretEngines := vault.ListSecretsEngines(instanceAddr)
+OUTER:
+	for instanceAddr := range vault.InstanceAddresses {
+		enabledSecretEngines, err := vault.ListSecretsEngines(instanceAddr)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"instance": instanceAddr,
+			}).Info("[Vault Secret Engine] failed to list existing secret engines")
+			vault.AddInvalid(instanceAddr)
+			continue
+		}
+
 		existingSecretEngines := []entry{}
 		for path, engine := range enabledSecretEngines {
 			existingSecretEngines = append(existingSecretEngines, entry{
@@ -124,11 +132,19 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			// TODO(riuvshin): implement tuning
 			for _, e := range toBeWritten {
 				ent := e.(entry)
-				vault.EnableSecretsEngine(instanceAddr, ent.Path, &api.MountInput{
+				err := vault.EnableSecretsEngine(instanceAddr, ent.Path, &api.MountInput{
 					Type:        ent.Type,
 					Description: ent.Description,
 					Options:     ent.Options,
 				})
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"instance": instanceAddr,
+						"type":     e.(entry).Type,
+					}).Info("[Vault Secret Engine] failed to enable secret engine")
+					vault.AddInvalid(instanceAddr)
+					continue OUTER
+				}
 			}
 
 			for _, e := range toBeUpdated {
@@ -137,16 +153,35 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 					// vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
 					Description: &ent.Description,
 				})
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"instance": instanceAddr,
+						"type":     e.(entry).Type,
+					}).Info("[Vault Secret Engine] failed to update secret engine")
+					vault.AddInvalid(instanceAddr)
+					continue OUTER
+				}
 			}
 
 			for _, e := range toBeDeleted {
 				ent := e.(entry)
 				if !isDefaultMount(ent.Path) {
-					vault.DisableSecretsEngine(instanceAddr, ent.Path)
+					err := vault.DisableSecretsEngine(instanceAddr, ent.Path)
+					if err != nil {
+						log.WithError(err).WithFields(log.Fields{
+							"instance": instanceAddr,
+							"type":     e.(entry).Type,
+						}).Info("[Vault Secret Engine] failed to disable secret engine")
+						vault.AddInvalid(instanceAddr)
+						continue OUTER
+					}
 				}
 			}
 		}
 	}
+	// removes instances that generated errors from remaining reconciliation process
+	// this is necessary due to dependencies between toplevels
+	vault.RemoveInstanceFromReconciliation()
 }
 
 func isDefaultMount(path string) bool {
