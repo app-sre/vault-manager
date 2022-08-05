@@ -175,6 +175,8 @@ func configureMaster() {
 	masterAddress = masterVaultCFG.Address
 }
 
+// AddInvalild is called by toplevel packages when an error is encountered while reconciling
+// The invalid instance is appended to a global and then processed within RemoveInstanceFromReconcile
 func AddInvalid(instanceAddr string) {
 	invalidInstances = append(invalidInstances, instanceAddr)
 }
