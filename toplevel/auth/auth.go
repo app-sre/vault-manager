@@ -104,8 +104,6 @@ func init() {
 
 // Apply ensures that an instance of Vault's authentication backends are
 // configured exactly as provided.
-//
-// This function exits the program if an error occurs.
 func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	// Unmarshal the list of configured auth backends.
 	var entries []entry
@@ -119,7 +117,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	}
 
 	// perform reconcile process per instance
-	for _, instanceAddr := range vault.InstanceAddresses {
+	for instanceAddr := range vault.InstanceAddresses {
 		// Get the existing auth backends
 		existingAuthMounts, err := vault.ListAuthBackends(instanceAddr)
 		if err != nil {
@@ -141,18 +139,47 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			}
 		}
 
+		// perform auth reconcile
 		toBeWritten, toBeDeleted, _ :=
 			vault.DiffItems(entriesAsItems(instancesToDesired[instanceAddr]), entriesAsItems(existingBackends))
-		enableAuth(instanceAddr, toBeWritten, dryRun)
-		configureAuthMounts(instanceAddr, instancesToDesired[instanceAddr], dryRun)
-		disableAuth(instanceAddr, toBeDeleted, dryRun)
+		err = enableAuth(instanceAddr, toBeWritten, dryRun)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"instance": instanceAddr,
+			}).Info("[Vault Identity] failed to enable auth")
+			vault.AddInvalid(instanceAddr)
+			continue
+		}
+		err = configureAuthMounts(instanceAddr, instancesToDesired[instanceAddr], dryRun)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"instance": instanceAddr,
+			}).Info("[Vault Identity] failed to configure auth")
+			vault.AddInvalid(instanceAddr)
+			continue
+		}
+		err = disableAuth(instanceAddr, toBeDeleted, dryRun)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"instance": instanceAddr,
+			}).Info("[Vault Identity] failed to disable auth")
+			vault.AddInvalid(instanceAddr)
+			continue
+		}
 
-		// apply policy mappings
+		// apply github policy mappings
 		for _, e := range instancesToDesired[instanceAddr] {
 			if e.Type == "github" {
 				//Build a array of existing policy mappings for current auth mount
 				existingPolicyMappings := make([]policyMapping, 0)
-				teamsList := vault.ListSecrets(instanceAddr, filepath.Join("/auth", e.Path, "map/teams"))
+				teamsList, err := vault.ListSecrets(instanceAddr, filepath.Join("/auth", e.Path, "map/teams"))
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"instance": instanceAddr,
+					}).Info("[Vault Identity] failed to list auth's map/team secret config")
+					vault.AddInvalid(instanceAddr)
+					continue
+				}
 				if teamsList != nil {
 
 					var mutex = &sync.Mutex{}
@@ -160,20 +187,23 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 					teams := teamsList.Data["keys"].([]interface{})
 
 					bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+					ch := make(chan error)
 
 					// fill existing policy mappings array in parallel
 					for team := range teams {
 						bwg.Add(1)
 
-						go func(team int) {
-
+						go func(team int, ch chan<- error) {
 							policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", teams[team].(string))
 
-							policiesMappedToEntity := vault.ReadSecret(instanceAddr, policyMappingPath, vault.KV_V1)["value"].(string)
+							policiesMappedToEntity, err := vault.ReadSecret(instanceAddr, policyMappingPath, vault.KV_V1)
+							if err != nil {
+								ch <- err
+								return
+							}
 
 							policies := make([]map[string]interface{}, 0)
-
-							for _, policy := range strings.Split(policiesMappedToEntity, ",") {
+							for _, policy := range strings.Split(policiesMappedToEntity["value"].(string), ",") {
 								policies = append(policies, map[string]interface{}{"name": policy})
 							}
 
@@ -184,13 +214,24 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 							defer bwg.Done()
 							defer mutex.Unlock()
-						}(team)
+						}(team, ch)
 					}
-					bwg.Wait()
+
+					go func() {
+						bwg.Wait()
+						close(ch)
+					}()
+
+					for e := range ch {
+						if e != nil {
+							vault.AddInvalid(instanceAddr)
+							continue
+						}
+					}
 				}
 
 				// remove all gh user policy mappings from vault
-				usersList := vault.ListSecrets(instanceAddr, filepath.Join("/auth", e.Path, "map/users"))
+				usersList, err := vault.ListSecrets(instanceAddr, filepath.Join("/auth", e.Path, "map/users"))
 				if usersList != nil {
 
 					users := usersList.Data["keys"].([]interface{})
@@ -242,7 +283,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	vault.RemoveInstanceFromReconciliation()
 }
 
-func enableAuth(instanceAddr string, toBeWritten []vault.Item, dryRun bool) {
+func enableAuth(instanceAddr string, toBeWritten []vault.Item, dryRun bool) error {
 	// TODO(riuvshin): implement auth tuning
 	for _, e := range toBeWritten {
 		ent := e.(entry)
@@ -253,35 +294,44 @@ func enableAuth(instanceAddr string, toBeWritten []vault.Item, dryRun bool) {
 				"instance": instanceAddr,
 			}).Info("[Dry Run] [Vault Auth] auth backend to be enabled")
 		} else {
-			vault.EnableAuthWithOptions(instanceAddr, ent.Path,
+			err := vault.EnableAuthWithOptions(instanceAddr, ent.Path,
 				&api.EnableAuthOptions{
 					Type:        ent.Type,
 					Description: ent.Description,
 				})
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
-func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) {
+func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) error {
 	// configure auth mounts
 	for _, e := range entries {
 		if e.Settings != nil {
 			if e.Type == "oidc" {
 				err := getOidcClientSecret(instanceAddr, e.Settings)
 				if err != nil {
-					fmt.Println(err)
-					vault.AddInvalid(instanceAddr)
-					continue
+					return err
 				}
 			}
 			for name, cfg := range e.Settings {
 				path := filepath.Join("auth", e.Path, name)
-				if !vault.DataInSecret(instanceAddr, cfg, path) {
+				dataExists, err := vault.DataInSecret(instanceAddr, cfg, path)
+				if err != nil {
+					return err
+				}
+				if !dataExists {
 					if dryRun == true {
 						log.WithField("path", path).WithField("type", e.Type).WithField("instance", instanceAddr).Info(
 							"[Dry Run] [Vault Auth] auth backend configuration to be written")
 					} else {
-						vault.WriteSecret(instanceAddr, path, cfg)
+						err := vault.WriteSecret(instanceAddr, path, cfg)
+						if err != nil {
+							return err
+						}
 						log.WithField("path", path).WithField("type", e.Type).WithField("instance", instanceAddr).Info(
 							"[Vault Auth] auth backend successfully configured")
 					}
@@ -289,9 +339,10 @@ func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) {
 			}
 		}
 	}
+	return nil
 }
 
-func disableAuth(instanceAddr string, toBeDeleted []vault.Item, dryRun bool) {
+func disableAuth(instanceAddr string, toBeDeleted []vault.Item, dryRun bool) error {
 	for _, e := range toBeDeleted {
 		ent := e.(entry)
 		if strings.HasPrefix(ent.Path, "token/") {
@@ -301,28 +352,38 @@ func disableAuth(instanceAddr string, toBeDeleted []vault.Item, dryRun bool) {
 			log.WithField("path", ent.Path).WithField("type", ent.Type).WithField("instance", instanceAddr).Info(
 				"[Dry Run] [Vault Auth] auth backend to be disabled")
 		} else {
-			vault.DisableAuth(instanceAddr, ent.Path)
+			err := vault.DisableAuth(instanceAddr, ent.Path)
+			if err != nil {
+				return err
+			}
+			log.WithField("path", ent.Path).WithField("type", ent.Type).WithField("instance", instanceAddr).Info(
+				"[Vault Auth] auth backend to be disabled")
 		}
 	}
+	return nil
 }
 
-func writePolicyMapping(instanceAddr string, path string, data map[string]interface{}, dryRun bool) {
+func writePolicyMapping(instanceAddr string, path string, data map[string]interface{}, dryRun bool) error {
 	if dryRun == true {
 		log.WithField("path", path).WithField("policies", data["value"]).WithField("instance", instanceAddr).Info(
 			"[Dry Run] [Vault Auth] policies mapping to be applied")
 	} else {
-		vault.WriteSecret(instanceAddr, path, data)
+		err := vault.WriteSecret(instanceAddr, path, data)
+		if err != nil {
+			return err
+		}
 		log.WithField("path", path).WithField("policies", data["value"]).WithField("instance", instanceAddr).Info(
 			"[Vault Auth] policies mapping is successfully applied")
 	}
+	return nil
 }
+
 func entriesAsItems(xs []entry) (items []vault.Item) {
 	items = make([]vault.Item, 0)
 	for _, x := range xs {
 		items = append(items, x)
 	}
-
-	return
+	return items
 }
 
 func deletePolicyMapping(instanceAddr string, path string, dryRun bool) {
@@ -341,8 +402,7 @@ func policyMappingsAsItems(xs []policyMapping) (items []vault.Item) {
 	for _, x := range xs {
 		items = append(items, x)
 	}
-
-	return
+	return items
 }
 
 // retrieves client secret at vault location specified in oidc auth definition
