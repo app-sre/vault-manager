@@ -175,18 +175,18 @@ func configureMaster() {
 	masterAddress = masterVaultCFG.Address
 }
 
-// AddInvalild is called by toplevel packages when an error is encountered while reconciling
-// The invalid instance is appended to a global and then processed within RemoveInstanceFromReconcile
-func AddInvalid(instanceAddr string) {
-	invalidInstances = append(invalidInstances, instanceAddr)
-}
-
 // returns the vault client associated with instance address
 func getClient(instanceAddr string) *api.Client {
 	if vaultClients[instanceAddr] == nil {
 		log.Fatalf("[Vault Client] client does not exist for address: %s", instanceAddr)
 	}
 	return vaultClients[instanceAddr]
+}
+
+// AddInvalild is called by toplevel packages when an error is encountered while reconciling
+// The invalid instance is appended to a global and then processed within RemoveInstanceFromReconcile
+func AddInvalid(instanceAddr string) {
+	invalidInstances = append(invalidInstances, instanceAddr)
 }
 
 // Removes an instance from the global slice utilized by toplevels to target instances for reconciliation
