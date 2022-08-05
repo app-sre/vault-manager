@@ -79,27 +79,35 @@ func (e entity) Equals(i interface{}) bool {
 		reflect.DeepEqual(e.Metadata, entry.Metadata)
 }
 
-func (e entity) CreateOrUpdate(action string) {
+func (e entity) CreateOrUpdate(action string) error {
 	path := filepath.Join("identity", e.Type, "name", e.Name)
 	config := map[string]interface{}{
 		"metadata": e.Metadata,
 	}
-	vault.WriteSecret(e.Instance.Address, path, config)
+	err := vault.WriteSecret(e.Instance.Address, path, config)
+	if err != nil {
+		return err
+	}
 	log.WithFields(log.Fields{
 		"instance": e.Instance.Address,
 		"path":     path,
 		"type":     e.KeyForType(),
 	}).Infof("[Vault Identity] entity successfully %s", action)
+	return nil
 }
 
-func (e entity) Delete() {
+func (e entity) Delete() error {
 	path := filepath.Join("identity", e.Type, "name", e.Name)
-	vault.DeleteSecret(e.Instance.Address, path)
+	err := vault.DeleteSecret(e.Instance.Address, path)
+	if err != nil {
+		return err
+	}
 	log.WithFields(log.Fields{
 		"instance": e.Instance.Address,
 		"path":     path,
 		"type":     e.KeyForType(),
 	}).Info("[Vault Identity] entity successfully deleted")
+	return nil
 }
 
 func (e entityAlias) Key() string {
@@ -123,44 +131,56 @@ func (e entityAlias) Equals(i interface{}) bool {
 		e.AuthType == entry.AuthType
 }
 
-func (ea entityAlias) Create(entityId string) {
+func (ea entityAlias) Create(entityId string) error {
 	path := filepath.Join("identity", ea.Type)
 	config := map[string]interface{}{
 		"name":           ea.Name,
 		"canonical_id":   entityId,
 		"mount_accessor": ea.AccessorId,
 	}
-	vault.WriteEntityAlias(ea.Instance.Address, path, config)
+	err := vault.WriteEntityAlias(ea.Instance.Address, path, config)
+	if err != nil {
+		return err
+	}
 	log.WithFields(log.Fields{
 		"instance": ea.Instance.Address,
 		"path":     filepath.Join(path, ea.Name),
 		"type":     ea.AuthType,
 	}).Info("[Vault Identity] entity alias successfully written")
+	return nil
 }
 
-func (ea entityAlias) Update(entityId string) {
+func (ea entityAlias) Update(entityId string) error {
 	path := filepath.Join("identity", ea.Type, "id", ea.Id)
 	config := map[string]interface{}{
 		"name":           ea.Name,
 		"canonical_id":   entityId,
 		"mount_accessor": ea.AccessorId,
 	}
-	vault.WriteSecret(ea.Instance.Address, path, config)
+	err := vault.WriteSecret(ea.Instance.Address, path, config)
+	if err != nil {
+		return err
+	}
 	log.WithFields(log.Fields{
 		"instance": ea.Instance.Address,
 		"path":     filepath.Join(path, ea.Name),
 		"type":     ea.AuthType,
 	}).Info("[Vault Identity] entity alias successfully updated")
+	return nil
 }
 
-func (ea entityAlias) Delete() {
+func (ea entityAlias) Delete() error {
 	path := filepath.Join("identity", ea.Type, "id", ea.Id)
-	vault.DeleteSecret(ea.Instance.Address, path)
+	err := vault.DeleteSecret(ea.Instance.Address, path)
+	if err != nil {
+		return err
+	}
 	log.WithFields(log.Fields{
 		"instance": ea.Instance.Address,
 		"path":     filepath.Join(path, ea.Name),
 		"type":     ea.AuthType,
 	}).Info("[Vault Identity] entity alias successfully deleted")
+	return nil
 }
 
 func init() {
@@ -178,18 +198,27 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		populateAliasType(desired)
 	}
 
-	for _, instanceAddr := range vault.InstanceAddresses {
+OUTER:
+	for instanceAddr := range vault.InstanceAddresses {
 		// Process data on existing entities/aliases
 		existingEntities, err := createBaseExistingEntities(instanceAddr)
 		if err != nil {
-			log.WithError(err)
-			fmt.Println(fmt.Sprintf("[Vault Identity] failed to parse existing entities for %s", instanceAddr))
+			log.WithError(err).WithFields(log.Fields{
+				"instance": instanceAddr,
+			}).Info("[Vault Identity] failed to parse existing entities")
 			vault.AddInvalid(instanceAddr)
 			continue
 		}
 		pruneApproleEntities(&existingEntities)
 		if existingEntities != nil && len(existingEntities) > 0 {
-			getExistingEntitiesDetails(instanceAddr, existingEntities, threadPoolSize)
+			err := getExistingEntitiesDetails(instanceAddr, existingEntities, threadPoolSize)
+			if err != nil {
+				log.WithError(err).WithFields(log.Fields{
+					"instance": instanceAddr,
+				}).Info("[Vault Identity] failed to gather existing entity details")
+				vault.AddInvalid(instanceAddr)
+				continue
+			}
 			populateAliasType(existingEntities)
 			copyIds(instancesToDesired[instanceAddr], existingEntities)
 		}
@@ -219,18 +248,45 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		} else {
 			// TODO: make each action perform concurrently
 			for _, w := range entitiesToBeWritten {
-				w.(entity).CreateOrUpdate("written")
+				err := w.(entity).CreateOrUpdate("written")
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"instance": instanceAddr,
+						"name":     w.(entity).Name,
+					}).Info("[Vault Identity] failed to create entity")
+					vault.AddInvalid(instanceAddr)
+					continue OUTER // terminate remaining reconcile for instance that returned an error
+				}
 			}
 			for _, d := range entitiesToBeDeleted {
-				d.(entity).Delete()
+				err := d.(entity).Delete()
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"instance": instanceAddr,
+						"name":     d.(entity).Name,
+					}).Info("[Vault Identity] failed to delete entity")
+					vault.AddInvalid(instanceAddr)
+					continue OUTER // terminate remaining reconcile for instance that returned an error
+				}
 			}
 			for _, u := range entitiesToBeUpdated {
-				u.(entity).CreateOrUpdate("update")
+				err := u.(entity).CreateOrUpdate("update")
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"instance": instanceAddr,
+						"name":     u.(entity).Name,
+					}).Info("[Vault Identity] failed to update entity")
+					vault.AddInvalid(instanceAddr)
+					continue OUTER // terminate remaining reconcile for instance that returned an error
+				}
 			}
 			err = performAliasReconcile(instanceAddr, aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated)
 			if err != nil {
-				fmt.Println("[Vault Identity Alias Reconcile] " + err.Error())
+				log.WithError(err).WithFields(log.Fields{
+					"instance": instanceAddr,
+				}).Info("[Vault Identity] failed to reconcile entity aliases")
 				vault.AddInvalid(instanceAddr)
+				continue OUTER // terminate remaining reconcile for instance that returned an error
 			}
 		}
 	}
@@ -247,7 +303,7 @@ func getDesiredByInstance(entries []user) map[string][]entity {
 	// a user file can ref multi roles but only one should be appended to
 	// new desired per instance
 	existing := make(map[string]map[string]bool)
-	for _, instanceAddr := range vault.InstanceAddresses {
+	for instanceAddr := range vault.InstanceAddresses {
 		existing[instanceAddr] = make(map[string]bool)
 	}
 	for _, u := range entries {
@@ -282,7 +338,10 @@ func getDesiredByInstance(entries []user) map[string][]entity {
 
 // processes all relevant info for entities/entity aliases from single vault api request
 func createBaseExistingEntities(instanceAddr string) ([]entity, error) {
-	raw := vault.ListEntities(instanceAddr)
+	raw, err := vault.ListEntities(instanceAddr)
+	if err != nil {
+		return nil, err
+	}
 	if raw == nil {
 		return nil, nil
 	}
@@ -362,23 +421,28 @@ func createBaseExistingEntities(instanceAddr string) ([]entity, error) {
 
 // performs concurrent requests to retrieve additional details for existing entities/entity aliases
 // these details require explicit requests to vault api for each entitiy/alias
-func getExistingEntitiesDetails(instanceAddr string, entities []entity, threadPoolSize int) {
+func getExistingEntitiesDetails(instanceAddr string, entities []entity, threadPoolSize int) error {
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+	ch := make(chan error)
 
 	for i := 0; i < len(entities); i++ {
 		bwg.Add(1)
 
-		go func(e *entity) {
+		go func(e *entity, ch chan<- error) {
 			defer bwg.Done()
 
-			info := vault.GetEntityInfo(instanceAddr, e.Name)
+			info, err := vault.GetEntityInfo(instanceAddr, e.Name)
+			if err != nil {
+				ch <- err
+				return
+			}
 			if info == nil {
-				log.WithError(errors.New(fmt.Sprintf(
-					"No information returned for entity id: %s", e.Id))).Fatal()
+				ch <- errors.New(fmt.Sprintf("No information returned for entity id: %s", e.Id))
+				return
 			}
 			if _, exists := info["metadata"]; !exists {
-				log.WithError(errors.New(fmt.Sprintf(
-					"Required `metadata` attribute not found for entity id: %s", e.Id))).Fatal()
+				ch <- errors.New(fmt.Sprintf("Required `metadata` attribute not found for entity id: %s", e.Id))
+				return
 			}
 			var metadata map[string]interface{}
 			if info["metadata"] == nil {
@@ -389,11 +453,16 @@ func getExistingEntitiesDetails(instanceAddr string, entities []entity, threadPo
 
 			// TODO: make this a nested goroutine
 			for j := 0; j < len(e.Aliases); j++ {
-				rawAlias := vault.GetEntityAliasInfo(instanceAddr, e.Aliases[j].Id)
+				rawAlias, err := vault.GetEntityAliasInfo(instanceAddr, e.Aliases[j].Id)
+				if err != nil {
+					ch <- err
+					return
+				}
 				mountAccessor, ok := rawAlias["mount_accessor"].(string)
 				if !ok {
-					log.WithError(errors.New(fmt.Sprintf(
-						"Unable to retrieve required `mount_accessor` attribute for entity-alias id: %s", e.Aliases[j].Id))).Fatal()
+					ch <- errors.New(fmt.Sprintf(
+						"Unable to retrieve required `mount_accessor` attribute for entity-alias id: %s", e.Aliases[j].Id))
+					return
 				}
 				e.Aliases[j].AccessorId = mountAccessor
 			}
@@ -404,10 +473,25 @@ func getExistingEntitiesDetails(instanceAddr string, entities []entity, threadPo
 				for k, v := range metadata {
 					metadataMap[k] = v
 				}
+			} else {
+				ch <- errors.New(fmt.Sprintf("Entity Alias metatdata conversion failed"))
 			}
-		}(&entities[i])
+		}(&entities[i], ch)
 	}
-	bwg.Wait()
+
+	// do not close channel until all goroutines finish
+	func() {
+		bwg.Wait()
+		close(ch)
+	}()
+
+	// wait indefinitely for error responses until close() is called
+	for e := range ch {
+		if e != nil {
+			return e
+		}
+	}
+	return nil
 }
 
 // removes existing entities that have been flagged as being connected to approles
@@ -509,7 +593,10 @@ func performAliasReconcile(instanceAddr string, aliasesToBeWritten map[string]ma
 			for _, w := range ws {
 				a := w.(entityAlias)
 				a.AccessorId = accessorIds[a.AuthType]
-				newEntity := vault.GetEntityInfo(instanceAddr, name)
+				newEntity, err := vault.GetEntityInfo(instanceAddr, name)
+				if err != nil {
+					return err
+				}
 				if newEntity == nil {
 					return errors.New(fmt.Sprintf(
 						"[Vault Identity] failed to get info for newly created entity: %s", name))
