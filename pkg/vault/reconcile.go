@@ -167,19 +167,23 @@ func ParseDuration(duration string) (time.Duration, error) {
 }
 
 // DataInSecret compare given data with data stored in the vault secret
-func DataInSecret(instanceAddr string, data map[string]interface{}, path string) bool {
+func DataInSecret(instanceAddr string, data map[string]interface{}, path string) (bool, error) {
 	// read desired secret
 	// KV V1 is harded coded as all logic related to calling DataInSecret is internal resource reconciliation
 	// vault utilizes KV V1 for storing this info
-	secret := ReadSecret(instanceAddr, path, KV_V1)
+	secret, err := ReadSecret(instanceAddr, path, KV_V1)
+	if err != nil {
+		return false, err
+	}
 	if secret == nil {
-		return false
+		return false, nil
 	}
 	for k, v := range data {
 		if strings.HasSuffix(k, "ttl") || strings.HasSuffix(k, "period") {
 			dur, err := ParseDuration(v.(string))
 			if err != nil {
-				log.WithError(err).WithField("option", k).Fatal("failed to parse duration from data")
+				log.WithError(err).WithField("option", k).Info("failed to parse duration from data")
+				return false, err
 			}
 			v = int64(dur.Seconds())
 		} else if k == OIDC_CLIENT_SECRET || k == OIDC_CLIENT_SECRET_KV_VER { // not returned from ReadSecret()
@@ -189,7 +193,7 @@ func DataInSecret(instanceAddr string, data map[string]interface{}, path string)
 		if fmt.Sprintf("%v", secret[k]) == fmt.Sprintf("%v", v) {
 			continue
 		}
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
