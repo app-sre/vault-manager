@@ -306,38 +306,47 @@ func DeleteSecret(instanceAddr string, secretPath string) {
 }
 
 // list existing enabled Audits Devices.
-func ListAuditDevices(instanceAddr string) map[string]*api.Audit {
+func ListAuditDevices(instanceAddr string) (map[string]*api.Audit, error) {
 	enabledAuditDevices, err := getClient(instanceAddr).Sys().ListAudit()
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatal(
-			"[Vault Audit] failed to list audit devices")
+		log.WithError(err).WithFields(log.Fields{
+			"instance": instanceAddr,
+		}).Info("[Vault Audit] failed to list audit devices")
+		return nil, errors.New("failed to list audit devices")
 	}
-	return enabledAuditDevices
+	return enabledAuditDevices, nil
 }
 
 // enable audit device with options
-func EnableAduitDevice(instanceAddr string, path string, options *api.EnableAuditOptions) {
+func EnableAuditDevice(instanceAddr, path string, options *api.EnableAuditOptions) error {
 	if err := getClient(instanceAddr).Sys().EnableAuditWithOptions(path, options); err != nil {
 		log.WithFields(log.Fields{
 			"path":     path,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Audit] failed to enable audit device")
+		}).Info("[Vault Audit] failed to enable audit device")
+		return errors.New("failed to enable audit device")
 	}
 	log.WithFields(log.Fields{
 		"path":     path,
 		"instance": instanceAddr,
 	}).Info("[Vault Audit] audit device is successfully enabled")
+	return nil
 }
 
 // disable audit device
-func DisableAuditDevice(instanceAddr string, path string) {
+func DisableAuditDevice(instanceAddr string, path string) error {
 	if err := getClient(instanceAddr).Sys().DisableAudit(path); err != nil {
-		log.WithField("path", path).Fatal("[Vault Audit] failed to disable audit device")
+		log.WithFields(log.Fields{
+			"path":     path,
+			"instance": instanceAddr,
+		}).Info("[Vault Audit] failed to disable audit device")
+		return errors.New("failed to disable audit device")
 	}
 	log.WithFields(log.Fields{
 		"path":     path,
 		"instance": instanceAddr,
 	}).Info("[Vault Audit] audit device is successfully disabled")
+	return nil
 }
 
 // list existing auth backends
