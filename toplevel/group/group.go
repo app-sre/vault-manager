@@ -280,7 +280,7 @@ func getGroupDetails(g *group, bwg *utils.BoundedWaitGroup) {
 // this map is used to determine what groups should contain which entities
 func getEntityNamesToIds(instanceAddr string) (map[string]string, error) {
 	var entityNamesToIds map[string]string
-	raw := vault.ListEntities(instanceAddr)
+	raw, _ := vault.ListEntities(instanceAddr)
 	if raw == nil {
 		return make(map[string]string), nil
 	}

@@ -525,47 +525,55 @@ func GetVaultVersion(instanceAddr string) (string, error) {
 	return info.Version, nil
 }
 
-func ListEntities(instanceAddr string) map[string]interface{} {
+func ListEntities(instanceAddr string) (map[string]interface{}, error) {
 	existingEntities, err := getClient(instanceAddr).Logical().List("identity/entity/id")
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+		log.WithError(err).WithField("instance", instanceAddr).Info(
 			"[Vault Identity] failed to list Vault entities")
 	}
 	if existingEntities == nil {
-		return nil
+		return nil, err
 	}
-	return existingEntities.Data
+	return existingEntities.Data, nil
 }
 
-func GetEntityInfo(instanceAddr string, name string) map[string]interface{} {
+func GetEntityInfo(instanceAddr string, name string) (map[string]interface{}, error) {
 	entity, err := getClient(instanceAddr).Logical().Read(fmt.Sprintf("identity/entity/name/%s", name))
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatalf(
-			"[Vault Identity] failed to get info for entity: %s", name)
+		log.WithError(err).WithFields(log.Fields{
+			"instance": instanceAddr,
+			"name":     name,
+		}).Info("[Vault Identity] failed to get entity info")
+		return nil, err
 	}
 	if entity == nil {
-		return nil
+		return nil, nil
 	}
-	return entity.Data
+	return entity.Data, nil
 }
 
-func GetEntityAliasInfo(instanceAddr string, id string) map[string]interface{} {
+func GetEntityAliasInfo(instanceAddr string, id string) (map[string]interface{}, error) {
 	entityAlias, err := getClient(instanceAddr).Logical().Read(fmt.Sprintf("identity/entity-alias/id/%s", id))
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatalf(
-			"[Vault Identity] failed to get info for entity alias: %s", id)
+		log.WithError(err).WithFields(log.Fields{
+			"instance": instanceAddr,
+			"id":       id,
+		}).Info("[Vault Identity] failed to get info for entity alias")
+		return nil, err
 	}
-	return entityAlias.Data
+	return entityAlias.Data, nil
 }
 
-func WriteEntityAlias(instanceAddr string, secretPath string, secretData map[string]interface{}) {
+func WriteEntityAlias(instanceAddr string, secretPath string, secretData map[string]interface{}) error {
 	_, err := getClient(instanceAddr).Logical().Write(secretPath, secretData)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":     secretPath,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Client] failed to write entity-alias secret")
+		}).Info("[Vault Client] failed to write entity-alias secret")
+		return err
 	}
+	return nil
 }
 
 func ListGroups(instanceAddr string) map[string]interface{} {
