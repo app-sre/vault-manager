@@ -282,15 +282,16 @@ func ReadSecret(instanceAddr, secretPath, engineVersion string) (map[string]inte
 }
 
 // list secrets
-func ListSecrets(instanceAddr string, path string) *api.Secret {
+func ListSecrets(instanceAddr string, path string) (*api.Secret, error) {
 	secretsList, err := getClient(instanceAddr).Logical().List(path)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":     path,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Client] failed to list Vault secrets")
+		}).Info("[Vault Client] failed to list Vault secrets")
+		return nil, errors.New("failed to list secrets")
 	}
-	return secretsList
+	return secretsList, nil
 }
 
 // delete secret from vault
@@ -340,38 +341,49 @@ func DisableAuditDevice(instanceAddr string, path string) {
 }
 
 // list existing auth backends
-func ListAuthBackends(instanceAddr string) map[string]*api.AuthMount {
+func ListAuthBackends(instanceAddr string) (map[string]*api.AuthMount, error) {
 	existingAuthMounts, err := getClient(instanceAddr).Sys().ListAuth()
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatal(
-			"[Vault Auth] failed to list auth backends from Vault instance")
+		log.WithError(err).WithFields(log.Fields{
+			"instance": instanceAddr,
+		}).Info("[Vault Auth] failed to list auth backends")
+		return nil, errors.New("failed to list auth backends")
 	}
-	return existingAuthMounts
+	return existingAuthMounts, nil
 }
 
 // enable auth backend
-func EnableAuthWithOptions(instanceAddr string, path string, options *api.EnableAuthOptions) {
+func EnableAuthWithOptions(instanceAddr string, path string, options *api.EnableAuthOptions) error {
 	if err := getClient(instanceAddr).Sys().EnableAuthWithOptions(path, options); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":     path,
 			"type":     options.Type,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Auth] failed to enable auth backend")
+		}).Info("[Vault Auth] failed to enable auth backend")
+		return errors.New("failed to enable auth backend")
 	}
 	log.WithFields(log.Fields{
 		"path":     path,
 		"type":     options.Type,
 		"instance": instanceAddr,
 	}).Info("[Vault Auth] successfully enabled auth backend")
+	return nil
 }
 
 // disable auth backend
-func DisableAuth(instanceAddr string, path string) {
+func DisableAuth(instanceAddr string, path string) error {
 	if err := getClient(instanceAddr).Sys().DisableAuth(path); err != nil {
-		log.WithError(err).WithField("path", path).Fatal("[Vault Auth] failed to disable auth backend")
+		log.WithError(err).WithFields(log.Fields{
+			"path":     path,
+			"instance": instanceAddr,
+		}).Info("[Vault Auth] failed to disable auth backend")
+		return errors.New("failed to disable auth backend")
 	}
-	log.WithField("path", path).WithField("instance", instanceAddr).Info(
-		"[Vault Auth] successfully disabled auth backend")
+	log.WithFields(log.Fields{
+		"path":     path,
+		"instance": instanceAddr,
+	}).Info("[Vault Auth] successfully disabled auth backend")
+	return nil
 }
 
 // list vault policies

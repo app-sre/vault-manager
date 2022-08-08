@@ -478,7 +478,7 @@ func performAliasReconcile(instanceAddr string, aliasesToBeWritten map[string]ma
 	// extra work (vault api request) required to organize accessor ids
 	if len(aliasesToBeWritten) > 0 {
 		accessorIds = make(map[string]string)
-		authBackends := vault.ListAuthBackends(instanceAddr)
+		authBackends, _ := vault.ListAuthBackends(instanceAddr)
 		for k, v := range authBackends {
 			accessorIds[strings.TrimRight(k, "/")] = v.Accessor
 		}

@@ -108,7 +108,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	instancesToExistingAuths := make(map[string]map[string]*api.MountOutput)
 	for _, e := range entries {
 		if _, exists := instancesToExistingAuths[e.Instance.Address]; !exists {
-			instancesToExistingAuths[e.Instance.Address] = vault.ListAuthBackends(e.Instance.Address)
+			instancesToExistingAuths[e.Instance.Address], _ = vault.ListAuthBackends(e.Instance.Address)
 		}
 	}
 
@@ -119,7 +119,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			for authBackend := range existingAuthBackends {
 				// Get the secret with the existing App Roles.
 				path := filepath.Join("auth", authBackend, "role")
-				secret := vault.ListSecrets(instance, path)
+				secret, _ := vault.ListSecrets(instance, path)
 				if secret != nil {
 					roles := secret.Data["keys"].([]interface{})
 
