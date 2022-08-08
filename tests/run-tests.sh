@@ -47,6 +47,29 @@ container_alive () {
   echo ""
 }
 
+deploy_vault () {
+  docker run -d --name=$1 \
+    --net=host \
+    --cap-add=IPC_LOCK \
+    -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
+    -p $2:$2 \
+    -v /tmp/:/var/log/vault/:Z \
+    $VAULT_IMAGE:$VAULT_IMAGE_TAG
+  container_alive "http://127.0.0.1:$2" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $1
+}
+
+configure_secrets () {
+  export VAULT_ADDR=http://127.0.0.1:8200
+  # populate necessary vault access vars to master
+  vault kv put secret/master rootToken=root
+  vault kv put secret/secondary root=root
+  vault kv put secret/oidc client-secret=my-special-client-secret
+  # populate oidc client secret in secondary
+  export VAULT_ADDR=http://127.0.0.1:8202
+  vault kv put secret/oidc client-secret=my-special-client-secret
+  export VAULT_ADDR=http://127.0.0.1:8200
+}
+
 cleanup
 
 # spin up keycloak server
@@ -84,35 +107,12 @@ docker run -d --rm \
 container_alive "http://127.0.0.1:4000" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $QONTRACT_SERVER_NAME
 
 # spin up primary vault server
-docker run -d --name=$VAULT_NAME \
-  --net=host \
-  --cap-add=IPC_LOCK \
-  -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
-  -p 8200:8200 \
-  -v /tmp/:/var/log/vault/:Z \
-  $VAULT_IMAGE:$VAULT_IMAGE_TAG
-container_alive "http://127.0.0.1:8200" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME
-
-# populate necessary vault access vars to master
-vault kv put secret/master rootToken=root
-vault kv put secret/secondary root=root
-vault kv put secret/oidc client-secret=my-special-client-secret
+deploy_vault $VAULT_NAME 8200
 
 # spin up secondary vault server
-docker run -d --name=$VAULT_NAME_SECONDARY \
-  --net=host \
-  --cap-add=IPC_LOCK \
-  -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
-  -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8202' \
-  -p 8202:8202 \
-  -v /tmp/:/var/log/vault/:Z \
-  $VAULT_IMAGE:$VAULT_IMAGE_TAG
-container_alive "http://127.0.0.1:8202" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME_SECONDARY
+deploy_vault $VAULT_NAME_SECONDARY 8202
 
-# populate oidc client secret in secondary
-export VAULT_ADDR=http://127.0.0.1:8202
-vault kv put secret/oidc client-secret=my-special-client-secret
-export VAULT_ADDR=http://127.0.0.1:8200
+configure_secrets
 
 # run test suite
 for test in $(find bats/ -type f | grep .bats | grep -v entities | grep -v groups); do
@@ -133,5 +133,11 @@ bats --tap bats/entities/entities.bats
 # groups is dependent on entities
 echo "running bats/groups/groups.bats"
 bats --tap bats/groups/groups.bats
+
+# reset vault instances
+docker stop $VAULT_NAME && docker rm $VAULT_NAME
+docker stop $VAULT_NAME_SECONDARY && docker rm $VAULT_NAME_SECONDARY
+deploy_vault $VAULT_NAME 8200
+
 
 cleanup
