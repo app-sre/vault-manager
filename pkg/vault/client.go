@@ -485,17 +485,19 @@ func EnableSecretsEngine(instanceAddr string, path string, mount *api.MountInput
 }
 
 // update secrets engine
-func UpdateSecretsEngine(instanceAddr string, path string, config api.MountConfigInput) {
+func UpdateSecretsEngine(instanceAddr string, path string, config api.MountConfigInput) error {
 	if err := getClient(instanceAddr).Sys().TuneMount(path, config); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":     path,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Secrets engine] failed to update secrets-engine")
+		}).Info("[Vault Secrets engine] failed to update secrets-engine")
+		return err
 	}
 	log.WithFields(log.Fields{
 		"path":     path,
 		"instance": instanceAddr,
 	}).Info("[Vault Secrets engine] successfully updated secrets-engine")
+	return nil
 }
 
 // disable secrets engine
