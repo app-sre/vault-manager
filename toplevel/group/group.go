@@ -75,29 +75,37 @@ func (g group) Equals(i interface{}) bool {
 		reflect.DeepEqual(g.EntityIds, group.EntityIds)
 }
 
-func (g group) CreateOrUpdate(action string) {
+func (g group) CreateOrUpdate(action string) error {
 	path := filepath.Join("identity", g.Type, "name", g.Name)
 	config := map[string]interface{}{
 		"member_entity_ids": g.EntityIds,
 		"policies":          g.Policies,
 		"metadata":          g.Metadata,
 	}
-	vault.WriteSecret(g.Instance.Address, path, config)
+	err := vault.WriteSecret(g.Instance.Address, path, config)
+	if err != nil {
+		return err
+	}
 	log.WithFields(log.Fields{
 		"path":     path,
 		"type":     g.Type,
 		"instance": g.Instance.Address,
 	}).Infof("[Vault Identity] group successfully %s", action)
+	return nil
 }
 
-func (g group) Delete() {
+func (g group) Delete() error {
 	path := filepath.Join("identity", g.Type, "name", g.Name)
-	vault.DeleteSecret(g.Instance.Address, path)
+	err := vault.DeleteSecret(g.Instance.Address, path)
+	if err != nil {
+		return err
+	}
 	log.WithFields(log.Fields{
 		"path":     path,
 		"type":     g.Type,
 		"instance": g.Instance.Address,
 	}).Info("[Vault Identity] group successfully deleted")
+	return nil
 }
 
 var _ vault.Item = group{}
@@ -112,16 +120,24 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
 	// perform processing/reconcile per instance
-	for _, instanceAddr := range instance.InstanceAddresses {
+OUTER:
+	for instanceAddr := range vault.InstanceAddresses {
 		entityNamesToIds, err := getEntityNamesToIds(instanceAddr)
 		if err != nil {
-			log.WithError(err).Fatal("[Vault Identity] failed to parse existing entities")
+			log.WithError(err).WithFields(log.Fields{
+				"instance": instanceAddr,
+			}).Info("[Vault Identity] failed to parse existing entities as prereq for group reconcile")
+			vault.AddInvalid(instanceAddr)
+			continue
 		}
 		desired := processDesired(instanceAddr, users, entityNamesToIds)
 		existing, err := getExistingGroups(instanceAddr, threadPoolSize)
 		if err != nil {
-			log.WithError(err).Fatalf(
-				"[Vault Identity] failed to retrieve existing groups for instance %s", instanceAddr)
+			log.WithError(err).WithFields(log.Fields{
+				"instance": instanceAddr,
+			}).Info("[Vault Identity] failed to retrieve existing groups")
+			vault.AddInvalid(instanceAddr)
+			continue
 		}
 		sortSlices(desired)
 		sortSlices(existing)
@@ -133,16 +149,41 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			dryRunOutput(instanceAddr, toBeUpdated, "updated")
 		} else {
 			for _, w := range toBeWritten {
-				w.(group).CreateOrUpdate("written")
+				err := w.(group).CreateOrUpdate("written")
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"instance": instanceAddr,
+						"name":     w.(group).Name,
+					}).Info("[Vault Identity] failed to create group")
+					vault.AddInvalid(instanceAddr)
+					continue OUTER // terminate remaining reconcile for instance that returned an error
+				}
 			}
 			for _, d := range toBeDeleted {
-				d.(group).Delete()
+				err := d.(group).Delete()
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"instance": instanceAddr,
+						"name":     d.(group).Name,
+					}).Info("[Vault Identity] failed to delete group")
+					vault.AddInvalid(instanceAddr)
+					continue OUTER // terminate remaining reconcile for instance that returned an error
+				}
 			}
 			for _, u := range toBeUpdated {
-				u.(group).CreateOrUpdate("updated")
+				err := u.(group).CreateOrUpdate("updated")
+				log.WithError(err).WithFields(log.Fields{
+					"instance": instanceAddr,
+					"name":     u.(group).Name,
+				}).Info("[Vault Identity] failed to update group")
+				vault.AddInvalid(instanceAddr)
+				continue OUTER // terminate remaining reconcile for instance that returned an error
 			}
 		}
 	}
+	// removes instances that generated errors from remaining reconciliation process
+	// this is necessary due to dependencies between toplevels
+	vault.RemoveInstanceFromReconciliation()
 }
 
 // processDesired accepts the yaml-marshalled result of the `vault_groups` graphql
@@ -201,7 +242,10 @@ func handleNewDesired(processedGroups map[string]*group, permission oidcPermissi
 
 // returns list of existing vault groups
 func getExistingGroups(instanceAddr string, threadPoolSize int) ([]group, error) {
-	raw := vault.ListGroups(instanceAddr)
+	raw, err := vault.ListGroups(instanceAddr)
+	if err != nil {
+		return nil, err
+	}
 	if raw == nil {
 		return nil, nil
 	}
@@ -238,38 +282,58 @@ func getExistingGroups(instanceAddr string, threadPoolSize int) ([]group, error)
 	}
 	// make separate call for each group to retrieve necessary details
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
+	ch := make(chan error)
 	for i := range processed {
 		bwg.Add(1)
-		getGroupDetails(&processed[i], &bwg)
+		go getGroupDetails(&processed[i], ch, &bwg)
 	}
+
+	// separate thread to wait and close channel
+	go func() {
+		bwg.Wait()
+		close(ch)
+	}()
+
+	// sit and wait for all getGroupDetails goroutines to return
+	for err := range ch {
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return processed, nil
 }
 
 // goroutine function
-func getGroupDetails(g *group, bwg *utils.BoundedWaitGroup) {
-	defer bwg.Done()
-	info := vault.GetGroupInfo(g.Instance.Address, g.Name)
+// makes request to vault instance and updates a particular group object
+func getGroupDetails(g *group, ch chan<- error, wg *utils.BoundedWaitGroup) {
+	defer wg.Done()
+	info, err := vault.GetGroupInfo(g.Instance.Address, g.Name)
+	if err != nil {
+		ch <- err
+	}
 	if info == nil {
-		log.WithError(errors.New(fmt.Sprintf(
-			"No information returned for group: %s", g.Name))).Fatal()
+		ch <- errors.New(fmt.Sprintf(
+			"No information returned for group: %s", g.Name))
 	}
 	if _, exists := info["member_entity_ids"]; !exists {
-		log.WithError(errors.New(fmt.Sprintf(
-			"Required `member_entity_ids` attribute not found for group: %s", g.Name))).Fatal()
+		ch <- errors.New(fmt.Sprintf(
+			"Required `member_entity_ids` attribute not found for group: %s", g.Name))
 	}
 	for _, id := range info["member_entity_ids"].([]interface{}) {
 		g.EntityIds = append(g.EntityIds, id.(string))
 	}
 	if _, exists := info["policies"]; !exists {
-		log.WithError(errors.New(fmt.Sprintf(
-			"Required `policies` attribute not found for group: %s", g.Name))).Fatal()
+		ch <- errors.New(fmt.Sprintf(
+			"Required `policies` attribute not found for group: %s", g.Name))
 	}
 	for _, policy := range info["policies"].([]interface{}) {
 		g.Policies = append(g.Policies, policy.(string))
 	}
 	if _, exists := info["metadata"]; !exists {
-		log.WithError(errors.New(fmt.Sprintf(
-			"Required `metadata` attribute not found for group: %s", g.Name))).Fatal()
+		ch <- errors.New(fmt.Sprintf(
+			"Required `metadata` attribute not found for group: %s", g.Name))
 	}
 	if info["metadata"] != nil {
 		g.Metadata = info["metadata"].(map[string]interface{})
@@ -280,7 +344,10 @@ func getGroupDetails(g *group, bwg *utils.BoundedWaitGroup) {
 // this map is used to determine what groups should contain which entities
 func getEntityNamesToIds(instanceAddr string) (map[string]string, error) {
 	var entityNamesToIds map[string]string
-	raw, _ := vault.ListEntities(instanceAddr)
+	raw, err := vault.ListEntities(instanceAddr)
+	if err != nil {
+		return nil, err
+	}
 	if raw == nil {
 		return make(map[string]string), nil
 	}

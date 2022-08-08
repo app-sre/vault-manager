@@ -576,28 +576,32 @@ func WriteEntityAlias(instanceAddr string, secretPath string, secretData map[str
 	return nil
 }
 
-func ListGroups(instanceAddr string) map[string]interface{} {
+func ListGroups(instanceAddr string) (map[string]interface{}, error) {
 	existingGroups, err := getClient(instanceAddr).Logical().List("identity/group/id")
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+		log.WithError(err).WithField("instance", instanceAddr).Info(
 			"[Vault Group] failed to list Vault groups")
+		return nil, err
 	}
 	if existingGroups == nil {
-		return nil
+		return nil, nil
 	}
-	return existingGroups.Data
+	return existingGroups.Data, nil
 }
 
-func GetGroupInfo(instanceAddr string, name string) map[string]interface{} {
+func GetGroupInfo(instanceAddr string, name string) (map[string]interface{}, error) {
 	entity, err := getClient(instanceAddr).Logical().Read(fmt.Sprintf("identity/group/name/%s", name))
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatalf(
-			"[Vault Group] failed to get info for group: %s", name)
+		log.WithError(err).WithFields(log.Fields{
+			"instance": instanceAddr,
+			"name":     name,
+		}).Info("[Vault Group] failed to get info for group")
+		return nil, err
 	}
 	if entity == nil {
-		return nil
+		return nil, nil
 	}
-	return entity.Data
+	return entity.Data, nil
 }
 
 func mustGetenv(name string) string {
