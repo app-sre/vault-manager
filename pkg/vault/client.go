@@ -395,53 +395,62 @@ func DisableAuth(instanceAddr string, path string) error {
 	return nil
 }
 
-// list vault policies
-func ListVaultPolicies(instanceAddr string) []string {
+// returns a list of existing policy names for a specific instance
+func ListVaultPolicies(instanceAddr string) ([]string, error) {
 	existingPolicyNames, err := getClient(instanceAddr).Sys().ListPolicies()
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatal(
-			"[Vault Policy] failed to list Vault policies")
+		log.WithError(err).WithFields(log.Fields{
+			"instance": instanceAddr,
+		}).Info("[Vault Policy] failed to list existing policies")
+		return nil, errors.New("[Vault Policy] failed to list existing policies")
 	}
-	return existingPolicyNames
+	return existingPolicyNames, nil
 }
 
-// get vault policy
-func GetVaultPolicy(instanceAddr string, name string) string {
+// get vault policy name
+func GetVaultPolicy(instanceAddr string, name string) (string, error) {
 	policy, err := getClient(instanceAddr).Sys().GetPolicy(name)
 	if err != nil {
-		log.WithError(err).WithField("name", name).WithField("instance", instanceAddr).Fatal(
-			"[Vault Policy] failed to get existing Vault policy")
+		log.WithError(err).WithFields(
+			log.Fields{
+				"name":     name,
+				"instance": instanceAddr,
+			}).Info("[Vault Policy] failed to get existing Vault policy")
+		return "", err
 	}
-	return policy
+	return policy, nil
 }
 
 // put vault policy
-func PutVaultPolicy(instanceAddr string, name string, rules string) {
+func PutVaultPolicy(instanceAddr string, name string, rules string) error {
 	if err := getClient(instanceAddr).Sys().PutPolicy(name, rules); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"name":     name,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Policy] failed to write policy to Vault instance")
+		}).Info("[Vault Policy] failed to write policy to Vault instance")
+		return err
 	}
 	log.WithFields(log.Fields{
 		"name":     name,
 		"instance": instanceAddr,
 	}).Info("[Vault Policy] policy successfully written to Vault instance")
+	return nil
 }
 
 // delete vault policy
-func DeleteVaultPolicy(instanceAddr string, name string) {
+func DeleteVaultPolicy(instanceAddr string, name string) error {
 	if err := getClient(instanceAddr).Sys().DeletePolicy(name); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"name":     name,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Policy] failed to delete vault policy")
+		}).Info("[Vault Policy] failed to delete vault policy")
+		return err
 	}
 	log.WithFields(log.Fields{
 		"name":     name,
 		"instance": instanceAddr,
 	}).Info("[Vault Policy] successfully deleted policy from Vault instance")
-
+	return nil
 }
 
 // return secret engines
