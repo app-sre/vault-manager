@@ -114,10 +114,21 @@ func createClient(addr string, bundle AuthBundle, bwg *utils.BoundedWaitGroup, m
 	case TOKEN_AUTH:
 		token = accessCreds[TOKEN]
 	}
+
 	// add new address/client pair to global
 	mutex.Lock()
 	defer mutex.Unlock()
 	client.SetToken(token)
+
+	// test client
+	_, err = client.Sys().ListAuth()
+	if err != nil {
+		log.WithError(err)
+		fmt.Println(fmt.Sprintf("[Vault Client] failed to login to %s", addr))
+		fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
+		return
+	}
+
 	vaultClients[addr] = client
 }
 
