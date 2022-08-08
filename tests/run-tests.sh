@@ -134,4 +134,8 @@ bats --tap bats/entities/entities.bats
 echo "running bats/groups/groups.bats"
 bats --tap bats/groups/groups.bats
 
+# run error handling test now that vaults are fully configured
+echo "running bats/errors/errors.bats"
+bats --tap bats/errors/errors.bats
+
 cleanup
