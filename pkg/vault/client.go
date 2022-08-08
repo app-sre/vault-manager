@@ -295,14 +295,16 @@ func ListSecrets(instanceAddr string, path string) (*api.Secret, error) {
 }
 
 // delete secret from vault
-func DeleteSecret(instanceAddr string, secretPath string) {
+func DeleteSecret(instanceAddr string, secretPath string) error {
 	_, err := getClient(instanceAddr).Logical().Delete(secretPath)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":     secretPath,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Client] failed to delete Vault secret")
+		}).Info("[Vault Client] failed to delete Vault secret")
+		return errors.New("failed to delete secret")
 	}
+	return nil
 }
 
 // list existing enabled Audits Devices.
@@ -513,13 +515,14 @@ func DisableSecretsEngine(instanceAddr string, path string) error {
 }
 
 // GetVaultVersion returns the vault server version
-func GetVaultVersion(instanceAddr string) string {
+func GetVaultVersion(instanceAddr string) (string, error) {
 	info, err := getClient(instanceAddr).Sys().Health()
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+		log.WithError(err).WithField("instance", instanceAddr).Info(
 			"[Vault System] failed to retrieve vault system information")
+		return "", err
 	}
-	return info.Version
+	return info.Version, nil
 }
 
 func ListEntities(instanceAddr string) map[string]interface{} {
