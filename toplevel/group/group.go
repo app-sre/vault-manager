@@ -172,12 +172,14 @@ OUTER:
 			}
 			for _, u := range toBeUpdated {
 				err := u.(group).CreateOrUpdate("updated")
-				log.WithError(err).WithFields(log.Fields{
-					"instance": instanceAddr,
-					"name":     u.(group).Name,
-				}).Info("[Vault Identity] failed to update group")
-				vault.AddInvalid(instanceAddr)
-				continue OUTER // terminate remaining reconcile for instance that returned an error
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"instance": instanceAddr,
+						"name":     u.(group).Name,
+					}).Info("[Vault Identity] failed to update group")
+					vault.AddInvalid(instanceAddr)
+					continue OUTER // terminate remaining reconcile for instance that returned an error
+				}
 			}
 		}
 	}
