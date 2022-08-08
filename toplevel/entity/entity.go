@@ -309,7 +309,11 @@ func getDesiredByInstance(entries []user) map[string][]entity {
 	for _, u := range entries {
 		for _, r := range u.Roles {
 			for _, p := range r.Permissions {
-				if p.Service == "vault" && !existing[p.Instance.Address][u.OrgUsername] {
+				_, valid := vault.InstanceAddresses[p.Instance.Address]
+				// permission is associated with a valid instance (hasn't returned an error thru reconcile so far)
+				// and only process oidc permissions for vault service
+				// and only process first occurrence of a user within a particular instance
+				if valid && p.Service == "vault" && !existing[p.Instance.Address][u.OrgUsername] {
 					newDesired := entity{
 						Name: u.OrgUsername,
 						Type: "entity",
