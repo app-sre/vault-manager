@@ -70,9 +70,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		if _, exists := instancesToExistingPolicyNames[addr]; !exists {
 			existingPolicies, err := vault.ListVaultPolicies(addr)
 			if err != nil {
-				log.WithError(err).WithFields(log.Fields{
-					"instance": addr,
-				}).Info("[Vault Identity] failed to write policy")
 				vault.AddInvalid(addr)
 				continue
 			}
@@ -119,9 +116,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 			for e := range ch {
 				if e != nil {
-					log.WithError(e).WithFields(log.Fields{
-						"instance": instance,
-					}).Info("[Vault Identity] failed to retrieve existing policies")
 					vault.AddInvalid(instance)
 				}
 			}
@@ -153,10 +147,6 @@ OUTER:
 				ent := e.(entry)
 				err := vault.PutVaultPolicy(instance, ent.Name, ent.Rules)
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instance,
-						"name":     e.(entry).Name,
-					}).Info("[Vault Identity] failed to write policy")
 					vault.AddInvalid(instance)
 					continue OUTER
 				}
@@ -169,10 +159,6 @@ OUTER:
 				}
 				err := vault.DeleteVaultPolicy(instance, ent.Name)
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instance,
-						"name":     e.(entry).Name,
-					}).Info("[Vault Identity] failed to delete policy")
 					vault.AddInvalid(instance)
 					continue OUTER
 				}
