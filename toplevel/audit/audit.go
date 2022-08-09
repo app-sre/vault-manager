@@ -74,6 +74,7 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
 	}
 	// perform reconcile operations for each instance
+OUTER:
 	for instance := range vault.InstanceAddresses {
 		enabledAudits, err := vault.ListAuditDevices(instance)
 		if err != nil {
@@ -120,24 +121,16 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 					Options:     ent.Options,
 				})
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instance,
-						"type":     e.(entry).Type,
-					}).Info("[Vault Identity] failed to enable audit device")
 					vault.AddInvalid(instance)
-					continue
+					continue OUTER
 				}
 			}
 			// Delete any Audit Devices from the Vault instance.
 			for _, e := range toBeDeleted {
 				err := vault.DisableAuditDevice(instance, e.(entry).Path)
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instance,
-						"type":     e.(entry).Type,
-					}).Info("[Vault Identity] failed to disable audit device")
 					vault.AddInvalid(instance)
-					continue
+					continue OUTER
 				}
 			}
 		}

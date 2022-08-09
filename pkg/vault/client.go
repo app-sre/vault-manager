@@ -320,7 +320,7 @@ func ListAuditDevices(instanceAddr string) (map[string]*api.Audit, error) {
 // enable audit device with options
 func EnableAuditDevice(instanceAddr, path string, options *api.EnableAuditOptions) error {
 	if err := getClient(instanceAddr).Sys().EnableAuditWithOptions(path, options); err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"path":     path,
 			"instance": instanceAddr,
 		}).Info("[Vault Audit] failed to enable audit device")
@@ -336,7 +336,7 @@ func EnableAuditDevice(instanceAddr, path string, options *api.EnableAuditOption
 // disable audit device
 func DisableAuditDevice(instanceAddr string, path string) error {
 	if err := getClient(instanceAddr).Sys().DisableAudit(path); err != nil {
-		log.WithFields(log.Fields{
+		log.WithError(err).WithFields(log.Fields{
 			"path":     path,
 			"instance": instanceAddr,
 		}).Info("[Vault Audit] failed to disable audit device")
