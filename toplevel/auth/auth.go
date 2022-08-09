@@ -144,25 +144,16 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			vault.DiffItems(entriesAsItems(instancesToDesired[instanceAddr]), entriesAsItems(existingBackends))
 		err = enableAuth(instanceAddr, toBeWritten, dryRun)
 		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"instance": instanceAddr,
-			}).Info("[Vault Identity] failed to enable auth")
 			vault.AddInvalid(instanceAddr)
 			continue
 		}
 		err = configureAuthMounts(instanceAddr, instancesToDesired[instanceAddr], dryRun)
 		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"instance": instanceAddr,
-			}).Info("[Vault Identity] failed to configure auth")
 			vault.AddInvalid(instanceAddr)
 			continue
 		}
 		err = disableAuth(instanceAddr, toBeDeleted, dryRun)
 		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"instance": instanceAddr,
-			}).Info("[Vault Identity] failed to disable auth")
 			vault.AddInvalid(instanceAddr)
 			continue
 		}
@@ -174,9 +165,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 				existingPolicyMappings := make([]policyMapping, 0)
 				teamsList, err := vault.ListSecrets(instanceAddr, filepath.Join("/auth", e.Path, "map/teams"))
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instanceAddr,
-					}).Info("[Vault Identity] failed to list auth's map/team secret config")
 					vault.AddInvalid(instanceAddr)
 					continue
 				}
@@ -357,7 +345,7 @@ func disableAuth(instanceAddr string, toBeDeleted []vault.Item, dryRun bool) err
 				return err
 			}
 			log.WithField("path", ent.Path).WithField("type", ent.Type).WithField("instance", instanceAddr).Info(
-				"[Vault Auth] auth backend to be disabled")
+				"[Vault Auth] auth backend disabled")
 		}
 	}
 	return nil
@@ -415,7 +403,6 @@ func getOidcClientSecret(instanceAddr string, settings map[string]map[string]int
 	field := location["field"].(string)
 	secret, err := vault.GetVaultSecretField(instanceAddr, path, field, engineVersion)
 	if err != nil {
-		log.WithError(err)
 		return errors.New(fmt.Sprintf(
 			"[Vault Auth] failed to retrieve `oidc_client_secret` for %s", instanceAddr))
 	}
