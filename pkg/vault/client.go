@@ -223,6 +223,10 @@ func FormatSecretPath(secret string, secretEngine string) string {
 func WriteSecret(instanceAddr string, secretPath string, secretData map[string]interface{}) error {
 	dataExists, err := DataInSecret(instanceAddr, secretData, secretPath)
 	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"path":     secretPath,
+			"instance": instanceAddr,
+		}).Info("[Vault Client] failed to write Vault secret")
 		return err
 	}
 	if !dataExists {
