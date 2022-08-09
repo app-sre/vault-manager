@@ -178,9 +178,6 @@ OUTER:
 		addOptionalOidcDefaults(instance, instancesToDesiredRoles[instance])
 		err := pruneUnsupported(instance, instancesToDesiredRoles[instance])
 		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"instance": instance,
-			}).Info("[Vault Role] failed to determine vault version")
 			vault.AddInvalid(instance)
 			continue
 		}
@@ -212,10 +209,6 @@ OUTER:
 			for _, e := range entriesToBeWritten {
 				err := e.(entry).Save()
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instance,
-						"name":     e.(entry).Name,
-					}).Info("[Vault Role] failed to create role")
 					vault.AddInvalid(instance)
 					continue OUTER
 				}
@@ -225,10 +218,6 @@ OUTER:
 			for _, e := range entriesToBeDeleted {
 				err := e.(entry).Delete()
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instance,
-						"name":     e.(entry).Name,
-					}).Info("[Vault Role] failed to delete role")
 					vault.AddInvalid(instance)
 					continue OUTER
 				}
