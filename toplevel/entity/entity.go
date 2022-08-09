@@ -250,10 +250,6 @@ OUTER:
 			for _, w := range entitiesToBeWritten {
 				err := w.(entity).CreateOrUpdate("written")
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instanceAddr,
-						"name":     w.(entity).Name,
-					}).Info("[Vault Identity] failed to create entity")
 					vault.AddInvalid(instanceAddr)
 					continue OUTER // terminate remaining reconcile for instance that returned an error
 				}
@@ -261,10 +257,6 @@ OUTER:
 			for _, d := range entitiesToBeDeleted {
 				err := d.(entity).Delete()
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instanceAddr,
-						"name":     d.(entity).Name,
-					}).Info("[Vault Identity] failed to delete entity")
 					vault.AddInvalid(instanceAddr)
 					continue OUTER // terminate remaining reconcile for instance that returned an error
 				}
@@ -272,19 +264,12 @@ OUTER:
 			for _, u := range entitiesToBeUpdated {
 				err := u.(entity).CreateOrUpdate("update")
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instanceAddr,
-						"name":     u.(entity).Name,
-					}).Info("[Vault Identity] failed to update entity")
 					vault.AddInvalid(instanceAddr)
 					continue OUTER // terminate remaining reconcile for instance that returned an error
 				}
 			}
 			err = performAliasReconcile(instanceAddr, aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated)
 			if err != nil {
-				log.WithError(err).WithFields(log.Fields{
-					"instance": instanceAddr,
-				}).Info("[Vault Identity] failed to reconcile entity aliases")
 				vault.AddInvalid(instanceAddr)
 				continue OUTER // terminate remaining reconcile for instance that returned an error
 			}
@@ -585,7 +570,10 @@ func performAliasReconcile(instanceAddr string, aliasesToBeWritten map[string]ma
 			for _, w := range ws {
 				a := w.(entityAlias)
 				a.AccessorId = accessorIds[a.AuthType]
-				a.Create(id)
+				err := a.Create(id)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
