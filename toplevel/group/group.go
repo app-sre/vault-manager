@@ -151,10 +151,6 @@ OUTER:
 			for _, w := range toBeWritten {
 				err := w.(group).CreateOrUpdate("written")
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instanceAddr,
-						"name":     w.(group).Name,
-					}).Info("[Vault Identity] failed to create group")
 					vault.AddInvalid(instanceAddr)
 					continue OUTER // terminate remaining reconcile for instance that returned an error
 				}
@@ -162,10 +158,6 @@ OUTER:
 			for _, d := range toBeDeleted {
 				err := d.(group).Delete()
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instanceAddr,
-						"name":     d.(group).Name,
-					}).Info("[Vault Identity] failed to delete group")
 					vault.AddInvalid(instanceAddr)
 					continue OUTER // terminate remaining reconcile for instance that returned an error
 				}
@@ -173,10 +165,6 @@ OUTER:
 			for _, u := range toBeUpdated {
 				err := u.(group).CreateOrUpdate("updated")
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instanceAddr,
-						"name":     u.(group).Name,
-					}).Info("[Vault Identity] failed to update group")
 					vault.AddInvalid(instanceAddr)
 					continue OUTER // terminate remaining reconcile for instance that returned an error
 				}
