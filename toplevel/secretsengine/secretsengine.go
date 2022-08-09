@@ -85,9 +85,6 @@ OUTER:
 	for instanceAddr := range vault.InstanceAddresses {
 		enabledSecretEngines, err := vault.ListSecretsEngines(instanceAddr)
 		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"instance": instanceAddr,
-			}).Info("[Vault Secret Engine] failed to list existing secret engines")
 			vault.AddInvalid(instanceAddr)
 			continue
 		}
@@ -138,10 +135,6 @@ OUTER:
 					Options:     ent.Options,
 				})
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instanceAddr,
-						"type":     e.(entry).Type,
-					}).Info("[Vault Secret Engine] failed to enable secret engine")
 					vault.AddInvalid(instanceAddr)
 					continue OUTER
 				}
@@ -154,10 +147,6 @@ OUTER:
 					Description: &ent.Description,
 				})
 				if err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"instance": instanceAddr,
-						"type":     e.(entry).Type,
-					}).Info("[Vault Secret Engine] failed to update secret engine")
 					vault.AddInvalid(instanceAddr)
 					continue OUTER
 				}
@@ -168,10 +157,6 @@ OUTER:
 				if !isDefaultMount(ent.Path) {
 					err := vault.DisableSecretsEngine(instanceAddr, ent.Path)
 					if err != nil {
-						log.WithError(err).WithFields(log.Fields{
-							"instance": instanceAddr,
-							"type":     e.(entry).Type,
-						}).Info("[Vault Secret Engine] failed to disable secret engine")
 						vault.AddInvalid(instanceAddr)
 						continue OUTER
 					}
