@@ -124,13 +124,13 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 	// build list of all existing roles for each instance
 	instancesToExistingRoles := make(map[string][]entry)
-	for instance, existingAuthBackends := range instancesToExistingAuths {
+	for instanceAddr, existingAuthBackends := range instancesToExistingAuths {
 		for authBackend := range existingAuthBackends {
 			// Get the secret with the existing App Roles.
 			path := filepath.Join("auth", authBackend, "role")
-			secret, err := vault.ListSecrets(instance, path)
+			secret, err := vault.ListSecrets(instanceAddr, path)
 			if err != nil {
-				vault.AddInvalid(instance)
+				vault.AddInvalid(instanceAddr)
 				break
 			}
 			if secret != nil {
@@ -148,17 +148,18 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 
 						mutex.Lock()
 
-						opts, err := vault.ReadSecret(instance, path, vault.KV_V1)
+						opts, err := vault.ReadSecret(instanceAddr, path, vault.KV_V1)
 						if err != nil {
 							// reading of existing policies config failed
 							log.WithError(err).Fatal()
 						}
-						instancesToExistingRoles[instance] = append(instancesToExistingRoles[instance],
+						instancesToExistingRoles[instanceAddr] = append(instancesToExistingRoles[instanceAddr],
 							entry{
-								Name:    roles[i].(string),
-								Type:    existingAuthBackends[authBackend].Type,
-								Mount:   authBackend,
-								Options: opts,
+								Name:     roles[i].(string),
+								Type:     existingAuthBackends[authBackend].Type,
+								Mount:    authBackend,
+								Instance: instance.Instance{Address: instanceAddr},
+								Options:  opts,
 							})
 
 						defer bwg.Done()
