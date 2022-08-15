@@ -40,32 +40,44 @@ const (
 
 var masterAddress string
 var vaultClients map[string]*api.Client
+var InstanceAddresses map[string]bool
+var invalidInstances []string
 
 // Called once with toplevel/instance
 // Creates global map of all vault clients defined in a-i
 // This allows reconciliation of multiple vault instances
 func InitClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
+	InstanceAddresses = make(map[string]bool)
 	vaultClients = make(map[string]*api.Client)
-	configureMaster(vaultClients)
+	configureMaster()
 
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 	var mutex = &sync.Mutex{}
 	// read access credentials for other vault instances and configure clients
 	for addr, bundle := range instanceCreds {
-		bwg.Add(1)
-		go createClient(addr, bundle, &bwg, mutex)
+		// client already configured separately for master
+		if addr != masterAddress {
+			bwg.Add(1)
+			go createClient(addr, bundle, &bwg, mutex)
+		}
 	}
 	bwg.Wait()
+
+	// set global for reference by toplevels to determine instances for reconciliation
+	for address := range vaultClients {
+		InstanceAddresses[address] = true
+	}
 }
 
 // goroutine support function for InitClients()
 // initializes one vault client
-func createClient(a string, b AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sync.Mutex) {
+func createClient(addr string, bundle AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sync.Mutex) {
 	defer bwg.Done()
 
 	accessCreds := make(map[string]string)
-	for _, cred := range b.VaultSecrets {
-		processedCred, err := ProcessVaultCredential(cred.Path, cred.Field, b.SecretEngine)
+	for _, cred := range bundle.VaultSecrets {
+		// masterAddress hard-coded because all "child" vault access credentials must be pulled from master
+		processedCred, err := GetVaultSecretField(masterAddress, cred.Path, cred.Field, bundle.SecretEngine)
 		if err != nil {
 			log.WithError(err).Fatal()
 		}
@@ -74,23 +86,29 @@ func createClient(a string, b AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sy
 
 	// Init new client
 	config := api.DefaultConfig()
-	config.Address = a
+	config.Address = addr
 	client, err := api.NewClient(config)
 	if err != nil {
-		log.WithError(err).Fatalf("Failed to initialize Vault client for %s", a)
+		log.WithError(err)
+		fmt.Println(fmt.Sprintf("Failed to initialize Vault client for %s", addr))
+		fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
+		return // skip entire reconcilation for this instance
 	}
 
 	// at minimum, one element will exist in secrets regardless of type
 	// type is same across all VaultSecrets associated with a particular instance address
 	var token string
-	switch b.VaultSecrets[0].Type {
+	switch bundle.VaultSecrets[0].Type {
 	case APPROLE_AUTH:
 		t, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
 			"role_id":   accessCreds[ROLE_ID],
 			"secret_id": accessCreds[SECRET_ID],
 		})
 		if err != nil {
-			log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
+			log.WithError(err)
+			fmt.Println(fmt.Sprintf("[Vault Client] failed to login to %s with AppRole credentials", addr))
+			fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
+			return // skip entire reconcilation for this instance
 		}
 		token = t.Auth.ClientToken
 	case TOKEN_AUTH:
@@ -100,23 +118,26 @@ func createClient(a string, b AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sy
 	mutex.Lock()
 	defer mutex.Unlock()
 	client.SetToken(token)
-	vaultClients[a] = client
+	vaultClients[addr] = client
 }
 
 // attempts to read/proccess a single access credential for a particular vault instance
-func ProcessVaultCredential(path, field, engineVersion string) (string, error) {
-	secret := ReadSecret(masterAddress, path, engineVersion)
+func GetVaultSecretField(instanceAddr, path, field, engineVersion string) (string, error) {
+	secret, err := ReadSecret(instanceAddr, path, engineVersion)
+	if err != nil {
+		return "", err
+	}
 	if secret == nil {
-		return "", errors.New(
-			fmt.Sprintf("[Vault Client] Failed to retrieve secret from master instance at path %s", path))
+		return "", errors.New(fmt.Sprintf(
+			"[Vault Client] Failed to retrieve secret from %s instance at path %s", instanceAddr, path))
 	}
 	if _, exists := secret[field]; !exists {
-		return "", errors.New(
-			fmt.Sprintf("[Vault Client] Field `%s` does not exist at path: `%s`", field, path))
+		return "", errors.New(fmt.Sprintf(
+			"[Vault Client] Field `%s` does not exist at path: `%s` within %s", field, path, instanceAddr))
 	}
 	if _, ok := secret[field].(string); !ok {
-		return "", errors.New(
-			fmt.Sprintf("[Vault Client] Field `%s` cannot be converted to string", field))
+		return "", errors.New(fmt.Sprintf(
+			"[Vault Client] Field `%s` cannot be converted to string", field))
 	}
 	return secret[field].(string), nil
 }
@@ -124,7 +145,7 @@ func ProcessVaultCredential(path, field, engineVersion string) (string, error) {
 // configureMaster initializes vault client for the master instance
 // This is the only client configured using environment variables
 // env vars: VAULT_ADDR, VAULT_AUTHTYPE, VAULT_ROLE_ID, VAULT_SECRET_ID, VAULT_TOKEN
-func configureMaster(instanceCreds map[string]*api.Client) {
+func configureMaster() {
 	masterVaultCFG := api.DefaultConfig()
 	masterVaultCFG.Address = mustGetenv("VAULT_ADDR")
 
@@ -166,6 +187,24 @@ func getClient(instanceAddr string) *api.Client {
 	return vaultClients[instanceAddr]
 }
 
+// AddInvalild is called by toplevel packages when an error is encountered while reconciling
+// The invalid instance is appended to a global and then processed within RemoveInstanceFromReconcile
+func AddInvalid(instanceAddr string) {
+	invalidInstances = append(invalidInstances, instanceAddr)
+}
+
+// Removes an instance from the global slice utilized by toplevels to target instances for reconciliation
+func RemoveInstanceFromReconciliation() {
+	for _, invalid := range invalidInstances {
+		if _, exists := InstanceAddresses[invalid]; exists {
+			delete(InstanceAddresses, invalid)
+			fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", invalid))
+		}
+	}
+	// clear invalid
+	invalidInstances = nil
+}
+
 // return proper secret path format based upon kv version
 // kv v2 api inserts /data/ between the root engine name and remaining path
 func FormatSecretPath(secret string, secretEngine string) string {
@@ -181,20 +220,26 @@ func FormatSecretPath(secret string, secretEngine string) string {
 }
 
 // write secret to vault
-func WriteSecret(instanceAddr string, secretPath string, secretData map[string]interface{}) {
-	if !DataInSecret(instanceAddr, secretData, secretPath) {
+func WriteSecret(instanceAddr string, secretPath string, secretData map[string]interface{}) error {
+	dataExists, err := DataInSecret(instanceAddr, secretData, secretPath)
+	if err != nil {
+		return err
+	}
+	if !dataExists {
 		_, err := getClient(instanceAddr).Logical().Write(secretPath, secretData)
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
 				"path":     secretPath,
 				"instance": instanceAddr,
-			}).Fatalf("[Vault Client] failed to write Vault secret ")
+			}).Info("[Vault Client] failed to write Vault secret")
+			return errors.New("failed to write secret")
 		}
 	}
+	return nil
 }
 
 // read secret from vault and return the secret map
-func ReadSecret(instanceAddr, secretPath, engineVersion string) map[string]interface{} {
+func ReadSecret(instanceAddr, secretPath, engineVersion string) (map[string]interface{}, error) {
 	// vault manager does not support reverting and should always reference latest data within a-i
 	// therefore, secret version is not specified for KV V2 secrets
 	raw, err := getClient(instanceAddr).Logical().Read(secretPath)
@@ -206,15 +251,15 @@ func ReadSecret(instanceAddr, secretPath, engineVersion string) map[string]inter
 		}).Fatal("[Vault Client] failed to read Vault secret")
 	}
 	if raw == nil {
-		return nil
+		return nil, nil
 	}
 	// vault api returns different payload depending on version
 	switch engineVersion {
 	case KV_V1:
-		return raw.Data
+		return raw.Data, nil
 	case KV_V2:
 		if len(raw.Data) == 0 {
-			return nil
+			return nil, nil
 		}
 		mapped, ok := raw.Data["data"].(map[string]interface{})
 		if !ok {
@@ -222,16 +267,17 @@ func ReadSecret(instanceAddr, secretPath, engineVersion string) map[string]inter
 				"path":          secretPath,
 				"instance":      instanceAddr,
 				"engineVersion": engineVersion,
-			}).Fatal("[Vault Client] failed to process `data` from result of read")
+			}).Info("[Vault Client] failed to process `data` from result of read")
+			return nil, errors.New("failed to convert `data` to map")
 		}
-		return mapped
+		return mapped, nil
 	default:
 		log.WithError(err).WithFields(log.Fields{
 			"path":          secretPath,
 			"instance":      instanceAddr,
 			"engineVersion": engineVersion,
-		}).Fatal("[Vault Client] unsupported KV engine version passed to ReadSecret()")
-		return nil
+		}).Info("[Vault Client] unsupported KV engine version passed to ReadSecret()")
+		return nil, errors.New("unsupported engine version specified")
 	}
 }
 
@@ -377,30 +423,33 @@ func DeleteVaultPolicy(instanceAddr string, name string) {
 
 }
 
-// list secrets engines
-func ListSecretsEngines(instanceAddr string) map[string]*api.MountOutput {
+// return secret engines
+func ListSecretsEngines(instanceAddr string) (map[string]*api.MountOutput, error) {
 	existingMounts, err := getClient(instanceAddr).Sys().ListMounts()
 	if err != nil {
-		log.WithError(err).WithField("instance", instanceAddr).Fatal(
+		log.WithError(err).WithField("instance", instanceAddr).Info(
 			"[Vault Secrets engine] failed to list Vault secrets engines")
+		return nil, err
 	}
-	return existingMounts
+	return existingMounts, nil
 }
 
 // enable secrets engine
-func EnableSecretsEngine(instanceAddr string, path string, mount *api.MountInput) {
+func EnableSecretsEngine(instanceAddr string, path string, mount *api.MountInput) error {
 	if err := getClient(instanceAddr).Sys().Mount(path, mount); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":     path,
 			"type":     mount.Type,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Secrets engine] failed to enable secrets-engine")
+		}).Info("[Vault Secrets engine] failed to enable secrets-engine")
+		return err
 	}
 	log.WithFields(log.Fields{
 		"path":     path,
 		"type":     mount.Type,
 		"instance": instanceAddr,
 	}).Info("[Vault Secrets engine] successfully enabled secrets-engine")
+	return nil
 }
 
 // update secrets engine
@@ -418,17 +467,19 @@ func UpdateSecretsEngine(instanceAddr string, path string, config api.MountConfi
 }
 
 // disable secrets engine
-func DisableSecretsEngine(instanceAddr string, path string) {
+func DisableSecretsEngine(instanceAddr string, path string) error {
 	if err := getClient(instanceAddr).Sys().Unmount(path); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":     path,
 			"instance": instanceAddr,
-		}).Fatal("[Vault Secrets engine] failed to disable secrets-engine")
+		}).Info("[Vault Secrets engine] failed to disable secrets-engine")
+		return err
 	}
 	log.WithFields(log.Fields{
 		"path":     path,
 		"instance": instanceAddr,
 	}).Info("[Vault Secrets engine] successfully disabled secrets-engine")
+	return nil
 }
 
 // GetVaultVersion returns the vault server version

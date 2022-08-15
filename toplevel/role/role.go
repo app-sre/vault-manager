@@ -133,18 +133,24 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 						go func(i int) {
 							path := filepath.Join("auth", authBackend, "role", roles[i].(string))
 
+							opts, err := vault.ReadSecret(instance, path, vault.KV_V1)
+							if err != nil {
+								// reading of existing policies config failed
+								log.WithError(err).Fatal()
+							}
+
 							mutex.Lock()
+							defer mutex.Unlock()
 
 							instancesToExistingRoles[instance] = append(instancesToExistingRoles[instance],
 								entry{
 									Name:    roles[i].(string),
 									Type:    existingAuthBackends[authBackend].Type,
 									Mount:   authBackend,
-									Options: vault.ReadSecret(instance, path, vault.KV_V1),
+									Options: opts,
 								})
 
 							defer bwg.Done()
-							defer mutex.Unlock()
 						}(i)
 					}
 					bwg.Wait()
