@@ -115,7 +115,7 @@ vault kv put secret/oidc client-secret=my-special-client-secret
 export VAULT_ADDR=http://127.0.0.1:8200
 
 # run test suite
-for test in $(find bats/ -type f | grep .bats | grep -v entities | grep -v groups); do
+for test in $(find bats/ -type f | grep .bats | grep -v entities | grep -v groups | grep -v errors); do
     echo "running $test"
     bats --tap $test
     # hack so flags.bats has clean slate for audit resources when testing
@@ -133,5 +133,9 @@ bats --tap bats/entities/entities.bats
 # groups is dependent on entities
 echo "running bats/groups/groups.bats"
 bats --tap bats/groups/groups.bats
+
+# run error handling test now that vaults are fully configured
+echo "running bats/errors/errors.bats"
+bats --tap bats/errors/errors.bats
 
 cleanup

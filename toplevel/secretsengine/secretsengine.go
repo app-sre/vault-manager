@@ -142,7 +142,7 @@ OUTER:
 
 			for _, e := range toBeUpdated {
 				ent := e.(entry)
-				vault.UpdateSecretsEngine(instanceAddr, ent.Path, api.MountConfigInput{
+				err := vault.UpdateSecretsEngine(instanceAddr, ent.Path, api.MountConfigInput{
 					// vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
 					Description: &ent.Description,
 				})

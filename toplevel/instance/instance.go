@@ -16,8 +16,6 @@ type config struct{}
 
 var _ toplevel.Configuration = config{}
 
-var InstanceAddresses []string
-
 type Instance struct {
 	Address string `yaml:"address"`
 	Auth    auth   `yaml:"auth"`
@@ -52,10 +50,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	instanceCreds, err := processInstances(instances)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Instance] failed to retrieve access credentials")
-	}
-	// set package global for reference by other toplevels
-	for address := range instanceCreds {
-		InstanceAddresses = append(InstanceAddresses, address)
 	}
 	vault.InitClients(instanceCreds, threadPoolSize)
 }

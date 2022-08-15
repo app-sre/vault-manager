@@ -64,8 +64,6 @@ func init() {
 
 // Apply ensures that an instance of Vault's Audit Devices are configured
 // exactly as provided.
-//
-// This function exits the program if an error occurs.
 func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
@@ -76,8 +74,16 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
 	}
 	// perform reconcile operations for each instance
-	for _, instance := range instance.InstanceAddresses {
-		enabledAudits := vault.ListAuditDevices(instance)
+OUTER:
+	for instance := range vault.InstanceAddresses {
+		enabledAudits, err := vault.ListAuditDevices(instance)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"instance": instance,
+			}).Info("[Vault Identity] failed to list audit device")
+			vault.AddInvalid(instance)
+			continue
+		}
 		// format raw vault api result
 		existingAduits := []entry{}
 		for k := range enabledAudits {
@@ -109,18 +115,29 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 			// Write any missing Audit Devices to the Vault instance.
 			for _, e := range toBeWritten {
 				ent := e.(entry)
-				vault.EnableAduitDevice(instance, ent.Path, &api.EnableAuditOptions{
+				err := vault.EnableAuditDevice(instance, ent.Path, &api.EnableAuditOptions{
 					Type:        ent.Type,
 					Description: ent.Description,
 					Options:     ent.Options,
 				})
+				if err != nil {
+					vault.AddInvalid(instance)
+					continue OUTER
+				}
 			}
 			// Delete any Audit Devices from the Vault instance.
 			for _, e := range toBeDeleted {
-				vault.DisableAuditDevice(instance, e.(entry).Path)
+				err := vault.DisableAuditDevice(instance, e.(entry).Path)
+				if err != nil {
+					vault.AddInvalid(instance)
+					continue OUTER
+				}
 			}
 		}
 	}
+	// removes instances that generated errors from remaining reconciliation process
+	// this is necessary due to dependencies between toplevels
+	vault.RemoveInstanceFromReconciliation()
 }
 
 func asItems(xs []entry) (items []vault.Item) {
