@@ -306,10 +306,12 @@ func getGroupDetails(g *group, ch chan<- error, wg *utils.BoundedWaitGroup) {
 	if info == nil {
 		ch <- errors.New(fmt.Sprintf(
 			"No information returned for group: %s", g.Name))
+		return
 	}
 	if _, exists := info["member_entity_ids"]; !exists {
 		ch <- errors.New(fmt.Sprintf(
 			"Required `member_entity_ids` attribute not found for group: %s", g.Name))
+		return
 	}
 	for _, id := range info["member_entity_ids"].([]interface{}) {
 		g.EntityIds = append(g.EntityIds, id.(string))
@@ -317,6 +319,7 @@ func getGroupDetails(g *group, ch chan<- error, wg *utils.BoundedWaitGroup) {
 	if _, exists := info["policies"]; !exists {
 		ch <- errors.New(fmt.Sprintf(
 			"Required `policies` attribute not found for group: %s", g.Name))
+		return
 	}
 	for _, policy := range info["policies"].([]interface{}) {
 		g.Policies = append(g.Policies, policy.(string))
@@ -324,6 +327,7 @@ func getGroupDetails(g *group, ch chan<- error, wg *utils.BoundedWaitGroup) {
 	if _, exists := info["metadata"]; !exists {
 		ch <- errors.New(fmt.Sprintf(
 			"Required `metadata` attribute not found for group: %s", g.Name))
+		return
 	}
 	if info["metadata"] != nil {
 		g.Metadata = info["metadata"].(map[string]interface{})
