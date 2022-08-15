@@ -144,12 +144,12 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 					bwg.Add(1)
 
 					go func(i int) {
-            defer bwg.Done()
+						defer bwg.Done()
 						path := filepath.Join("auth", authBackend, "role", roles[i].(string))
 
 						mutex.Lock()
-            defer mutex.Unlock()
-            
+						defer mutex.Unlock()
+
 						opts, err := vault.ReadSecret(instanceAddr, path, vault.KV_V1)
 						if err != nil {
 							// reading of existing policies config failed
