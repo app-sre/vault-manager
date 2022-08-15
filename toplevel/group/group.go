@@ -302,6 +302,7 @@ func getGroupDetails(g *group, ch chan<- error, wg *utils.BoundedWaitGroup) {
 	info, err := vault.GetGroupInfo(g.Instance.Address, g.Name)
 	if err != nil {
 		ch <- err
+		return
 	}
 	if info == nil {
 		ch <- errors.New(fmt.Sprintf(
