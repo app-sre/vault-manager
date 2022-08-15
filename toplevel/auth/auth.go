@@ -182,6 +182,8 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 						bwg.Add(1)
 
 						go func(team int, ch chan<- error) {
+							defer bwg.Done()
+
 							policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", teams[team].(string))
 
 							policiesMappedToEntity, err := vault.ReadSecret(instanceAddr, policyMappingPath, vault.KV_V1)
@@ -200,7 +202,6 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 							existingPolicyMappings = append(existingPolicyMappings,
 								policyMapping{GithubTeam: map[string]interface{}{"team": teams[team]}, Policies: policies})
 
-							defer bwg.Done()
 							defer mutex.Unlock()
 						}(team, ch)
 					}
