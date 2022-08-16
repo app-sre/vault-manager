@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"sort"
 
+	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
@@ -61,6 +63,9 @@ func main() {
 		log.WithError(err).Fatal("failed to parse config")
 	}
 
+	// initialize vault clients and gather list of instance addresses for reconciliation
+	instanceAddresses := initInstances(cfg, threadPoolSize)
+
 	// remove disabled toplevels
 	if _, set := os.LookupEnv("DISABLE_IDENTITY"); set {
 		delete(cfg, "vault_entities")
@@ -77,14 +82,21 @@ func main() {
 	// sort configs by priority
 	sort.Sort(ByPriority(topLevelConfigs))
 
-	for _, config := range topLevelConfigs {
-		// Marshal the contents of this object back into bytes so that it can be
-		// unmarshaled into a specific type in the application.
-		dataBytes, err := yaml.Marshal(cfg[config.Name])
-		if err != nil {
-			log.WithField("name", config.Name).Fatal("failed to remarshal configuration")
+	// perform reconcile process per instance
+	for _, address := range instanceAddresses {
+		for _, config := range topLevelConfigs {
+			// Marshal the contents of this object back into bytes so that it can be
+			// unmarshaled into a specific type in the application.
+			dataBytes, err := yaml.Marshal(cfg[config.Name])
+			if err != nil {
+				log.WithField("name", config.Name).Fatal("failed to remarshal configuration")
+			}
+			err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
+			if err != nil {
+				fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
+				continue
+			}
 		}
-		toplevel.Apply(config.Name, dataBytes, dryRun, threadPoolSize)
 	}
 }
 
@@ -133,6 +145,20 @@ func getConfig() (config, error) {
 	}
 
 	return response, nil
+}
+
+// gathers instances referenced across all applicable file definitions and initializes the clients
+// clients are set as private global witihn client.go
+// return is list of strings containing addresses of vault instances
+func initInstances(cfg config, threadPoolSize int) []string {
+	const INSTANCE_KEY = "vault_instances"
+	dataBytes, err := yaml.Marshal(cfg[INSTANCE_KEY])
+	if err != nil {
+		log.WithField("name", INSTANCE_KEY).Fatal("failed to remarshal instance configuration")
+	}
+	// do not include `vault_instances` in standard top-level reconcile loop
+	delete(cfg, INSTANCE_KEY)
+	return vault.GetInstances(dataBytes, threadPoolSize)
 }
 
 func resolveConfigPriority(s string) int {

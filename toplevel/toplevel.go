@@ -19,7 +19,7 @@ var (
 //
 // If an error occurs applying a configuration, the process should exit.
 type Configuration interface {
-	Apply([]byte, bool, int)
+	Apply(string, []byte, bool, int) error
 }
 
 // RegisterConfiguration makes a Configuration available by the provided name.
@@ -49,12 +49,12 @@ func RegisterConfiguration(name string, c Configuration) {
 
 // Apply looks up registered top-level configuration by name and applies it an
 // instance of Vault.
-func Apply(name string, cfg []byte, dryRun bool, threadPoolSize int) {
+func Apply(name string, address string, cfg []byte, dryRun bool, threadPoolSize int) error {
 	configsM.RLock()
 	defer configsM.RUnlock()
 	c, ok := configs[name]
 	if !ok {
 		log.WithField("name", name).Fatal("failed to find top-level configuration")
 	}
-	c.Apply(cfg, dryRun, threadPoolSize)
+	return c.Apply(address, cfg, dryRun, threadPoolSize)
 }
