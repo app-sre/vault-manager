@@ -56,6 +56,7 @@ const (
 	KV_V2        = "kv_v2"
 )
 
+// global that maps instance addresses to configured vault clients
 var vaultClients map[string]*api.Client
 
 // Utilized to initialize vault instance clients for use by other toplevel integrations
@@ -191,7 +192,7 @@ func configureMaster() string {
 	return masterVaultCFG.Address
 }
 
-// goroutine support function for InitClients()
+// goroutine support function for initClients()
 // initializes one vault client
 func createClient(addr, masterAddress string, bundle AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sync.Mutex) {
 	defer bwg.Done()
