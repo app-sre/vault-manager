@@ -8,7 +8,6 @@ import (
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
-	"github.com/app-sre/vault-manager/toplevel/instance"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -22,11 +21,11 @@ func init() {
 }
 
 type entry struct {
-	Name        string            `yaml:"name"`
-	Rules       string            `yaml:"rules"`
-	Type        string            `yaml:"type"`
-	Instance    instance.Instance `yaml:"instance"`
-	Description string            `yaml:"description"`
+	Name        string         `yaml:"name"`
+	Rules       string         `yaml:"rules"`
+	Type        string         `yaml:"type"`
+	Instance    vault.Instance `yaml:"instance"`
+	Description string         `yaml:"description"`
 }
 
 var _ vault.Item = entry{}
@@ -53,7 +52,7 @@ func (e entry) Equals(i interface{}) bool {
 }
 
 // TODO(dwelch): refactor into multiple functions
-func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
+func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPoolSize int) error {
 	// Unmarshal the list of configured secrets engines.
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
@@ -64,110 +63,85 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredPolicies[e.Instance.Address] = append(instancesToDesiredPolicies[e.Instance.Address], e)
 	}
 
-	// call to vault api for each instance to obtain raw existing policy infos
-	instancesToExistingPolicyNames := make(map[string][]string)
-	for addr := range vault.InstanceAddresses {
-		if _, exists := instancesToExistingPolicyNames[addr]; !exists {
-			existingPolicies, err := vault.ListVaultPolicies(addr)
-			if err != nil {
-				vault.AddInvalid(addr)
-				continue
-			}
-			instancesToExistingPolicyNames[addr] =
-				append(instancesToExistingPolicyNames[addr], existingPolicies...)
-		}
+	existingPolicyNames, err := vault.ListVaultPolicies(address)
+	if err != nil {
+		return err
 	}
-
-	vault.RemoveInstanceFromReconciliation()
 
 	// Build a list of all the existing policies for each instance
-	instancesToExistingPolicies := make(map[string][]entry)
-	for instance := range vault.InstanceAddresses {
-		if instancesToExistingPolicyNames[instance] != nil {
-			var mutex = &sync.Mutex{}
-			bwg := utils.NewBoundedWaitGroup(threadPoolSize)
-			ch := make(chan error)
+	existingPolicies := []entry{}
+	var mutex = &sync.Mutex{}
+	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+	ch := make(chan error)
 
-			// fill existing policies array in parallel
-			for i := range instancesToExistingPolicyNames[instance] {
-				bwg.Add(1)
+	// fill existing policies array in parallel
+	for i := range existingPolicyNames {
+		bwg.Add(1)
 
-				go func(i int, ch chan<- error) {
-					defer bwg.Done()
+		go func(i int, ch chan<- error) {
+			defer bwg.Done()
 
-					name := instancesToExistingPolicyNames[instance][i]
-					policy, err := vault.GetVaultPolicy(instance, name)
-					if err != nil {
-						ch <- err
-						return
-					}
-
-					mutex.Lock()
-					defer mutex.Unlock()
-					instancesToExistingPolicies[instance] =
-						append(instancesToExistingPolicies[instance], entry{Name: name, Rules: policy})
-				}(i, ch)
+			name := existingPolicyNames[i]
+			policy, err := vault.GetVaultPolicy(address, name)
+			if err != nil {
+				ch <- err
+				return
 			}
 
-			go func() {
-				bwg.Wait()
-				close(ch)
-			}()
+			mutex.Lock()
+			defer mutex.Unlock()
+			existingPolicies = append(existingPolicies, entry{Name: name, Rules: policy})
+		}(i, ch)
+	}
 
-			for e := range ch {
-				if e != nil {
-					vault.AddInvalid(instance)
-				}
+	go func() {
+		bwg.Wait()
+		close(ch)
+	}()
+
+	for e := range ch {
+		if e != nil {
+			return e
+		}
+	}
+
+	// Diff the local configuration with the Vault instance.
+	toBeWritten, toBeDeleted, _ :=
+		vault.DiffItems(asItems(instancesToDesiredPolicies[address]), asItems(existingPolicies))
+
+	if dryRun == true {
+		for _, w := range toBeWritten {
+			log.WithField("instance", address).Infof("[Dry Run] [Vault Policy] policy to be written='%v'", w.Key())
+		}
+		for _, d := range toBeDeleted {
+			if isDefaultPolicy(d.Key()) {
+				continue
+			}
+			log.WithField("instance", address).Infof("[Dry Run] [Vault Policy] policy to be deleted='%v'", d.Key())
+		}
+	} else {
+		// Write any missing policies to the Vault instance.
+		for _, e := range toBeWritten {
+			ent := e.(entry)
+			err := vault.PutVaultPolicy(address, ent.Name, ent.Rules)
+			if err != nil {
+				return err
+			}
+		}
+		// Delete any policies from the Vault instance.
+		for _, e := range toBeDeleted {
+			ent := e.(entry)
+			if isDefaultPolicy(ent.Name) {
+				continue
+			}
+			err := vault.DeleteVaultPolicy(address, ent.Name)
+			if err != nil {
+				return err
 			}
 		}
 	}
 
-	vault.RemoveInstanceFromReconciliation()
-
-	// perform reconcile operations for each instance
-OUTER:
-	for instance := range vault.InstanceAddresses {
-		// Diff the local configuration with the Vault instance.
-		toBeWritten, toBeDeleted, _ :=
-			vault.DiffItems(asItems(instancesToDesiredPolicies[instance]), asItems(instancesToExistingPolicies[instance]))
-
-		if dryRun == true {
-			for _, w := range toBeWritten {
-				log.WithField("instance", instance).Infof("[Dry Run] [Vault Policy] policy to be written='%v'", w.Key())
-			}
-			for _, d := range toBeDeleted {
-				if isDefaultPolicy(d.Key()) {
-					continue
-				}
-				log.WithField("instance", instance).Infof("[Dry Run] [Vault Policy] policy to be deleted='%v'", d.Key())
-			}
-		} else {
-			// Write any missing policies to the Vault instance.
-			for _, e := range toBeWritten {
-				ent := e.(entry)
-				err := vault.PutVaultPolicy(instance, ent.Name, ent.Rules)
-				if err != nil {
-					vault.AddInvalid(instance)
-					continue OUTER
-				}
-			}
-			// Delete any policies from the Vault instance.
-			for _, e := range toBeDeleted {
-				ent := e.(entry)
-				if isDefaultPolicy(ent.Name) {
-					continue
-				}
-				err := vault.DeleteVaultPolicy(instance, ent.Name)
-				if err != nil {
-					vault.AddInvalid(instance)
-					continue OUTER
-				}
-			}
-		}
-	}
-	// removes instances that generated errors from remaining reconciliation process
-	// this is necessary due to dependencies between toplevels
-	vault.RemoveInstanceFromReconciliation()
+	return nil
 }
 
 func isDefaultPolicy(name string) bool {

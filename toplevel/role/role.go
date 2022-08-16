@@ -10,9 +10,7 @@ import (
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
-	"github.com/app-sre/vault-manager/toplevel/instance"
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -21,7 +19,7 @@ type entry struct {
 	Name        string                 `yaml:"name"`
 	Type        string                 `yaml:"type"`
 	Mount       string                 `yaml:"mount"`
-	Instance    instance.Instance      `yaml:"instance"`
+	Instance    vault.Instance         `yaml:"instance"`
 	Options     map[string]interface{} `yaml:"options"`
 	Description string                 `yaml:"description"`
 }
@@ -101,7 +99,7 @@ func init() {
 // TODO(dwelch): refactor this into multiple functions
 // Apply ensures that an instance of Vault's roles are configured exactly
 // as provided.
-func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
+func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPoolSize int) error {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Role] failed to decode role configuration")
@@ -111,123 +109,104 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredRoles[e.Instance.Address] = append(instancesToDesiredRoles[e.Instance.Address], e)
 	}
 
-	// Get the existing auth backends for each instance
-	instancesToExistingAuths := make(map[string]map[string]*api.MountOutput)
-	for addr := range vault.InstanceAddresses {
-		existingAuths, err := vault.ListAuthBackends(addr)
-		if err != nil {
-			vault.AddInvalid(addr)
-			continue
-		}
-		instancesToExistingAuths[addr] = existingAuths
+	// Get the existing auth backends
+	existingAuths, err := vault.ListAuthBackends(address)
+	if err != nil {
+		return err
 	}
 
-	// build list of all existing roles for each instance
-	instancesToExistingRoles := make(map[string][]entry)
-	for instanceAddr, existingAuthBackends := range instancesToExistingAuths {
-		for authBackend := range existingAuthBackends {
-			// Get the secret with the existing App Roles.
-			path := filepath.Join("auth", authBackend, "role")
-			secret, err := vault.ListSecrets(instanceAddr, path)
+	// build list of all existing roles
+	existingRoles := []entry{}
+	for authBackend := range existingAuths {
+		// Get the secret with the existing App Roles.
+		path := filepath.Join("auth", authBackend, "role")
+		secret, err := vault.ListSecrets(address, path)
+		if err != nil {
+			return err
+		}
+		if secret != nil {
+			roles := secret.Data["keys"].([]interface{})
+
+			var mutex = &sync.Mutex{}
+			bwg := utils.NewBoundedWaitGroup(threadPoolSize)
+
+			// fill existing policies array in parallel
+			for i := range roles {
+				bwg.Add(1)
+
+				go func(i int) {
+					defer bwg.Done()
+					path := filepath.Join("auth", authBackend, "role", roles[i].(string))
+
+					mutex.Lock()
+					defer mutex.Unlock()
+
+					opts, err := vault.ReadSecret(address, path, vault.KV_V1)
+					if err != nil {
+						// reading of existing policies config failed
+						log.WithError(err).Fatal()
+					}
+					existingRoles = append(existingRoles,
+						entry{
+							Name:     roles[i].(string),
+							Type:     existingAuths[authBackend].Type,
+							Mount:    authBackend,
+							Instance: vault.Instance{Address: address},
+							Options:  opts,
+						})
+				}(i)
+			}
+			bwg.Wait()
+		}
+	}
+
+	// perform reconcile operations
+	addOptionalOidcDefaults(address, instancesToDesiredRoles[address])
+	err = pruneUnsupported(address, instancesToDesiredRoles[address])
+	if err != nil {
+		return err
+	}
+
+	err = unmarshallOptionObjects(instancesToDesiredRoles[address])
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"instance": address,
+		}).Info("[Vault Role] failed to unmarshall oidc options of desired role")
+		return err
+	}
+
+	// Diff the local configuration with the Vault instance.
+	entriesToBeWritten, entriesToBeDeleted, _ :=
+		vault.DiffItems(asItems(instancesToDesiredRoles[address]), asItems(existingRoles))
+
+	if dryRun == true {
+		for _, w := range entriesToBeWritten {
+			log.WithField("name", w.Key()).WithField("type", w.(entry).Type).WithField("instance", address).Info(
+				"[Dry Run] [Vault Role] role to be written")
+		}
+		for _, d := range entriesToBeDeleted {
+			log.WithField("name", d.Key()).WithField("type", d.(entry).Type).WithField("instance", address).Info(
+				"[Dry Run] [Vault Role] role to be deleted")
+		}
+	} else {
+		// Write any missing roles to the Vault instance.
+		for _, e := range entriesToBeWritten {
+			err := e.(entry).Save()
 			if err != nil {
-				vault.AddInvalid(instanceAddr)
-				break
+				return err
 			}
-			if secret != nil {
-				roles := secret.Data["keys"].([]interface{})
+		}
 
-				var mutex = &sync.Mutex{}
-				bwg := utils.NewBoundedWaitGroup(threadPoolSize)
-
-				// fill existing policies array in parallel
-				for i := range roles {
-					bwg.Add(1)
-
-					go func(i int) {
-						defer bwg.Done()
-						path := filepath.Join("auth", authBackend, "role", roles[i].(string))
-
-						mutex.Lock()
-						defer mutex.Unlock()
-
-						opts, err := vault.ReadSecret(instanceAddr, path, vault.KV_V1)
-						if err != nil {
-							// reading of existing policies config failed
-							log.WithError(err).Fatal()
-						}
-						instancesToExistingRoles[instanceAddr] = append(instancesToExistingRoles[instanceAddr],
-							entry{
-								Name:     roles[i].(string),
-								Type:     existingAuthBackends[authBackend].Type,
-								Mount:    authBackend,
-								Instance: instance.Instance{Address: instanceAddr},
-								Options:  opts,
-							})
-					}(i)
-				}
-				bwg.Wait()
+		// Delete any roles from the Vault instance.
+		for _, e := range entriesToBeDeleted {
+			err := e.(entry).Delete()
+			if err != nil {
+				return err
 			}
 		}
 	}
 
-	vault.RemoveInstanceFromReconciliation()
-
-	// perform reconcile operations for each instance
-OUTER:
-	for instance := range vault.InstanceAddresses {
-		addOptionalOidcDefaults(instance, instancesToDesiredRoles[instance])
-		err := pruneUnsupported(instance, instancesToDesiredRoles[instance])
-		if err != nil {
-			vault.AddInvalid(instance)
-			continue
-		}
-
-		err = unmarshallOptionObjects(instancesToDesiredRoles[instance])
-		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"instance": instance,
-			}).Info("[Vault Role] failed to unmarshall oidc options of desired role")
-			vault.AddInvalid(instance)
-			continue
-		}
-
-		// Diff the local configuration with the Vault instance.
-		entriesToBeWritten, entriesToBeDeleted, _ :=
-			vault.DiffItems(asItems(instancesToDesiredRoles[instance]), asItems(instancesToExistingRoles[instance]))
-
-		if dryRun == true {
-			for _, w := range entriesToBeWritten {
-				log.WithField("name", w.Key()).WithField("type", w.(entry).Type).WithField("instance", instance).Info(
-					"[Dry Run] [Vault Role] role to be written")
-			}
-			for _, d := range entriesToBeDeleted {
-				log.WithField("name", d.Key()).WithField("type", d.(entry).Type).WithField("instance", instance).Info(
-					"[Dry Run] [Vault Role] role to be deleted")
-			}
-		} else {
-			// Write any missing roles to the Vault instance.
-			for _, e := range entriesToBeWritten {
-				err := e.(entry).Save()
-				if err != nil {
-					vault.AddInvalid(instance)
-					continue OUTER
-				}
-			}
-
-			// Delete any roles from the Vault instance.
-			for _, e := range entriesToBeDeleted {
-				err := e.(entry).Delete()
-				if err != nil {
-					vault.AddInvalid(instance)
-					continue OUTER
-				}
-			}
-		}
-	}
-
-	// removes instances that generated errors from remaining reconciliation process
-	// this is necessary due to dependencies between toplevels
-	vault.RemoveInstanceFromReconciliation()
+	return nil
 }
 
 func asItems(xs []entry) (items []vault.Item) {

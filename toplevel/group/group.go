@@ -10,7 +10,6 @@ import (
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
-	"github.com/app-sre/vault-manager/toplevel/instance"
 	log "github.com/sirupsen/logrus"
 
 	"gopkg.in/yaml.v2"
@@ -31,11 +30,11 @@ type role struct {
 }
 
 type oidcPermission struct {
-	Name        string            `yaml:"name"`
-	Description string            `yaml:"description"`
-	Service     string            `yaml:"service"`
-	Instance    instance.Instance `yaml:"instance"`
-	Policies    []vaultPolicy     `yaml:"vault_policies"`
+	Name        string         `yaml:"name"`
+	Description string         `yaml:"description"`
+	Service     string         `yaml:"service"`
+	Instance    vault.Instance `yaml:"instance"`
+	Policies    []vaultPolicy  `yaml:"vault_policies"`
 }
 
 type vaultPolicy struct {
@@ -46,7 +45,7 @@ type group struct {
 	Name      string
 	Id        string
 	Type      string
-	Instance  instance.Instance
+	Instance  vault.Instance
 	Metadata  map[string]interface{}
 	Policies  []string
 	EntityIds []string
@@ -114,66 +113,59 @@ func init() {
 	toplevel.RegisterConfiguration("vault_groups", config{})
 }
 
-func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
+func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPoolSize int) error {
 	var users []user
 	if err := yaml.Unmarshal(entriesBytes, &users); err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
-	// perform processing/reconcile per instance
-OUTER:
-	for instanceAddr := range vault.InstanceAddresses {
-		entityNamesToIds, err := getEntityNamesToIds(instanceAddr)
-		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"instance": instanceAddr,
-			}).Info("[Vault Identity] failed to parse existing entities as prereq for group reconcile")
-			vault.AddInvalid(instanceAddr)
-			continue
-		}
-		desired := processDesired(instanceAddr, users, entityNamesToIds)
-		existing, err := getExistingGroups(instanceAddr, threadPoolSize)
-		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"instance": instanceAddr,
-			}).Info("[Vault Identity] failed to retrieve existing groups")
-			vault.AddInvalid(instanceAddr)
-			continue
-		}
-		sortSlices(desired)
-		sortSlices(existing)
 
-		toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(groupsAsItems(desired), groupsAsItems(existing))
-		if dryRun {
-			dryRunOutput(instanceAddr, toBeWritten, "written")
-			dryRunOutput(instanceAddr, toBeDeleted, "deleted")
-			dryRunOutput(instanceAddr, toBeUpdated, "updated")
-		} else {
-			for _, w := range toBeWritten {
-				err := w.(group).CreateOrUpdate("written")
-				if err != nil {
-					vault.AddInvalid(instanceAddr)
-					continue OUTER // terminate remaining reconcile for instance that returned an error
-				}
+	entityNamesToIds, err := getEntityNamesToIds(address)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"instance": address,
+		}).Info("[Vault Identity] failed to parse existing entities as prereq for group reconcile")
+		return err
+	}
+
+	desired := processDesired(address, users, entityNamesToIds)
+	existing, err := getExistingGroups(address, threadPoolSize)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"instance": address,
+		}).Info("[Vault Identity] failed to retrieve existing groups")
+		return err
+	}
+
+	sortSlices(desired)
+	sortSlices(existing)
+
+	toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(groupsAsItems(desired), groupsAsItems(existing))
+	if dryRun {
+		dryRunOutput(address, toBeWritten, "written")
+		dryRunOutput(address, toBeDeleted, "deleted")
+		dryRunOutput(address, toBeUpdated, "updated")
+	} else {
+		for _, w := range toBeWritten {
+			err := w.(group).CreateOrUpdate("written")
+			if err != nil {
+				return err
 			}
-			for _, d := range toBeDeleted {
-				err := d.(group).Delete()
-				if err != nil {
-					vault.AddInvalid(instanceAddr)
-					continue OUTER // terminate remaining reconcile for instance that returned an error
-				}
+		}
+		for _, d := range toBeDeleted {
+			err := d.(group).Delete()
+			if err != nil {
+				return err
 			}
-			for _, u := range toBeUpdated {
-				err := u.(group).CreateOrUpdate("updated")
-				if err != nil {
-					vault.AddInvalid(instanceAddr)
-					continue OUTER // terminate remaining reconcile for instance that returned an error
-				}
+		}
+		for _, u := range toBeUpdated {
+			err := u.(group).CreateOrUpdate("updated")
+			if err != nil {
+				return err
 			}
 		}
 	}
-	// removes instances that generated errors from remaining reconciliation process
-	// this is necessary due to dependencies between toplevels
-	vault.RemoveInstanceFromReconciliation()
+
+	return nil
 }
 
 // processDesired accepts the yaml-marshalled result of the `vault_groups` graphql
@@ -265,7 +257,7 @@ func getExistingGroups(instanceAddr string, threadPoolSize int) ([]group, error)
 			Name: name,
 			Id:   id,
 			Type: "group",
-			Instance: instance.Instance{
+			Instance: vault.Instance{
 				Address: instanceAddr,
 			},
 		})

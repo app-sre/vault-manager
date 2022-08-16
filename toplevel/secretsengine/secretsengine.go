@@ -7,7 +7,6 @@ package secretsengine
 import (
 	"strings"
 
-	"github.com/app-sre/vault-manager/toplevel/instance"
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -19,7 +18,7 @@ import (
 type entry struct {
 	Path        string            `yaml:"_path"`
 	Type        string            `yaml:"type"`
-	Instance    instance.Instance `yaml:"instance"`
+	Instance    vault.Instance    `yaml:"instance"`
 	Description string            `yaml:"description"`
 	Options     map[string]string `yaml:"options"`
 }
@@ -69,7 +68,7 @@ func init() {
 // TODO(dwelch) refactor into multiple functions
 // Apply ensures that an instance of Vault's secrets engine are configured
 // exactly as provided.
-func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
+func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPoolSize int) error {
 	// Unmarshal the list of configured secrets engines.
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
@@ -80,93 +79,83 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 		instancesToDesiredEngines[e.Instance.Address] = append(instancesToDesiredEngines[e.Instance.Address], e)
 	}
 
-	// perform reconcile operations for each instance
-OUTER:
-	for instanceAddr := range vault.InstanceAddresses {
-		enabledSecretEngines, err := vault.ListSecretsEngines(instanceAddr)
-		if err != nil {
-			vault.AddInvalid(instanceAddr)
-			continue
-		}
+	enabledSecretEngines, err := vault.ListSecretsEngines(address)
+	if err != nil {
+		return err
+	}
 
-		existingSecretEngines := []entry{}
-		for path, engine := range enabledSecretEngines {
-			existingSecretEngines = append(existingSecretEngines, entry{
-				Path:        path,
-				Type:        engine.Type,
-				Description: engine.Description,
-				Options:     engine.Options,
+	existingSecretEngines := []entry{}
+	for path, engine := range enabledSecretEngines {
+		existingSecretEngines = append(existingSecretEngines, entry{
+			Path:        path,
+			Type:        engine.Type,
+			Description: engine.Description,
+			Options:     engine.Options,
+		})
+	}
+	toBeWritten, toBeDeleted, toBeUpdated :=
+		vault.DiffItems(asItems(instancesToDesiredEngines[address]), asItems(existingSecretEngines))
+
+	if dryRun == true {
+		for _, w := range toBeWritten {
+			log.WithFields(log.Fields{
+				"path":     w.Key(),
+				"type":     w.(entry).Type,
+				"instance": address,
+			}).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be enabled")
+		}
+		for _, u := range toBeUpdated {
+			log.WithFields(log.Fields{
+				"path":     u.Key(),
+				"type":     u.(entry).Type,
+				"instance": address,
+			}).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be updated")
+		}
+		for _, d := range toBeDeleted {
+			if !isDefaultMount(d.Key()) {
+				log.WithFields(log.Fields{
+					"path":     d.Key(),
+					"type":     d.(entry).Type,
+					"instance": address,
+				}).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be disabled")
+			}
+		}
+	} else {
+		// TODO(riuvshin): implement tuning
+		for _, e := range toBeWritten {
+			ent := e.(entry)
+			err := vault.EnableSecretsEngine(address, ent.Path, &api.MountInput{
+				Type:        ent.Type,
+				Description: ent.Description,
+				Options:     ent.Options,
 			})
+			if err != nil {
+				return err
+			}
 		}
-		toBeWritten, toBeDeleted, toBeUpdated :=
-			vault.DiffItems(asItems(instancesToDesiredEngines[instanceAddr]), asItems(existingSecretEngines))
 
-		if dryRun == true {
-			for _, w := range toBeWritten {
-				log.WithFields(log.Fields{
-					"path":     w.Key(),
-					"type":     w.(entry).Type,
-					"instance": instanceAddr,
-				}).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be enabled")
+		for _, e := range toBeUpdated {
+			ent := e.(entry)
+			err := vault.UpdateSecretsEngine(address, ent.Path, api.MountConfigInput{
+				// vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
+				Description: &ent.Description,
+			})
+			if err != nil {
+				return err
 			}
-			for _, u := range toBeUpdated {
-				log.WithFields(log.Fields{
-					"path":     u.Key(),
-					"type":     u.(entry).Type,
-					"instance": instanceAddr,
-				}).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be updated")
-			}
-			for _, d := range toBeDeleted {
-				if !isDefaultMount(d.Key()) {
-					log.WithFields(log.Fields{
-						"path":     d.Key(),
-						"type":     d.(entry).Type,
-						"instance": instanceAddr,
-					}).Info("[Dry Run] [Vault Secrets engine] secrets-engine to be disabled")
-				}
-			}
-		} else {
-			// TODO(riuvshin): implement tuning
-			for _, e := range toBeWritten {
-				ent := e.(entry)
-				err := vault.EnableSecretsEngine(instanceAddr, ent.Path, &api.MountInput{
-					Type:        ent.Type,
-					Description: ent.Description,
-					Options:     ent.Options,
-				})
+		}
+
+		for _, e := range toBeDeleted {
+			ent := e.(entry)
+			if !isDefaultMount(ent.Path) {
+				err := vault.DisableSecretsEngine(address, ent.Path)
 				if err != nil {
-					vault.AddInvalid(instanceAddr)
-					continue OUTER
-				}
-			}
-
-			for _, e := range toBeUpdated {
-				ent := e.(entry)
-				err := vault.UpdateSecretsEngine(instanceAddr, ent.Path, api.MountConfigInput{
-					// vault.UpdateSecretsEngine(ent.Path, &api.MountInput{
-					Description: &ent.Description,
-				})
-				if err != nil {
-					vault.AddInvalid(instanceAddr)
-					continue OUTER
-				}
-			}
-
-			for _, e := range toBeDeleted {
-				ent := e.(entry)
-				if !isDefaultMount(ent.Path) {
-					err := vault.DisableSecretsEngine(instanceAddr, ent.Path)
-					if err != nil {
-						vault.AddInvalid(instanceAddr)
-						continue OUTER
-					}
+					return err
 				}
 			}
 		}
 	}
-	// removes instances that generated errors from remaining reconciliation process
-	// this is necessary due to dependencies between toplevels
-	vault.RemoveInstanceFromReconciliation()
+	return nil
 }
 
 func isDefaultMount(path string) bool {
