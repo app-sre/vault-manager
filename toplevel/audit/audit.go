@@ -5,7 +5,6 @@ package audit
 import (
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
-	"github.com/app-sre/vault-manager/toplevel/instance"
 
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
@@ -16,7 +15,7 @@ type entry struct {
 	Path        string            `yaml:"_path"`
 	Type        string            `yaml:"type"`
 	Description string            `yaml:"description"`
-	Instance    instance.Instance `yaml:"instance"`
+	Instance    vault.Instance    `yaml:"instance"`
 	Options     map[string]string `yaml:"options"`
 }
 
@@ -64,7 +63,7 @@ func init() {
 
 // Apply ensures that an instance of Vault's Audit Devices are configured
 // exactly as provided.
-func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
+func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPoolSize int) error {
 	var entries []entry
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Audit] failed to decode audit device configuration")
@@ -73,71 +72,63 @@ func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
 	for _, e := range entries {
 		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
 	}
-	// perform reconcile operations for each instance
-OUTER:
-	for instance := range vault.InstanceAddresses {
-		enabledAudits, err := vault.ListAuditDevices(instance)
-		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"instance": instance,
-			}).Info("[Vault Identity] failed to list audit device")
-			vault.AddInvalid(instance)
-			continue
-		}
-		// format raw vault api result
-		existingAduits := []entry{}
-		for k := range enabledAudits {
-			existingAduits = append(existingAduits, entry{
-				Path:        enabledAudits[k].Path,
-				Type:        enabledAudits[k].Type,
-				Description: enabledAudits[k].Description,
-				Options:     enabledAudits[k].Options,
-			})
-		}
-		// Diff the local configuration with the Vault instance.
-		toBeWritten, toBeDeleted, _ :=
-			vault.DiffItems(asItems(instancesToDesiredAudits[instance]), asItems(existingAduits))
 
-		if dryRun == true {
-			for _, w := range toBeWritten {
-				log.WithFields(log.Fields{
-					"path":     w.Key(),
-					"instance": instance,
-				}).Info("[Dry Run] [Vault Audit] audit device to be enabled")
+	// perform reconcile operations for specific instance
+	enabledAudits, err := vault.ListAuditDevices(address)
+	if err != nil {
+		return err
+	}
+
+	// format raw vault api result
+	existingAduits := []entry{}
+	for k := range enabledAudits {
+		existingAduits = append(existingAduits, entry{
+			Path:        enabledAudits[k].Path,
+			Type:        enabledAudits[k].Type,
+			Description: enabledAudits[k].Description,
+			Options:     enabledAudits[k].Options,
+		})
+	}
+	// Diff the local configuration with the Vault instance.
+	toBeWritten, toBeDeleted, _ :=
+		vault.DiffItems(asItems(instancesToDesiredAudits[address]), asItems(existingAduits))
+
+	if dryRun == true {
+		for _, w := range toBeWritten {
+			log.WithFields(log.Fields{
+				"path":     w.Key(),
+				"instance": address,
+			}).Info("[Dry Run] [Vault Audit] audit device to be enabled")
+		}
+		for _, d := range toBeDeleted {
+			log.WithFields(log.Fields{
+				"path":     d.Key(),
+				"instance": address,
+			}).Info("[Dry Run] [Vault Audit] audit device to be disabled")
+		}
+	} else {
+		// Write any missing Audit Devices to the Vault instance.
+		for _, e := range toBeWritten {
+			ent := e.(entry)
+			err := vault.EnableAuditDevice(address, ent.Path, &api.EnableAuditOptions{
+				Type:        ent.Type,
+				Description: ent.Description,
+				Options:     ent.Options,
+			})
+			if err != nil {
+				return err
 			}
-			for _, d := range toBeDeleted {
-				log.WithFields(log.Fields{
-					"path":     d.Key(),
-					"instance": instance,
-				}).Info("[Dry Run] [Vault Audit] audit device to be disabled")
-			}
-		} else {
-			// Write any missing Audit Devices to the Vault instance.
-			for _, e := range toBeWritten {
-				ent := e.(entry)
-				err := vault.EnableAuditDevice(instance, ent.Path, &api.EnableAuditOptions{
-					Type:        ent.Type,
-					Description: ent.Description,
-					Options:     ent.Options,
-				})
-				if err != nil {
-					vault.AddInvalid(instance)
-					continue OUTER
-				}
-			}
-			// Delete any Audit Devices from the Vault instance.
-			for _, e := range toBeDeleted {
-				err := vault.DisableAuditDevice(instance, e.(entry).Path)
-				if err != nil {
-					vault.AddInvalid(instance)
-					continue OUTER
-				}
+		}
+		// Delete any Audit Devices from the Vault instance.
+		for _, e := range toBeDeleted {
+			err := vault.DisableAuditDevice(address, e.(entry).Path)
+			if err != nil {
+				return err
 			}
 		}
 	}
-	// removes instances that generated errors from remaining reconciliation process
-	// this is necessary due to dependencies between toplevels
-	vault.RemoveInstanceFromReconciliation()
+
+	return nil
 }
 
 func asItems(xs []entry) (items []vault.Item) {

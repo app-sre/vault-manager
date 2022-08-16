@@ -10,7 +10,6 @@ import (
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
-	"github.com/app-sre/vault-manager/toplevel/instance"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -31,9 +30,9 @@ type role struct {
 }
 
 type oidcPermission struct {
-	Name     string            `yaml:"name"`
-	Service  string            `yaml:"service"`
-	Instance instance.Instance `yaml:"instance"`
+	Name     string         `yaml:"name"`
+	Service  string         `yaml:"service"`
+	Instance vault.Instance `yaml:"instance"`
 }
 
 type entity struct {
@@ -42,7 +41,7 @@ type entity struct {
 	Type     string
 	Metadata interface{}
 	Aliases  []entityAlias
-	Instance instance.Instance
+	Instance vault.Instance
 }
 
 type entityAlias struct {
@@ -51,7 +50,7 @@ type entityAlias struct {
 	Type       string
 	AuthType   string
 	AccessorId string
-	Instance   instance.Instance
+	Instance   vault.Instance
 }
 
 var _ vault.Item = entity{}
@@ -187,142 +186,130 @@ func init() {
 	toplevel.RegisterConfiguration("vault_entities", config{})
 }
 
-func (c config) Apply(entriesBytes []byte, dryRun bool, threadPoolSize int) {
+func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPoolSize int) error {
 	// process desired entities/aliases
 	var entries []user
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Identity] failed to decode entity configuration")
 	}
-	instancesToDesired := getDesiredByInstance(entries)
-	for _, desired := range instancesToDesired {
-		populateAliasType(desired)
+
+	desired := getDesired(address, entries)
+	populateAliasType(desired)
+
+	// Process data on existing entities/aliases
+	existingEntities, err := createBaseExistingEntities(address)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"instance": address,
+		}).Info("[Vault Identity] failed to parse existing entities")
+		return err
 	}
 
-OUTER:
-	for instanceAddr := range vault.InstanceAddresses {
-		// Process data on existing entities/aliases
-		existingEntities, err := createBaseExistingEntities(instanceAddr)
+	pruneApproleEntities(&existingEntities)
+
+	if existingEntities != nil && len(existingEntities) > 0 {
+		err := getExistingEntitiesDetails(address, existingEntities, threadPoolSize)
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
-				"instance": instanceAddr,
-			}).Info("[Vault Identity] failed to parse existing entities")
-			vault.AddInvalid(instanceAddr)
-			continue
+				"instance": address,
+			}).Info("[Vault Identity] failed to gather existing entity details")
+			return err
 		}
-		pruneApproleEntities(&existingEntities)
-		if existingEntities != nil && len(existingEntities) > 0 {
-			err := getExistingEntitiesDetails(instanceAddr, existingEntities, threadPoolSize)
-			if err != nil {
-				log.WithError(err).WithFields(log.Fields{
-					"instance": instanceAddr,
-				}).Info("[Vault Identity] failed to gather existing entity details")
-				vault.AddInvalid(instanceAddr)
-				continue
-			}
-			populateAliasType(existingEntities)
-			copyIds(instancesToDesired[instanceAddr], existingEntities)
+		populateAliasType(existingEntities)
+		copyIds(desired, existingEntities)
+	}
+
+	// determine entity changes
+	entitiesToBeWritten, entitiesToBeDeleted, entitiesToBeUpdated :=
+		vault.DiffItems(entriesAsItems(desired), entriesAsItems(existingEntities))
+	// determine entity alias changes
+	aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated :=
+		determineAliasActions(desired, existingEntities, entitiesToBeDeleted)
+
+	// preform actions
+	if dryRun {
+		entitiesDryRunOutput(address, entitiesToBeWritten, "written")
+		entitiesDryRunOutput(address, entitiesToBeDeleted, "deleted")
+		entitiesDryRunOutput(address, entitiesToBeUpdated, "updated")
+		aliasesDryRunOutput(address, aliasesToBeWritten["id"], "written")
+		aliasesDryRunOutput(address, aliasesToBeWritten["name"], "written")
+		for _, alias := range aliasesToBeDeleted {
+			log.WithFields(log.Fields{
+				"name":     alias.Key(),
+				"type":     alias.(entityAlias).AuthType,
+				"instance": address,
+			}).Info("[Dry Run] [Vault Identity] entity alias to be deleted")
 		}
-
-		// determine entity changes
-		entitiesToBeWritten, entitiesToBeDeleted, entitiesToBeUpdated :=
-			vault.DiffItems(entriesAsItems(instancesToDesired[instanceAddr]), entriesAsItems(existingEntities))
-		// determine entity alias changes
-		aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated :=
-			determineAliasActions(instancesToDesired[instanceAddr], existingEntities, entitiesToBeDeleted)
-
-		// preform actions
-		if dryRun {
-			entitiesDryRunOutput(instanceAddr, entitiesToBeWritten, "written")
-			entitiesDryRunOutput(instanceAddr, entitiesToBeDeleted, "deleted")
-			entitiesDryRunOutput(instanceAddr, entitiesToBeUpdated, "updated")
-			aliasesDryRunOutput(instanceAddr, aliasesToBeWritten["id"], "written")
-			aliasesDryRunOutput(instanceAddr, aliasesToBeWritten["name"], "written")
-			for _, alias := range aliasesToBeDeleted {
-				log.WithFields(log.Fields{
-					"name":     alias.Key(),
-					"type":     alias.(entityAlias).AuthType,
-					"instance": instanceAddr,
-				}).Info("[Dry Run] [Vault Identity] entity alias to be deleted")
-			}
-			aliasesDryRunOutput(instanceAddr, aliasesToBeUpdated, "updated")
-		} else {
-			// TODO: make each action perform concurrently
-			for _, w := range entitiesToBeWritten {
-				err := w.(entity).CreateOrUpdate("written")
-				if err != nil {
-					vault.AddInvalid(instanceAddr)
-					continue OUTER // terminate remaining reconcile for instance that returned an error
-				}
-			}
-			for _, d := range entitiesToBeDeleted {
-				err := d.(entity).Delete()
-				if err != nil {
-					vault.AddInvalid(instanceAddr)
-					continue OUTER // terminate remaining reconcile for instance that returned an error
-				}
-			}
-			for _, u := range entitiesToBeUpdated {
-				err := u.(entity).CreateOrUpdate("update")
-				if err != nil {
-					vault.AddInvalid(instanceAddr)
-					continue OUTER // terminate remaining reconcile for instance that returned an error
-				}
-			}
-			err = performAliasReconcile(instanceAddr, aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated)
+		aliasesDryRunOutput(address, aliasesToBeUpdated, "updated")
+	} else {
+		// TODO: make each action perform concurrently
+		for _, w := range entitiesToBeWritten {
+			err := w.(entity).CreateOrUpdate("written")
 			if err != nil {
-				vault.AddInvalid(instanceAddr)
-				continue OUTER // terminate remaining reconcile for instance that returned an error
+				return err
 			}
+		}
+		for _, d := range entitiesToBeDeleted {
+			err := d.(entity).Delete()
+			if err != nil {
+				return err
+			}
+		}
+		for _, u := range entitiesToBeUpdated {
+			err := u.(entity).CreateOrUpdate("update")
+			if err != nil {
+				return err
+			}
+		}
+		err = performAliasReconcile(address, aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated)
+		if err != nil {
+			return err
 		}
 	}
-	// removes instances that generated errors from remaining reconciliation process
-	// this is necessary due to dependencies between toplevels
-	vault.RemoveInstanceFromReconciliation()
+
+	return nil
 }
 
-// getDesiredByInstance accepts the yaml-marshalled result of the `vault_entities` graphql
-// query and returns entity/entity-alias object slices segmented by vault instances
-func getDesiredByInstance(entries []user) map[string][]entity {
-	instancesToDesired := make(map[string][]entity)
-	// need to track org name per instance
-	// a user file can ref multi roles but only one should be appended to
-	// new desired per instance
-	existing := make(map[string]map[string]bool)
-	for instanceAddr := range vault.InstanceAddresses {
-		existing[instanceAddr] = make(map[string]bool)
-	}
+// getDesired accepts the yaml-marshalled result of the `vault_entities` graphql
+// query and returns entity/entity-alias object slice of desired for particular instance address
+func getDesired(address string, entries []user) []entity {
+	desired := []entity{}
+	// need to track org name
+	// a user file can ref multi roles but user should only be appended once
+	existing := make(map[string]bool)
+
 	for _, u := range entries {
-		for _, r := range u.Roles {
-			for _, p := range r.Permissions {
-				_, valid := vault.InstanceAddresses[p.Instance.Address]
-				// permission is associated with a valid instance (hasn't returned an error thru reconcile so far)
-				// and only process oidc permissions for vault service
-				// and only process first occurrence of a user within a particular instance
-				if valid && p.Service == "vault" && !existing[p.Instance.Address][u.OrgUsername] {
-					newDesired := entity{
-						Name: u.OrgUsername,
-						Type: "entity",
-						Aliases: []entityAlias{
-							{
-								Name:     u.OrgUsername,
-								Type:     "entity-alias",
-								AuthType: "oidc",
-								Instance: p.Instance,
+		if !existing[u.OrgUsername] {
+			for _, r := range u.Roles {
+				for _, p := range r.Permissions {
+					// only process oidc permissions for vault service
+					// and only process references to particular instance being reconciled
+					if p.Service == "vault" && p.Instance.Address == address {
+						newDesired := entity{
+							Name: u.OrgUsername,
+							Type: "entity",
+							Aliases: []entityAlias{
+								{
+									Name:     u.OrgUsername,
+									Type:     "entity-alias",
+									AuthType: "oidc",
+									Instance: p.Instance,
+								},
 							},
-						},
-						Metadata: map[string]interface{}{
-							"name": u.Name,
-						},
-						Instance: p.Instance,
+							Metadata: map[string]interface{}{
+								"name": u.Name,
+							},
+							Instance: p.Instance,
+						}
+						desired = append(desired, newDesired)
+						// ensure no further entities are added for this user in this instance
+						existing[u.OrgUsername] = true
 					}
-					instancesToDesired[p.Instance.Address] = append(instancesToDesired[p.Instance.Address], newDesired)
-					// ensure no further entities are added for this user in this instance
-					existing[p.Instance.Address][u.OrgUsername] = true
 				}
 			}
 		}
 	}
-	return instancesToDesired
+	return desired
 }
 
 // processes all relevant info for entities/entity aliases from single vault api request
@@ -393,7 +380,7 @@ func createBaseExistingEntities(instanceAddr string) ([]entity, error) {
 				Id:       aliasId,
 				Name:     aliasName,
 				AuthType: mountType,
-				Instance: instance.Instance{Address: instanceAddr},
+				Instance: vault.Instance{Address: instanceAddr},
 			})
 		}
 
@@ -402,7 +389,7 @@ func createBaseExistingEntities(instanceAddr string) ([]entity, error) {
 			Id:       id,
 			Type:     "entity", // used for reconcile and output
 			Aliases:  processedAliases,
-			Instance: instance.Instance{Address: instanceAddr},
+			Instance: vault.Instance{Address: instanceAddr},
 		})
 	}
 	return processed, nil
