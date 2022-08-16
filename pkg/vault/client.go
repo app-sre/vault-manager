@@ -33,14 +33,6 @@ func GetVaultSecretField(instanceAddr, path, field, engineVersion string) (strin
 	return secret[field].(string), nil
 }
 
-// returns the vault client associated with instance address
-func getClient(instanceAddr string) *api.Client {
-	if vaultClients[instanceAddr] == nil {
-		log.Fatalf("[Vault Client] client does not exist for address: %s", instanceAddr)
-	}
-	return vaultClients[instanceAddr]
-}
-
 // return proper secret path format based upon kv version
 // kv v2 api inserts /data/ between the root engine name and remaining path
 func FormatSecretPath(secret string, secretEngine string) string {

@@ -253,3 +253,11 @@ func createClient(addr, masterAddress string, bundle AuthBundle, bwg *utils.Boun
 
 	vaultClients[addr] = client
 }
+
+// returns the vault client associated with instance address
+func getClient(instanceAddr string) *api.Client {
+	if vaultClients[instanceAddr] == nil {
+		log.Fatalf("[Vault Client] client does not exist for address: %s", instanceAddr)
+	}
+	return vaultClients[instanceAddr]
+}
