@@ -57,6 +57,8 @@ const (
 )
 
 // global that maps instance addresses to configured vault clients
+// initialization process is triggered by call to GetInstances()
+// GetInstances() is called a single time within main
 var vaultClients map[string]*api.Client
 
 // Utilized to initialize vault instance clients for use by other toplevel integrations
