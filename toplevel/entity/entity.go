@@ -263,6 +263,9 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}
 		err = performAliasReconcile(address, aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated)
 		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"instance": address,
+			}).Info("[Vault Identity] error occurred during reconciliation of entity aliases")
 			return err
 		}
 	}
