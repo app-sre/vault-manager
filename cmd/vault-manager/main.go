@@ -93,6 +93,7 @@ func main() {
 			}
 			err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
 			if err != nil {
+				fmt.Println(fmt.Sprintf("Error encountered during reconciliation of %s toplevel", config.Name))
 				fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
 				break
 			}
