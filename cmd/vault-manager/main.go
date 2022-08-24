@@ -67,7 +67,7 @@ func main() {
 	instanceAddresses := initInstances(cfg, threadPoolSize)
 
 	// remove disabled toplevels
-	if _, set := os.LookupEnv("DISABLE_IDENTITY"); set {
+	if disabled, _ := os.LookupEnv("DISABLE_IDENTITY"); disabled == "true" {
 		delete(cfg, "vault_entities")
 		delete(cfg, "vault_groups")
 	}
