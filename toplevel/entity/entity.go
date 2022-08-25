@@ -282,32 +282,31 @@ func getDesired(address string, entries []user) []entity {
 	existing := make(map[string]bool)
 
 	for _, u := range entries {
-		if !existing[u.OrgUsername] {
-			for _, r := range u.Roles {
-				for _, p := range r.Permissions {
-					// only process oidc permissions for vault service
-					// and only process references to particular instance being reconciled
-					if p.Service == "vault" && p.Instance.Address == address {
-						newDesired := entity{
-							Name: u.OrgUsername,
-							Type: "entity",
-							Aliases: []entityAlias{
-								{
-									Name:     u.OrgUsername,
-									Type:     "entity-alias",
-									AuthType: "oidc",
-									Instance: p.Instance,
-								},
+		for _, r := range u.Roles {
+			for _, p := range r.Permissions {
+				// only process first occurence of oidc ref for a user
+				// and only process oidc permissions for vault service
+				// and only process references to particular instance being reconciled
+				if !existing[u.OrgUsername] && p.Service == "vault" && p.Instance.Address == address {
+					newDesired := entity{
+						Name: u.OrgUsername,
+						Type: "entity",
+						Aliases: []entityAlias{
+							{
+								Name:     u.OrgUsername,
+								Type:     "entity-alias",
+								AuthType: "oidc",
+								Instance: p.Instance,
 							},
-							Metadata: map[string]interface{}{
-								"name": u.Name,
-							},
-							Instance: p.Instance,
-						}
-						desired = append(desired, newDesired)
-						// ensure no further entities are added for this user in this instance
-						existing[u.OrgUsername] = true
+						},
+						Metadata: map[string]interface{}{
+							"name": u.Name,
+						},
+						Instance: p.Instance,
 					}
+					desired = append(desired, newDesired)
+					// ensure no further entities are added for this user in this instance
+					existing[u.OrgUsername] = true
 				}
 			}
 		}
