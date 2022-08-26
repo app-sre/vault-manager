@@ -173,11 +173,23 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 func processDesired(instanceAddr string, users []user, entityNamesToIds map[string]string) []group {
 	desired := []group{}
 	processedGroups := make(map[string]*group)
+	// role(group) name to make of user names
+	existingEntitiesPerGroup := make(map[string]map[string]bool)
 	for _, user := range users {
 		for _, role := range user.Roles {
 			for _, permission := range role.Permissions {
 				if permission.Service == "vault" && permission.Instance.Address == instanceAddr {
-					handleNewDesired(processedGroups, permission, role.Name, entityNamesToIds[user.Name])
+					// a role can reference multiple permissions but a user
+					// should only be added once per role
+					if existingEntitiesPerGroup[role.Name] == nil {
+						existingEntitiesPerGroup[role.Name] = make(map[string]bool)
+					}
+
+					handleNewDesired(processedGroups, permission, role.Name,
+						entityNamesToIds[user.Name], existingEntitiesPerGroup[role.Name][user.Name])
+
+					// ensure user is not added again for this role
+					existingEntitiesPerGroup[role.Name][user.Name] = true
 				}
 			}
 		}
@@ -190,11 +202,16 @@ func processDesired(instanceAddr string, users []user, entityNamesToIds map[stri
 
 // either creates or updates a desired group
 // helper function for processDesired
-func handleNewDesired(processedGroups map[string]*group, permission oidcPermission, roleName string, entityId string) {
+// processedGroups is map of group names to object with details for the group and
+// is updated with each call
+func handleNewDesired(processedGroups map[string]*group, permission oidcPermission,
+	roleName string, entityId string, entityAdded bool) {
+
 	policies := []string{}
 	for _, policy := range permission.Policies {
 		policies = append(policies, policy.Name)
 	}
+	// first occurrence of roleName (aka group name). Create the group and add entityID that referenced it
 	if _, exists := processedGroups[roleName]; !exists {
 		processedGroups[roleName] = &group{
 			Name:      roleName,
@@ -206,8 +223,12 @@ func handleNewDesired(processedGroups map[string]*group, permission oidcPermissi
 				permission.Name: permission.Description,
 			},
 		}
+		// another user has referenced an existing group
+		// append entityID to the existing group
 	} else {
-		processedGroups[roleName].EntityIds = append(processedGroups[roleName].EntityIds, entityId)
+		if !entityAdded {
+			processedGroups[roleName].EntityIds = append(processedGroups[roleName].EntityIds, entityId)
+		}
 		processedGroups[roleName].Metadata[permission.Name] = permission.Description
 		// avoid adding duplicate policies that already exist on another permission associated w/ role
 		existingPolicies := make(map[string]bool)
