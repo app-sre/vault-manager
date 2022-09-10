@@ -26,12 +26,10 @@ func PushInstanceReconcileMetric(pushGatewayUrl string, instanceSuccess map[stri
 
 	for instance, success := range instanceSuccess {
 		vaultReconcileSuccessGauge.Set(float64(success))
-
 		err := push.New(pushGatewayUrl, JOB).
 			Grouping("instance", instance). // label
 			Collector(vaultReconcileSuccessGauge).
 			Push()
-
 		if err != nil {
 			return err
 		}
