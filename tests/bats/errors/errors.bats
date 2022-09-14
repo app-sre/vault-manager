@@ -22,7 +22,7 @@ load ../helpers
     # we test for creation of this entity to further validate error handling on per instance basis
     vault delete identity/entity/name/tester
 
-    run vault-manager -metrics=false
+    run vault-manager
     [[ "${output}" == *"SKIPPING ALL RECONCILIATION FOR: http://127.0.0.1:8202"* ]]
     [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://127.0.0.1:8200\""*"path=oidc/"*"type=oidc"* ]]
     [[ "${output}" == *"[Vault Identity] entity successfully written"*"instance=\"http://127.0.0.1:8200\""*"path=identity/entity/name/tester"*"type=entity"* ]]
@@ -49,7 +49,7 @@ load ../helpers
     export VAULT_ADDR=http://127.0.0.1:8200
     vault delete identity/entity/name/tester
 
-    run vault-manager -metrics=false
+    run vault-manager
     [[ "${output}" == *"SKIPPING REMAINING RECONCILIATION FOR http://127.0.0.1:8202"* ]]
     [[ "${output}" == *"[Vault Identity] entity successfully written"*"instance=\"http://127.0.0.1:8200\""*"path=identity/entity/name/tester"*"type=entity"* ]]
     [[ "${output}" == *"[Vault Identity] entity alias successfully written"*"instance=\"http://127.0.0.1:8200\""*"path=identity/entity-alias/tester"*"type=oidc"* ]]

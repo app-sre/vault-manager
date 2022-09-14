@@ -18,7 +18,7 @@ load ../helpers
     # check that no audit devices enabled
     [[ "${output}" != *"file/"* ]]
 
-    run vault-manager -metrics=false
+    run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"[Vault Audit] audit device is successfully enabled"*"instance=\"http://127.0.0.1:8200\""*"path=file/"* ]]

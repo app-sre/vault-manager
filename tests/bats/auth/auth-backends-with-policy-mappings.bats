@@ -7,7 +7,7 @@ load ../helpers
     # CASE: enable auth backends and apply policies mappings
     #
     export GRAPHQL_QUERY_FILE=/tests/fixtures/auth/enable_auth_backends_with_policy_mappings.graphql
-    run vault-manager -metrics=false
+    run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://127.0.0.1:8200\""*"path=approle/"*"type=approle"* ]]

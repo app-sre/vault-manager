@@ -8,7 +8,7 @@ load ../helpers
     #
     export GRAPHQL_QUERY_FILE=/tests/fixtures/entities/enable_vault_entities_and_aliases.graphql
 
-    run vault-manager -metrics=false
+    run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"[Vault Identity] entity successfully written"*"instance=\"http://127.0.0.1:8200\""*"path=identity/entity/name/tester"*"type=entity"* ]]

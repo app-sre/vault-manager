@@ -1,6 +1,6 @@
 # rerun vault-manager to ensure that nothing happens on further runs
 rerun_check() {
-    run vault-manager -metrics=false
+    run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == "" ]]

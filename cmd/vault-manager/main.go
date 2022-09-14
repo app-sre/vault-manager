@@ -59,7 +59,7 @@ func main() {
 	flag.BoolVar(&dryRun, "dry-run", false, "If true, will only print planned actions")
 	flag.IntVar(&threadPoolSize, "thread-pool-size", 10, "Some operations are running in parallel"+
 		" to achieve the best performance, so -thread-pool-size determine how many threads can be utilized, default is 10")
-	flag.BoolVar(&metrics, "metrics", true, "If true, metrics export will be attempted")
+	flag.BoolVar(&metrics, "metrics", false, "If true, metrics export will be attempted")
 	flag.Parse()
 
 	start := time.Now()

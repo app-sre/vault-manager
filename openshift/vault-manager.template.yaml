@@ -116,7 +116,7 @@ parameters:
   value: 'false'
 - name: METRICS
   description: runs vault-manager with metric exporting enabled
-  value: 'true'
+  value: 'false'
 - name: VAULT_SECRET_NAME
   value: vault-creds
 - name: GQL_SECRET_NAME
