@@ -9,6 +9,7 @@ import (
 
 const (
 	JOB                      = "vault-manager"
+	SERVICE_LABEL            = "vault-manager"
 	RECONCILE_SUCCESS_METRIC = "vault_manager_reconcile_success"
 	DURATION_METRIC          = "vault_manager_duration_seconds"
 )
@@ -27,7 +28,8 @@ func PushInstanceReconcileMetric(pushGatewayUrl string, instanceSuccess map[stri
 	for instance, success := range instanceSuccess {
 		vaultReconcileSuccessGauge.Set(float64(success))
 		err := push.New(pushGatewayUrl, JOB).
-			Grouping("vault_instance", instance). // label
+			Grouping("address", instance). // label
+			Grouping("service", SERVICE_LABEL).
 			Collector(vaultReconcileSuccessGauge).
 			Push()
 		if err != nil {
@@ -46,6 +48,9 @@ func PushExecutionDurationMetric(pushGatewayUrl string, duration time.Duration) 
 		},
 	)
 	executionDurationGauge.Set(duration.Seconds())
-	err := push.New(pushGatewayUrl, JOB).Collector(executionDurationGauge).Push()
+	err := push.New(pushGatewayUrl, JOB).
+		Grouping("service", SERVICE_LABEL).
+		Collector(executionDurationGauge).
+		Push()
 	return err
 }
