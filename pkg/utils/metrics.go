@@ -19,9 +19,8 @@ func PushInstanceReconcileMetric(pushGatewayUrl string, instanceSuccess map[stri
 	vaultReconcileSuccessGauge := prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: RECONCILE_SUCCESS_METRIC,
-			Help: `Whether or not last reconcile was successful. ` +
-				`A reconcile is successful if no errors occur. ` +
-				`0 = success. 1 = failure.`,
+			Help: `Whether or not last reconcile was for a specific vault instance was successful. ` +
+				`A reconcile is successful if no errors occur. 0 = success. 1 = failure.`,
 		},
 	)
 
@@ -43,7 +42,7 @@ func PushExecutionDurationMetric(pushGatewayUrl string, duration time.Duration) 
 	executionDurationGauge := prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: DURATION_METRIC,
-			Help: "Execution duration of this job in seconds.",
+			Help: "Execution duration of this job (reconciling all vault instances) in seconds.",
 		},
 	)
 	executionDurationGauge.Set(duration.Seconds())
