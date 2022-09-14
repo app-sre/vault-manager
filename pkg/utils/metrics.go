@@ -29,7 +29,6 @@ func PushInstanceReconcileMetric(pushGatewayUrl string, instanceSuccess map[stri
 		vaultReconcileSuccessGauge.Set(float64(success))
 		err := push.New(pushGatewayUrl, JOB).
 			Grouping("address", instance). // label
-			Grouping("service", SERVICE_LABEL).
 			Collector(vaultReconcileSuccessGauge).
 			Push()
 		if err != nil {
@@ -49,7 +48,6 @@ func PushExecutionDurationMetric(pushGatewayUrl string, duration time.Duration) 
 	)
 	executionDurationGauge.Set(duration.Seconds())
 	err := push.New(pushGatewayUrl, JOB).
-		Grouping("service", SERVICE_LABEL).
 		Collector(executionDurationGauge).
 		Push()
 	return err
