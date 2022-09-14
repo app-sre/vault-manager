@@ -7,7 +7,7 @@ load ../helpers
     # CASE: enable secrets engines
     #
     export GRAPHQL_QUERY_FILE=/tests/fixtures/secret-engines/enable_secrets_engines.graphql
-    run vault-manager
+    run vault-manager -metrics=false
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"[Vault Secrets engine] successfully enabled secrets-engine"*"instance=\"http://127.0.0.1:8200\""*"path=app-interface/"* ]]

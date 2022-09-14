@@ -7,7 +7,7 @@ load ../helpers
     # CASE: create roles
     #
     export GRAPHQL_QUERY_FILE=/tests/fixtures/roles/enable_vault_roles.graphql
-    run vault-manager
+    run vault-manager -metrics=false
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"[Vault Role] role is successfully written"*"instance=\"http://127.0.0.1:8200\""*"path=auth/approle/role/app-interface"*"type=approle"* ]]

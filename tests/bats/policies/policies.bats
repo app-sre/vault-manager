@@ -7,7 +7,7 @@ load ../helpers
     # CASE: create policies
     #
     export GRAPHQL_QUERY_FILE=/tests/fixtures/policies/add_policies.graphql
-    run vault-manager
+    run vault-manager -metrics=false
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"[Vault Policy] policy successfully written to Vault instance"*"instance=\"http://127.0.0.1:8200\""*"name=app-sre-policy"* ]]

@@ -7,7 +7,7 @@ load ../helpers
     # CASE: create groups
     #
     export GRAPHQL_QUERY_FILE=/tests/fixtures/groups/enable_vault_groups.graphql
-    run vault-manager
+    run vault-manager -metrics=false
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == *"[Vault Identity] group successfully written"*"instance=\"http://127.0.0.1:8200\""*"path=identity/group/name/app-sre-vault-oidc"*"type=group"* ]]
