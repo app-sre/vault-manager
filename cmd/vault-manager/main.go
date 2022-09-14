@@ -8,7 +8,9 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"time"
 
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
@@ -52,11 +54,15 @@ func (a ByPriority) Swap(i, j int) {
 
 func main() {
 	var dryRun bool
+	var metrics bool
 	var threadPoolSize int
 	flag.BoolVar(&dryRun, "dry-run", false, "If true, will only print planned actions")
 	flag.IntVar(&threadPoolSize, "thread-pool-size", 10, "Some operations are running in parallel"+
 		" to achieve the best performance, so -thread-pool-size determine how many threads can be utilized, default is 10")
+	flag.BoolVar(&metrics, "metrics", true, "If true, metrics export will be attempted")
 	flag.Parse()
+
+	start := time.Now()
 
 	cfg, err := getConfig()
 	if err != nil {
@@ -82,6 +88,9 @@ func main() {
 	// sort configs by priority
 	sort.Sort(ByPriority(topLevelConfigs))
 
+	// track success per instance for metric push
+	instanceSuccesses := make(map[string]int)
+
 	// perform reconcile process per instance
 	for _, address := range instanceAddresses {
 		for _, config := range topLevelConfigs {
@@ -94,8 +103,26 @@ func main() {
 			err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
 			if err != nil {
 				fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
+				instanceSuccesses[address] = 0
 				break
 			}
+			instanceSuccesses[address] = 1
+		}
+	}
+
+	if !dryRun && metrics {
+		pushGatewayUrl, exists := os.LookupEnv("PUSH_GATEWAY_URL")
+		if !exists {
+			log.WithError(errors.New("PUSH_GATEWAY_URL undefined. Metrics will not be exported"))
+			return
+		}
+		err := utils.PushExecutionDurationMetric(pushGatewayUrl, time.Since(start))
+		if err != nil {
+			log.WithError(err)
+		}
+		err = utils.PushInstanceReconcileMetric(pushGatewayUrl, instanceSuccesses)
+		if err != nil {
+			log.WithError(err)
 		}
 	}
 }
