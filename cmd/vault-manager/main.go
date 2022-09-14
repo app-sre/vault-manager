@@ -103,26 +103,27 @@ func main() {
 			err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
 			if err != nil {
 				fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
-				instanceSuccesses[address] = 0
+				instanceSuccesses[address] = 1
 				break
+			} else {
+				instanceSuccesses[address] = 0
 			}
-			instanceSuccesses[address] = 1
 		}
 	}
 
 	if !dryRun && metrics {
-		pushGatewayUrl, exists := os.LookupEnv("PUSH_GATEWAY_URL")
-		if !exists {
-			log.WithError(errors.New("PUSH_GATEWAY_URL undefined. Metrics will not be exported"))
+		pushGatewayUrl, _ := os.LookupEnv("PUSH_GATEWAY_URL")
+		if len(pushGatewayUrl) == 0 {
+			log.Println(errors.New("PUSH_GATEWAY_URL undefined. Metrics will not be exported"))
 			return
 		}
 		err := utils.PushExecutionDurationMetric(pushGatewayUrl, time.Since(start))
 		if err != nil {
-			log.WithError(err)
+			log.Println(err)
 		}
 		err = utils.PushInstanceReconcileMetric(pushGatewayUrl, instanceSuccesses)
 		if err != nil {
-			log.WithError(err)
+			log.Println(err)
 		}
 	}
 }
