@@ -6,13 +6,16 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
@@ -52,50 +55,80 @@ func (a ByPriority) Swap(i, j int) {
 
 func main() {
 	var dryRun bool
+	var runOnce bool
 	var threadPoolSize int
 	flag.BoolVar(&dryRun, "dry-run", false, "If true, will only print planned actions")
 	flag.IntVar(&threadPoolSize, "thread-pool-size", 10, "Some operations are running in parallel"+
 		" to achieve the best performance, so -thread-pool-size determine how many threads can be utilized, default is 10")
+	flag.BoolVar(&runOnce, "run-once", true, "If true, program will skip loop and exit after first reconcile attempt")
 	flag.Parse()
 
-	cfg, err := getConfig()
-	if err != nil {
-		log.WithError(err).Fatal("failed to parse config")
+	var sleepDuration time.Duration
+	if !runOnce {
+		sleep, _ := os.LookupEnv("RECONCILE_SLEEP_TIME")
+		if sleep == "" {
+			log.Fatalln("`RECONCILE_SLEEP_TIME` must be set when `run-once` flag is false")
+		}
+		sleepDur, err := time.ParseDuration(sleep)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		sleepDuration = sleepDur
+
+		port, _ := os.LookupEnv("METRICS_SERVER_PORT")
+		if port == "" {
+			log.Fatalln("`METRICS_SERVER_PORT` must be set when `run-once` flag is false")
+		}
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	}
 
-	// initialize vault clients and gather list of instance addresses for reconciliation
-	instanceAddresses := initInstances(cfg, threadPoolSize)
+	for {
+		cfg, err := getConfig()
+		if err != nil {
+			log.WithError(err).Fatal("failed to parse config")
+		}
 
-	// remove disabled toplevels
-	if disabled, _ := os.LookupEnv("DISABLE_IDENTITY"); disabled == "true" {
-		delete(cfg, "vault_entities")
-		delete(cfg, "vault_groups")
-	}
+		// initialize vault clients and gather list of instance addresses for reconciliation
+		instanceAddresses := initInstances(cfg, threadPoolSize)
 
-	topLevelConfigs := []TopLevelConfig{}
+		// remove disabled toplevels
+		if disabled, _ := os.LookupEnv("DISABLE_IDENTITY"); disabled == "true" {
+			delete(cfg, "vault_entities")
+			delete(cfg, "vault_groups")
+		}
 
-	for key := range cfg {
-		c := TopLevelConfig{key, resolveConfigPriority(key)}
-		topLevelConfigs = append(topLevelConfigs, c)
-	}
+		topLevelConfigs := []TopLevelConfig{}
 
-	// sort configs by priority
-	sort.Sort(ByPriority(topLevelConfigs))
+		for key := range cfg {
+			c := TopLevelConfig{key, resolveConfigPriority(key)}
+			topLevelConfigs = append(topLevelConfigs, c)
+		}
 
-	// perform reconcile process per instance
-	for _, address := range instanceAddresses {
-		for _, config := range topLevelConfigs {
-			// Marshal the contents of this object back into bytes so that it can be
-			// unmarshaled into a specific type in the application.
-			dataBytes, err := yaml.Marshal(cfg[config.Name])
-			if err != nil {
-				log.WithField("name", config.Name).Fatal("failed to remarshal configuration")
+		// sort configs by priority
+		sort.Sort(ByPriority(topLevelConfigs))
+
+		// perform reconcile process per instance
+		for _, address := range instanceAddresses {
+			for _, config := range topLevelConfigs {
+				// Marshal the contents of this object back into bytes so that it can be
+				// unmarshaled into a specific type in the application.
+				dataBytes, err := yaml.Marshal(cfg[config.Name])
+				if err != nil {
+					log.WithField("name", config.Name).Fatal("failed to remarshal configuration")
+				}
+				err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
+				if err != nil {
+					fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
+					break
+				}
 			}
-			err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
-			if err != nil {
-				fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
-				break
-			}
+		}
+
+		if runOnce {
+			return
+		} else {
+			time.Sleep(sleepDuration)
 		}
 	}
 }
