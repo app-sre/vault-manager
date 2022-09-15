@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"sort"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
@@ -74,13 +72,6 @@ func main() {
 			log.Fatalln(err)
 		}
 		sleepDuration = sleepDur
-
-		port, _ := os.LookupEnv("METRICS_SERVER_PORT")
-		if port == "" {
-			log.Fatalln("`METRICS_SERVER_PORT` must be set when `run-once` flag is false")
-		}
-		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	}
 
 	for {
