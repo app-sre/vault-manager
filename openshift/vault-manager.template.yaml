@@ -46,6 +46,8 @@ objects:
             value: ${GRAPHQL_QUERY_FILE}
           - name: DISABLE_IDENTITY
             value: ${DISABLE_IDENTITY}
+          - name: RECONCILE_SLEEP_TIME
+            value: ${RECONCILE_SLEEP_TIME}
           - name: GRAPHQL_SERVER
             valueFrom:
               secretKeyRef:
