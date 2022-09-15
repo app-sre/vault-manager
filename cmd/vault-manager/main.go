@@ -11,6 +11,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
@@ -86,6 +87,8 @@ func main() {
 	}
 
 	for {
+		start := time.Now()
+
 		cfg, err := getConfig()
 		if err != nil {
 			log.WithError(err).Fatal("failed to parse config")
@@ -135,6 +138,10 @@ func main() {
 		if runOnce {
 			return
 		} else {
+			err = utils.RecordMetrics(instanceSuccesses, time.Since(start))
+			if err != nil {
+				log.Println(err)
+			}
 			time.Sleep(sleepDuration)
 		}
 	}

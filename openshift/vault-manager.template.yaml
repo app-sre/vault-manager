@@ -97,13 +97,13 @@ parameters:
   displayName: vault-manager version
   description: vault-manager version which defaults to latest
 - name: MEMORY_REQUESTS
-  value: 25Mi
+  value: 150Mi
 - name: MEMORY_LIMIT
-  value: 100Mi
+  value: 250Mi
 - name: CPU_REQUESTS
-  value: 25m
-- name: CPU_LIMIT
   value: 100m
+- name: CPU_LIMIT
+  value: 200m
 - name: REPLICAS
   value: '3'
 - name: RECONCILE_SLEEP_TIME
