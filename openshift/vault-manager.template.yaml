@@ -40,7 +40,7 @@ objects:
           command: ["/bin/sh"]
           args: 
           - "-c"
-          - "while true; do /vault-manager -dry-run=${DRY_RUN} -metrics=${METRICS} -thread-pool-size=${THREAD_POOL_SIZE}; sleep ${RECONCILE_SLEEP_TIME}; done;"
+          - "while true; do /vault-manager -dry-run=${DRY_RUN} -thread-pool-size=${THREAD_POOL_SIZE}; sleep ${RECONCILE_SLEEP_TIME}; done;"
           env:
           - name: GRAPHQL_QUERY_FILE
             value: ${GRAPHQL_QUERY_FILE}
@@ -78,11 +78,6 @@ objects:
               secretKeyRef:
                 key: secret_id
                 name: ${VAULT_SECRET_NAME}
-          - name: PUSH_GATEWAY_URL
-            valueFrom:
-              secretKeyRef:
-                key: url
-                name: ${PUSH_GATEWAY_SECRET_NAME}
           resources:
             requests:
               memory: ${MEMORY_REQUESTS}
@@ -114,9 +109,6 @@ parameters:
 - name: DRY_RUN
   description: runs vault-manager in dry-run mode when true
   value: 'false'
-- name: METRICS
-  description: runs vault-manager with metric exporting enabled
-  value: 'false'
 - name: VAULT_SECRET_NAME
   value: vault-creds
 - name: GQL_SECRET_NAME
@@ -128,11 +120,6 @@ parameters:
 - name: VAULT_ADDR
   description: vault endpoint URL
   value: ''
-- name: PUSH_GATEWAY_SECRET_NAME
-  value: push-gateway-auth-url
-- name: PUSH_GATEWAY_URL
-  description: prometheus pushgateway endpoint with basic auth
-  value: ''
 - name: DISABLE_IDENTITY
-  description: disables entity and group toplevels when set to string value "true"
+  description: disables entity and group toplevels when set
   value: ''
