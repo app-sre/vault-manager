@@ -6,14 +6,17 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"sort"
 	"time"
 
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
@@ -63,6 +66,7 @@ func main() {
 
 	var sleepDuration time.Duration
 	if !runOnce {
+		// configure sleep duration
 		sleep, _ := os.LookupEnv("RECONCILE_SLEEP_TIME")
 		if sleep == "" {
 			log.Fatalln("`RECONCILE_SLEEP_TIME` must be set when `run-once` flag is false")
@@ -72,9 +76,19 @@ func main() {
 			log.Fatalln(err)
 		}
 		sleepDuration = sleepDur
+
+		// configure prometheus metrics handler
+		port, _ := os.LookupEnv("METRICS_SERVER_PORT")
+		if port == "" {
+			log.Fatalln("`METRICS_SERVER_PORT` must be set when `run-once` flag is false")
+		}
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	}
 
 	for {
+		start := time.Now()
+
 		cfg, err := getConfig()
 		if err != nil {
 			log.WithError(err).Fatal("failed to parse config")
@@ -99,6 +113,9 @@ func main() {
 		// sort configs by priority
 		sort.Sort(ByPriority(topLevelConfigs))
 
+		// track success per instance for metric push
+		instanceSuccesses := make(map[string]int)
+
 		// perform reconcile process per instance
 		for _, address := range instanceAddresses {
 			for _, config := range topLevelConfigs {
@@ -111,14 +128,20 @@ func main() {
 				err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
 				if err != nil {
 					fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
+					instanceSuccesses[address] = 1
 					break
 				}
+				instanceSuccesses[address] = 0
 			}
 		}
 
 		if runOnce {
 			return
 		} else {
+			err = utils.RecordMetrics(instanceSuccesses, time.Since(start))
+			if err != nil {
+				log.Println(err)
+			}
 			time.Sleep(sleepDuration)
 		}
 	}
