@@ -29,7 +29,7 @@ func init() {
 	prometheus.MustRegister(executionDurationGauge)
 }
 
-func RecordMetrics(instanceSuccesses map[string]int, execDuration time.Duration) error {
+func RecordMetrics(instanceSuccesses map[string]int, execDuration time.Duration) {
 	for instance, success := range instanceSuccesses {
 		vaultReconcileSuccessGauge.With(
 			prometheus.Labels{
@@ -37,5 +37,4 @@ func RecordMetrics(instanceSuccesses map[string]int, execDuration time.Duration)
 			}).Set(float64(success))
 	}
 	executionDurationGauge.Set(execDuration.Seconds())
-	return nil
 }

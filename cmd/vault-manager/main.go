@@ -138,10 +138,7 @@ func main() {
 		if runOnce {
 			return
 		} else {
-			err = utils.RecordMetrics(instanceSuccesses, time.Since(start))
-			if err != nil {
-				log.Println(err)
-			}
+			utils.RecordMetrics(instanceSuccesses, time.Since(start))
 			time.Sleep(sleepDuration)
 		}
 	}
