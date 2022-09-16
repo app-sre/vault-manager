@@ -90,8 +90,6 @@ func main() {
 	}
 
 	for {
-		start := time.Now()
-
 		cfg, err := getConfig()
 		if err != nil {
 			log.WithError(err).Fatal("failed to parse config")
@@ -116,11 +114,14 @@ func main() {
 		// sort configs by priority
 		sort.Sort(ByPriority(topLevelConfigs))
 
-		// track success per instance for metric push
+		// track reconcile success per instance
 		instanceSuccesses := make(map[string]int)
+		// track reconcile duration per instance
+		instanceDurations := make(map[string]time.Duration)
 
 		// perform reconcile process per instance
 		for _, address := range instanceAddresses {
+			start := time.Now()
 			for _, config := range topLevelConfigs {
 				// Marshal the contents of this object back into bytes so that it can be
 				// unmarshaled into a specific type in the application.
@@ -136,12 +137,13 @@ func main() {
 				}
 				instanceSuccesses[address] = 0
 			}
+			instanceDurations[address] = time.Since(start)
 		}
 
 		if runOnce {
 			return
 		} else {
-			utils.RecordMetrics(instanceSuccesses, time.Since(start))
+			utils.RecordMetrics(instanceSuccesses, instanceDurations)
 			time.Sleep(sleepDuration)
 		}
 	}
