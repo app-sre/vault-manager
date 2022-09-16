@@ -83,7 +83,10 @@ func main() {
 			log.Fatalln("`METRICS_SERVER_PORT` must be set when `run-once` flag is false")
 		}
 		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+
+		go func() {
+			http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+		}()
 	}
 
 	for {
