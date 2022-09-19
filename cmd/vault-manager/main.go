@@ -6,14 +6,17 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"sort"
 	"time"
 
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
@@ -63,6 +66,7 @@ func main() {
 
 	var sleepDuration time.Duration
 	if !runOnce {
+		// configure sleep duration
 		sleep, _ := os.LookupEnv("RECONCILE_SLEEP_TIME")
 		if sleep == "" {
 			log.Fatalln("`RECONCILE_SLEEP_TIME` must be set when `run-once` flag is false")
@@ -72,6 +76,18 @@ func main() {
 			log.Fatalln(err)
 		}
 		sleepDuration = sleepDur
+
+		// configure prometheus metrics handler
+		port, _ := os.LookupEnv("METRICS_SERVER_PORT")
+		if port == "" {
+			port = "9090"
+			log.Println("`METRICS_SERVER_PORT` not set. Using default 9090")
+		}
+		http.Handle("/metrics", promhttp.Handler())
+
+		go func() {
+			http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+		}()
 	}
 
 	for {
@@ -101,6 +117,9 @@ func main() {
 
 		// perform reconcile process per instance
 		for _, address := range instanceAddresses {
+			start := time.Now()
+			status := 0
+
 			for _, config := range topLevelConfigs {
 				// Marshal the contents of this object back into bytes so that it can be
 				// unmarshaled into a specific type in the application.
@@ -111,8 +130,13 @@ func main() {
 				err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
 				if err != nil {
 					fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
+					status = 1
 					break
 				}
+			}
+
+			if !runOnce {
+				utils.RecordMetrics(address, status, time.Since(start))
 			}
 		}
 

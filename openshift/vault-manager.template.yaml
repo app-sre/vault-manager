@@ -48,6 +48,8 @@ objects:
             value: ${DISABLE_IDENTITY}
           - name: RECONCILE_SLEEP_TIME
             value: ${RECONCILE_SLEEP_TIME}
+          - name: METRICS_SERVER_PORT
+            value: ${METRICS_SERVER_PORT}
           - name: GRAPHQL_SERVER
             valueFrom:
               secretKeyRef:
@@ -97,13 +99,13 @@ parameters:
   displayName: vault-manager version
   description: vault-manager version which defaults to latest
 - name: MEMORY_REQUESTS
-  value: 25Mi
-- name: MEMORY_LIMIT
   value: 100Mi
+- name: MEMORY_LIMIT
+  value: 250Mi
 - name: CPU_REQUESTS
-  value: 25m
-- name: CPU_LIMIT
   value: 100m
+- name: CPU_LIMIT
+  value: 200m
 - name: REPLICAS
   value: '3'
 - name: RECONCILE_SLEEP_TIME
