@@ -13,7 +13,7 @@ var (
 			Help: "Increment by one for each successful reconcile. Used to alert on 'stuck' instance reconciles",
 		},
 		[]string{
-			"address",
+			"shard_id",
 			"integration",
 		},
 	)
@@ -24,7 +24,7 @@ var (
 				`A reconcile is successful if no errors occur. 0 = success. 1 = failure.`,
 		},
 		[]string{
-			"address",
+			"shard_id",
 			"integration",
 		},
 	)
@@ -34,7 +34,7 @@ var (
 			Help: "Execution duration of this job (reconciling all vault instances) in seconds.",
 		},
 		[]string{
-			"address",
+			"shard_id",
 			"integration",
 		},
 	)
@@ -52,7 +52,7 @@ func RecordMetrics(instance string, status int, duration time.Duration) {
 
 	lastReconcileSuccessGauge.With(
 		prometheus.Labels{
-			"address":     instance,
+			"shard_id":    instance,
 			"integration": INTEGRATION,
 		}).Set(float64(status))
 
@@ -60,14 +60,14 @@ func RecordMetrics(instance string, status int, duration time.Duration) {
 	if status == 0 {
 		reconcileSuccessCounter.With(
 			prometheus.Labels{
-				"address":     instance,
+				"shard_id":    instance,
 				"integration": INTEGRATION,
 			}).Inc()
 	}
 
 	executionDurationGauge.With(
 		prometheus.Labels{
-			"address":     instance,
+			"shard_id":    instance,
 			"integration": INTEGRATION,
 		}).Set(duration.Seconds())
 }
