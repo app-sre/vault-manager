@@ -47,31 +47,27 @@ func init() {
 	prometheus.MustRegister(executionDurationGauge)
 }
 
-func RecordMetrics(instanceSuccesses map[string]int, instanceDurations map[string]time.Duration) {
+func RecordMetrics(instance string, status int, duration time.Duration) {
 	const INTEGRATION = "vault-manager"
 
-	for instance, success := range instanceSuccesses {
-		lastReconcileSuccessGauge.With(
+	lastReconcileSuccessGauge.With(
+		prometheus.Labels{
+			"address":     instance,
+			"integration": INTEGRATION,
+		}).Set(float64(status))
+
+	// only inc counter metric for successful reconciles
+	if status == 0 {
+		reconcileSuccessCounter.With(
 			prometheus.Labels{
 				"address":     instance,
 				"integration": INTEGRATION,
-			}).Set(float64(success))
-
-		// only inc counter metric for successful reconciles
-		if success == 0 {
-			reconcileSuccessCounter.With(
-				prometheus.Labels{
-					"address":     instance,
-					"integration": INTEGRATION,
-				}).Inc()
-		}
+			}).Inc()
 	}
 
-	for instance, duration := range instanceDurations {
-		executionDurationGauge.With(
-			prometheus.Labels{
-				"address":     instance,
-				"integration": INTEGRATION,
-			}).Set(duration.Seconds())
-	}
+	executionDurationGauge.With(
+		prometheus.Labels{
+			"address":     instance,
+			"integration": INTEGRATION,
+		}).Set(duration.Seconds())
 }

@@ -115,14 +115,11 @@ func main() {
 		// sort configs by priority
 		sort.Sort(ByPriority(topLevelConfigs))
 
-		// track reconcile success per instance
-		instanceSuccesses := make(map[string]int)
-		// track reconcile duration per instance
-		instanceDurations := make(map[string]time.Duration)
-
 		// perform reconcile process per instance
 		for _, address := range instanceAddresses {
 			start := time.Now()
+			status := 0
+
 			for _, config := range topLevelConfigs {
 				// Marshal the contents of this object back into bytes so that it can be
 				// unmarshaled into a specific type in the application.
@@ -133,18 +130,17 @@ func main() {
 				err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
 				if err != nil {
 					fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
-					instanceSuccesses[address] = 1
+					status = 1
 					break
 				}
-				instanceSuccesses[address] = 0
 			}
-			instanceDurations[address] = time.Since(start)
+
+			utils.RecordMetrics(address, status, time.Since(start))
 		}
 
 		if runOnce {
 			return
 		} else {
-			utils.RecordMetrics(instanceSuccesses, instanceDurations)
 			time.Sleep(sleepDuration)
 		}
 	}
