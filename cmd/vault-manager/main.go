@@ -80,7 +80,8 @@ func main() {
 		// configure prometheus metrics handler
 		port, _ := os.LookupEnv("METRICS_SERVER_PORT")
 		if port == "" {
-			log.Fatalln("`METRICS_SERVER_PORT` must be set when `run-once` flag is false")
+			port = "9090"
+			log.Println("`METRICS_SERVER_PORT` not set. Using default 9090")
 		}
 		http.Handle("/metrics", promhttp.Handler())
 
