@@ -31,7 +31,7 @@ var (
 	executionDurationGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "qontract_reconcile_last_run_seconds",
-			Help: "Execution duration of this job (reconciling all vault instances) in seconds.",
+			Help: "Execution duration of this job (reconciling specific vault instance) in seconds.",
 		},
 		[]string{
 			"shard_id",
