@@ -135,7 +135,9 @@ func main() {
 				}
 			}
 
-			utils.RecordMetrics(address, status, time.Since(start))
+			if !runOnce {
+				utils.RecordMetrics(address, status, time.Since(start))
+			}
 		}
 
 		if runOnce {
