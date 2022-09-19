@@ -31,6 +31,7 @@ objects:
       metadata:
         labels:
           app: vault-manager
+          component: qontract-reconcile
       spec:
         serviceAccountName: vault-manager
         containers:
