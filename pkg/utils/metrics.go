@@ -9,7 +9,7 @@ import (
 var (
 	reconcileSuccessCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "qontract_reconcile_execution_counter",
+			Name: "qontract_reconcile_execution_counter_total",
 			Help: "Increment by one for each successful reconcile. Used to alert on 'stuck' instance reconciles",
 		},
 		[]string{

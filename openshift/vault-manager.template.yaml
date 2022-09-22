@@ -100,7 +100,7 @@ parameters:
   displayName: vault-manager version
   description: vault-manager version which defaults to latest
 - name: MEMORY_REQUESTS
-  value: 100Mi
+  value: 150Mi
 - name: MEMORY_LIMIT
   value: 250Mi
 - name: CPU_REQUESTS
