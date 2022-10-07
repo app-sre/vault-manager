@@ -69,6 +69,7 @@
     instance {
       address
     }
+    output_path
     options {
       ... on VaultApproleOptions_v1 {
         bind_secret_id
