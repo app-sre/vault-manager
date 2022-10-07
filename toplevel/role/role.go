@@ -20,6 +20,7 @@ type entry struct {
 	Type        string                 `yaml:"type"`
 	Mount       string                 `yaml:"mount"`
 	Instance    vault.Instance         `yaml:"instance"`
+	OutputPath  string                 `yaml:"output_path"`
 	Options     map[string]interface{} `yaml:"options"`
 	Description string                 `yaml:"description"`
 }
@@ -62,7 +63,7 @@ func (e entry) Save() error {
 			options[k] = v
 		}
 	}
-	err := vault.WriteSecret(e.Instance.Address, path, options)
+	err := vault.WriteSecret(e.Instance.Address, path, vault.KV_V1, options)
 	if err != nil {
 		return err
 	}
@@ -160,7 +161,6 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}
 	}
 
-	// perform reconcile operations
 	addOptionalOidcDefaults(address, instancesToDesiredRoles[address])
 	err = pruneUnsupported(address, instancesToDesiredRoles[address])
 	if err != nil {
@@ -175,7 +175,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return err
 	}
 
-	// Diff the local configuration with the Vault instance.
+	// Diff the desired configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ :=
 		vault.DiffItems(asItems(instancesToDesiredRoles[address]), asItems(existingRoles))
 
@@ -204,6 +204,11 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 				return err
 			}
 		}
+	}
+
+	err = populateApproleCreds(address, instancesToDesiredRoles[address], dryRun)
+	if err != nil {
+		return err
 	}
 
 	return nil

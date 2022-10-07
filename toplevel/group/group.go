@@ -81,7 +81,7 @@ func (g group) CreateOrUpdate(action string) error {
 		"policies":          g.Policies,
 		"metadata":          g.Metadata,
 	}
-	err := vault.WriteSecret(g.Instance.Address, path, config)
+	err := vault.WriteSecret(g.Instance.Address, path, vault.KV_V1, config)
 	if err != nil {
 		return err
 	}
