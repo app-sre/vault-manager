@@ -86,9 +86,10 @@ container_alive "http://127.0.0.1:4000" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $QONTR
 # spin up primary vault server
 docker run -d --name=$VAULT_NAME \
   --net=host \
-  --privileged=true \
+  --cap-add=IPC_LOCK \
   -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
   -p 8200:8200 \
+  -v /tmp/:/var/log/vault/:Z \
   $VAULT_IMAGE:$VAULT_IMAGE_TAG
 container_alive "http://127.0.0.1:8200" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME
 
@@ -100,10 +101,11 @@ vault kv put secret/oidc client-secret=my-special-client-secret
 # spin up secondary vault server
 docker run -d --name=$VAULT_NAME_SECONDARY \
   --net=host \
+  --cap-add=IPC_LOCK \
   -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
   -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8202' \
   -p 8202:8202 \
-  --privileged=true \
+  -v /tmp/:/var/log/vault/:Z \
   $VAULT_IMAGE:$VAULT_IMAGE_TAG
 container_alive "http://127.0.0.1:8202" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME_SECONDARY
 
