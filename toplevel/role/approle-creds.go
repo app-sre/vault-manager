@@ -28,6 +28,8 @@ func populateApproleCreds(address string, roles []entry, dryRun bool) error {
 				return errors.New("approle creds invalid output path")
 			}
 
+			// determine if data already exists at desired output path and skip if exists
+			// first determine KV version of desired output
 			var version string
 			switch kvVersions[fmt.Sprint(pathRoot, "/")] {
 			case "1":
@@ -36,31 +38,53 @@ func populateApproleCreds(address string, roles []entry, dryRun bool) error {
 				version = vault.KV_V2
 			default:
 				log.WithFields(log.Fields{
-					"name":     role.Name,
-					"path":     role.OutputPath,
-					"version":  kvVersions[fmt.Sprint(pathRoot, "/")],
-					"instance": address,
+					"name":       role.Name,
+					"path":       role.OutputPath,
+					"kv_version": kvVersions[fmt.Sprint(pathRoot, "/")],
+					"instance":   address,
 				}).Info("[Vault Approle] Retrieved KV version is not supported")
 				return errors.New("approle creds unsupported KV version")
 			}
-			// determine if data already exists at desired output path and skip if exists
 			secret, err := vault.ReadSecret(address, role.OutputPath, version)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"name":       role.Name,
+					"path":       role.OutputPath,
+					"kv_version": kvVersions[fmt.Sprint(pathRoot, "/")],
+					"instance":   address,
+				}).Info("[Vault Approle] Unable to read desired output path")
+				return err
+			}
 			if secret != nil {
 				continue
 			}
 
-			creds, err := generatePayload(address, role)
-			if err != nil {
-				return err
-			}
-
-			err = vault.WriteSecret(address, role.OutputPath, version, creds)
-			if err != nil {
-				return err
+			if dryRun {
+				log.WithFields(log.Fields{
+					"name":       role.Name,
+					"path":       role.OutputPath,
+					"kv_version": kvVersions[fmt.Sprint(pathRoot, "/")],
+					"instance":   address,
+				}).Info("[DRY RUN][Vault Approle] Credentials written to desired path")
+			} else {
+				creds, err := generatePayload(address, role)
+				if err != nil {
+					return err
+				}
+				// write creds to desired output
+				err = vault.WriteSecret(address, role.OutputPath, version, creds)
+				if err != nil {
+					return err
+				}
+				log.WithFields(log.Fields{
+					"name":       role.Name,
+					"path":       role.OutputPath,
+					"kv_version": kvVersions[fmt.Sprint(pathRoot, "/")],
+					"instance":   address,
+				}).Info("[Vault Approle] Credentials written to desired path")
 			}
 		}
 	}
-
 	return nil
 }
 
