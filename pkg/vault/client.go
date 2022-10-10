@@ -39,7 +39,6 @@ func FormatSecretPath(secret string, secretEngine string) string {
 	if secretEngine == KV_V2 {
 		sliced := strings.SplitN(secret, "/", 2)
 		if len(sliced) < 2 {
-			fmt.Println(secret)
 			log.Fatal("[Vault Instance] Error processessing kv_v2 secret path")
 		}
 		return fmt.Sprintf("%s/data/%s", sliced[0], sliced[1])
