@@ -108,7 +108,7 @@ func processInstances(instances []Instance) (map[string]AuthBundle, error) {
 				{
 					Name:    SECRET_ID,
 					Type:    APPROLE_AUTH,
-					Path:    i.Auth.RoleID.Path,
+					Path:    i.Auth.SecretID.Path,
 					Field:   i.Auth.SecretID.Field,
 					Version: i.Auth.SecretID.Version,
 				},
