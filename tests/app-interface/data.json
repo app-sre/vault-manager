@@ -11979,6 +11979,9 @@
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/vault-config/instance-1.yml"
                 },
+                "output_path": {
+                    "type": "string"
+                },
                 "options": {
                     "type": "object",
                     "oneOf": [
@@ -11989,9 +11992,6 @@
                                     "enum": [
                                         "approle"
                                     ]
-                                },
-                                "output_path": {
-                                    "type": "string"
                                 },
                                 "bind_secret_id": {
                                     "type": "string",
@@ -13221,11 +13221,6 @@
                         "isRequired": true
                     },
                     {
-                        "name": "output_path",
-                        "type": "string",
-                        "isRequired": false
-                    },
-                    {
                         "name": "bind_secret_id",
                         "type": "string",
                         "isRequired": true
@@ -13452,6 +13447,11 @@
                         "name": "instance",
                         "type": "VaultInstance_v1",
                         "isRequired": true
+                    },
+                    {
+                        "name": "output_path",
+                        "type": "string",
+                        "isRequired": false
                     },
                     {
                         "name": "options",
@@ -23122,6 +23122,7 @@
             "labels": {},
             "name": "app-interface-settings",
             "description": "App Interface settings",
+            "repoUrl": "https://placeholder",
             "vault": false,
             "kubeBinary": "kubectl",
             "saasDeployJobTemplate": "openshift-saas-deploy",
@@ -23552,9 +23553,9 @@
             "instance": {
                 "$ref": "/services/vault/config/instances/master.yml"
             },
+            "output_path": "app-interface/vault-manager-approle",
             "options": {
                 "_type": "approle",
-                "output_path": "app-sre/vault-manager-approle",
                 "bind_secret_id": "true",
                 "local_secret_ids": "false",
                 "token_period": "0",
@@ -23662,6 +23663,7 @@
             "instance": {
                 "$ref": "/services/vault/config/instances/secondary.yml"
             },
+            "output_path": "app-interface/app-interface-approle",
             "options": {
                 "_type": "approle",
                 "bind_secret_id": "true",
