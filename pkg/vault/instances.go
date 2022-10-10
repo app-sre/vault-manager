@@ -132,7 +132,6 @@ func processInstances(instances []Instance) (map[string]AuthBundle, error) {
 		}
 		instanceCreds[i.Address] = bundle
 	}
-
 	return instanceCreds, nil
 }
 
