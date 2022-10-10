@@ -19,8 +19,6 @@ docker run --rm -t \
 Note that running vault-manager with -dry-run flag will only print planned actions,
 remove this flag to make changes enter into effect
 
-Note that `DISABLE_IDENTITY` is currently required for commercial usage.
-
 ## Flags
 - `-dry-run`, default=false<br>
 runs vault-manager in dry-run mode and only print planned actions
