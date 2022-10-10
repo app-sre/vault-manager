@@ -39,6 +39,7 @@ func FormatSecretPath(secret string, secretEngine string) string {
 	if secretEngine == KV_V2 {
 		sliced := strings.SplitN(secret, "/", 2)
 		if len(sliced) < 2 {
+			fmt.Println(secret)
 			log.Fatal("[Vault Instance] Error processessing kv_v2 secret path")
 		}
 		return fmt.Sprintf("%s/data/%s", sliced[0], sliced[1])
@@ -49,31 +50,16 @@ func FormatSecretPath(secret string, secretEngine string) string {
 
 // write secret to vault
 func WriteSecret(instanceAddr, secretPath, engineVersion string, secretData map[string]interface{}) error {
-	var versionedPath string
-	switch engineVersion {
-	case KV_V1:
-		versionedPath = secretPath
-	case KV_V2:
-		// need to insert /data/ between root and remainder of path
-		pathSegments := strings.Split(secretPath, "/")
-		versionedPath = fmt.Sprintf("%s/data/%s", pathSegments[0], strings.Join(pathSegments[1:], "/"))
-	default:
-		log.WithFields(log.Fields{
-			"path":          secretPath,
-			"instance":      instanceAddr,
-			"engineVersion": engineVersion,
-		}).Info("[Vault Client] unsupported KV engine version passed to WriteSecret()")
-		return errors.New("unsupported engine version specified")
-	}
-	dataExists, err := DataInSecret(instanceAddr, secretData, versionedPath, engineVersion)
+	dataExists, err := DataInSecret(instanceAddr, secretData, secretPath, engineVersion)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
-			"path":     versionedPath,
+			"path":     secretPath,
 			"instance": instanceAddr,
 		}).Info("[Vault Client] failed to write Vault secret")
 		return err
 	}
 	if !dataExists {
+		versionedPath := FormatSecretPath(secretPath, engineVersion)
 		var err error
 		switch engineVersion {
 		case KV_V1:
@@ -97,9 +83,10 @@ func WriteSecret(instanceAddr, secretPath, engineVersion string, secretData map[
 
 // read secret from vault and return the secret map
 func ReadSecret(instanceAddr, secretPath, engineVersion string) (map[string]interface{}, error) {
+	versionedPath := FormatSecretPath(secretPath, engineVersion)
 	// vault manager does not support reverting and should always reference latest data within a-i
 	// therefore, secret version is not specified for KV V2 secrets
-	raw, err := getClient(instanceAddr).Logical().Read(secretPath)
+	raw, err := getClient(instanceAddr).Logical().Read(versionedPath)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":          secretPath,
