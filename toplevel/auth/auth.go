@@ -389,7 +389,7 @@ func getOidcClientSecret(instanceAddr string, settings map[string]map[string]int
 	cfg := settings["config"]
 	engineVersion := cfg[vault.OIDC_CLIENT_SECRET_KV_VER].(string)
 	location := cfg[vault.OIDC_CLIENT_SECRET].(map[interface{}]interface{})
-	path := vault.FormatSecretPath(location["path"].(string), engineVersion)
+	path := location["path"].(string)
 	field := location["field"].(string)
 	secret, err := vault.GetVaultSecretField(instanceAddr, path, field, engineVersion)
 	if err != nil {
