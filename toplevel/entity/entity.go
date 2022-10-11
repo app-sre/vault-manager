@@ -83,7 +83,7 @@ func (e entity) CreateOrUpdate(action string) error {
 	config := map[string]interface{}{
 		"metadata": e.Metadata,
 	}
-	err := vault.WriteSecret(e.Instance.Address, path, config)
+	err := vault.WriteSecret(e.Instance.Address, path, vault.KV_V1, config)
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func (ea entityAlias) Update(entityId string) error {
 		"canonical_id":   entityId,
 		"mount_accessor": ea.AccessorId,
 	}
-	err := vault.WriteSecret(ea.Instance.Address, path, config)
+	err := vault.WriteSecret(ea.Instance.Address, path, vault.KV_V1, config)
 	if err != nil {
 		return err
 	}

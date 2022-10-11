@@ -297,7 +297,7 @@ func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) erro
 			}
 			for name, cfg := range e.Settings {
 				path := filepath.Join("auth", e.Path, name)
-				dataExists, err := vault.DataInSecret(instanceAddr, cfg, path)
+				dataExists, err := vault.DataInSecret(instanceAddr, cfg, path, vault.KV_V1)
 				if err != nil {
 					return err
 				}
@@ -306,7 +306,7 @@ func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) erro
 						log.WithField("path", path).WithField("type", e.Type).WithField("instance", instanceAddr).Info(
 							"[Dry Run] [Vault Auth] auth backend configuration to be written")
 					} else {
-						err := vault.WriteSecret(instanceAddr, path, cfg)
+						err := vault.WriteSecret(instanceAddr, path, vault.KV_V1, cfg)
 						if err != nil {
 							return err
 						}
@@ -346,7 +346,7 @@ func writePolicyMapping(instanceAddr string, path string, data map[string]interf
 		log.WithField("path", path).WithField("policies", data["value"]).WithField("instance", instanceAddr).Info(
 			"[Dry Run] [Vault Auth] policies mapping to be applied")
 	} else {
-		err := vault.WriteSecret(instanceAddr, path, data)
+		err := vault.WriteSecret(instanceAddr, path, vault.KV_V1, data)
 		if err != nil {
 			return err
 		}
@@ -389,7 +389,7 @@ func getOidcClientSecret(instanceAddr string, settings map[string]map[string]int
 	cfg := settings["config"]
 	engineVersion := cfg[vault.OIDC_CLIENT_SECRET_KV_VER].(string)
 	location := cfg[vault.OIDC_CLIENT_SECRET].(map[interface{}]interface{})
-	path := vault.FormatSecretPath(location["path"].(string), engineVersion)
+	path := location["path"].(string)
 	field := location["field"].(string)
 	secret, err := vault.GetVaultSecretField(instanceAddr, path, field, engineVersion)
 	if err != nil {

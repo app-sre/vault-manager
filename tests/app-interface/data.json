@@ -628,19 +628,45 @@
                         "$schemaRef": "/dependencies/sendgrid-account-1.yml"
                     }
                 },
-                "owned_saas_files": {
+                "self_service": {
                     "type": "array",
-                    "description": "Role owned saas files. All saas files must have an owner.\nThis list must accept all supported saas file versions by AppInterface.\n",
                     "items": {
-                        "$ref": "/common-1.json#/definitions/crossref",
-                        "$schemaRef": {
-                            "type": "object",
-                            "properties": {
-                                "$schema": {
-                                    "type": "string",
-                                    "enum": [
-                                        "/app-sre/saas-file-2.yml"
-                                    ]
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "description": {
+                                "type": "string"
+                            },
+                            "change_type": {
+                                "$ref": "/common-1.json#/definitions/crossref",
+                                "$schemaRef": "/app-interface/change-type-1.yml"
+                            },
+                            "resources": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "/common-1.json#/definitions/resourceref"
+                                }
+                            },
+                            "datafiles": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "/common-1.json#/definitions/crossref",
+                                    "$schemaRef": {
+                                        "type": "object",
+                                        "properties": {
+                                            "$schema": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "/app-sre/saas-file-2.yml",
+                                                    "/app-sre/saas-file-target-1.yml",
+                                                    "/openshift/namespace-1.yml",
+                                                    "/access/role-1.yml",
+                                                    "/openshift/cluster-1.yml",
+                                                    "/aws/account-1.yml"
+                                                ]
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1015,6 +1041,22 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "jiraWatcher": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "readTimeout": {
+                            "type": "integer"
+                        },
+                        "connectTimeout": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "readTimeout",
+                        "connectTimeout"
+                    ]
                 }
             },
             "required": [
@@ -1166,6 +1208,91 @@
                 }
             ]
         },
+        "/app-interface/change-type-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/app-interface/change-type-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "contextType": {
+                    "type": "string"
+                },
+                "contextSchema": {
+                    "type": "string"
+                },
+                "changes": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "provider": {
+                                        "type": "string",
+                                        "enum": [
+                                            "jsonPath"
+                                        ]
+                                    },
+                                    "changeSchema": {
+                                        "type": "string"
+                                    },
+                                    "jsonPathSelectors": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "context": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "selector": {
+                                                "type": "string"
+                                            },
+                                            "when": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "added",
+                                                    "removed"
+                                                ]
+                                            }
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "provider",
+                                    "jsonPathSelectors"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description",
+                "contextType"
+            ]
+        },
         "/app-interface/credentials-request-1.yml": {
             "$schema": "/metaschema-1.json",
             "version": "1.0",
@@ -1253,7 +1380,8 @@
                                 "strategy": {
                                     "type": "string",
                                     "enum": [
-                                        "fieldMap"
+                                        "fieldMap",
+                                        "schema"
                                     ]
                                 },
                                 "field": {
@@ -1283,6 +1411,9 @@
                             "type": "boolean"
                         },
                         "isUnique": {
+                            "type": "boolean"
+                        },
+                        "isContextUnique": {
                             "type": "boolean"
                         },
                         "isRequired": {
@@ -1332,6 +1463,13 @@
                     ]
                 },
                 "rule_files": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "target_clusters": {
+                    "description": "List of clusters where the tests must run",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -1510,6 +1648,12 @@
                         ]
                     },
                     "minItems": 1
+                },
+                "resources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/openshift/openshift-resource-1.yml"
+                    }
                 }
             },
             "required": [
@@ -1589,6 +1733,7 @@
                         "InProgress",
                         "TransitionPeriod",
                         "OnBoarded",
+                        "OffBoarding",
                         "BestEffort"
                     ]
                 },
@@ -1961,6 +2106,22 @@
                                     },
                                     "pipeline_timeout": {
                                         "type": "integer"
+                                    },
+                                    "labels_allowed": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "role": {
+                                                    "$ref": "/common-1.json#/definitions/crossref",
+                                                    "$schemaRef": "/access/role-1.yml"
+                                                }
+                                            },
+                                            "required": [
+                                                "role"
+                                            ]
+                                        }
                                     }
                                 },
                                 "required": [
@@ -2453,6 +2614,15 @@
                         },
                         "run_for_valid_saas_file_changes": {
                             "type": "boolean"
+                        },
+                        "early_exit": {
+                            "type": "boolean"
+                        },
+                        "shardSpecOverride": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "/app-sre/integration-shardspec-override-1.yml"
+                            }
                         }
                     },
                     "required": [
@@ -2468,6 +2638,12 @@
                             "namespace": {
                                 "$ref": "/common-1.json#/definitions/crossref",
                                 "$schemaRef": "/openshift/namespace-1.yml"
+                            },
+                            "shardSpecOverride": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "/app-sre/integration-shardspec-override-1.yml"
+                                }
                             },
                             "spec": {
                                 "$ref": "/app-sre/integration-spec-1.yml"
@@ -2486,6 +2662,37 @@
                 "name",
                 "description",
                 "schemas"
+            ]
+        },
+        "/app-sre/integration-shardspec-override-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/app-sre/integration-1.yml"
+                    ]
+                },
+                "shardingStrategy": {
+                    "type": "string",
+                    "enum": [
+                        "per-aws-account"
+                    ]
+                },
+                "awsAccount": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/aws/account-1.yml"
+                },
+                "imageRef": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "awsAccount",
+                "imageRef"
             ]
         },
         "/app-sre/integration-spec-1.yml": {
@@ -2582,6 +2789,9 @@
                             }
                         ]
                     }
+                },
+                "imageRef": {
+                    "type": "string"
                 },
                 "internalCertificates": {
                     "type": "boolean",
@@ -2987,6 +3197,12 @@
                 "parameters": {
                     "type": "object"
                 },
+                "allowedSecretParameterPaths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "secretParameters": {
                     "type": "array",
                     "description": "saas file level parameters from vault secrets",
@@ -3057,6 +3273,10 @@
                 "takeover": {
                     "type": "boolean"
                 },
+                "deprecated": {
+                    "type": "boolean",
+                    "description": "prevent updates to a saas file"
+                },
                 "compare": {
                     "type": "boolean"
                 },
@@ -3105,13 +3325,16 @@
                         "/app-sre/saas-file-target-1.yml"
                     ]
                 },
+                "name": {
+                    "type": "string"
+                },
                 "namespace": {
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/openshift/namespace-1.yml"
                 },
                 "ref": {
                     "type": "string",
-                    "pattern": "^([0-9a-f]{40}|master|main|internal|quayio)$"
+                    "pattern": "^([0-9a-f]{40}|master|main|internal)$"
                 },
                 "promotion": {
                     "type": "object",
@@ -3191,6 +3414,25 @@
                     },
                     "required": [
                         "instance",
+                        "name"
+                    ]
+                },
+                "image": {
+                    "type": "object",
+                    "description": "wait for image to exist before triggering a deployment",
+                    "additionalProperties": false,
+                    "properties": {
+                        "org": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/dependencies/quay-org-1.yml"
+                        },
+                        "name": {
+                            "type": "string",
+                            "description": "image repository name"
+                        }
+                    },
+                    "required": [
+                        "org",
                         "name"
                     ]
                 },
@@ -3799,7 +4041,8 @@
                                 "enum": [
                                     "terraform-resources",
                                     "terraform-users",
-                                    "terraform-aws-route53"
+                                    "terraform-aws-route53",
+                                    "terraform-vpc-peerings"
                                 ]
                             }
                         }
@@ -3852,6 +4095,11 @@
                     "description": "key information for a terraform's state location and integration",
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/dependencies/terraform-state-1.yml"
+                },
+                "rosa": {
+                    "description": "Rosa related attributes in the aws account.",
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/dependencies/rosa-aws-1.yml"
                 }
             },
             "required": [
@@ -3903,6 +4151,9 @@
                 },
                 "capacity_rebalance": {
                     "type": "boolean"
+                },
+                "max_instance_lifetime": {
+                    "type": "integer"
                 },
                 "instances_distribution": {
                     "type": "object",
@@ -4048,8 +4299,19 @@
                         "ebs_enabled": {
                             "type": "boolean"
                         },
+                        "iops": {
+                            "type": "integer"
+                        },
                         "volume_size": {
                             "type": "integer"
+                        },
+                        "volume_type": {
+                            "type": "string",
+                            "enum": [
+                                "standard",
+                                "gp2",
+                                "io1"
+                            ]
                         }
                     },
                     "required": [
@@ -4130,6 +4392,15 @@
                                     ]
                                 }
                             }
+                        },
+                        "warm_enabled": {
+                            "type": "boolean"
+                        },
+                        "warm_type": {
+                            "type": "string"
+                        },
+                        "warm_count": {
+                            "type": "integer"
                         }
                     }
                 },
@@ -4349,7 +4620,7 @@
                 "retention_period": {
                     "type": "integer",
                     "minimum": 24,
-                    "maximum": 168
+                    "maximum": 8760
                 },
                 "encryption_type": {
                     "type": "string",
@@ -4360,6 +4631,43 @@
                 },
                 "kms_key_id": {
                     "type": "string"
+                },
+                "release_url": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "runtime": {
+                    "type": "string"
+                },
+                "timeout": {
+                    "type": "integer"
+                },
+                "handler": {
+                    "type": "string"
+                },
+                "memory_size": {
+                    "type": "integer"
+                },
+                "index_prefix": {
+                    "type": "string"
+                },
+                "parallelization_factor": {
+                    "type": "integer"
+                },
+                "batch_size": {
+                    "type": "integer"
+                },
+                "starting_position": {
+                    "type": "string",
+                    "enum": [
+                        "LATEST",
+                        "TRIM_HORIZON",
+                        "AT_TIMESTAMP"
+                    ]
+                },
+                "starting_position_timestamp": {
+                    "type": "string",
+                    "format": "date-time"
                 }
             },
             "required": [
@@ -4468,7 +4776,10 @@
                     "type": "boolean"
                 },
                 "auto_minor_version_upgrade": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "enum": [
+                        false
+                    ]
                 },
                 "skip_final_snapshot": {
                     "type": "boolean"
@@ -4553,7 +4864,8 @@
                 "$schema",
                 "engine",
                 "engine_version",
-                "instance_class"
+                "instance_class",
+                "auto_minor_version_upgrade"
             ]
         },
         "/aws/regions-1.yml": {
@@ -4722,6 +5034,9 @@
                 "parameter_group": {
                     "type": "string"
                 },
+                "old_parameter_group": {
+                    "type": "string"
+                },
                 "region": {
                     "$ref": "/aws/regions-1.yml#/properties/region"
                 },
@@ -4842,14 +5157,17 @@
                     }
                 },
                 "image": {
-                    "type": "object",
-                    "properties": {
-                        "upstream": {
-                            "type": "object",
-                            "properties": {
-                                "instance": {
-                                    "$ref": "/common-1.json#/definitions/crossref",
-                                    "$schemaRef": "/dependencies/jenkins-instance-1.yml"
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "upstream": {
+                                "type": "object",
+                                "properties": {
+                                    "instance": {
+                                        "$ref": "/common-1.json#/definitions/crossref",
+                                        "$schemaRef": "/dependencies/jenkins-instance-1.yml"
+                                    }
                                 }
                             }
                         }
@@ -5251,6 +5569,9 @@
                         "parameter_group": {
                             "type": "string"
                         },
+                        "old_parameter_group": {
+                            "type": "string"
+                        },
                         "overrides": {
                             "type": "object",
                             "properties": {
@@ -5400,7 +5721,12 @@
                     "required": [
                         "identifier",
                         "defaults"
-                    ]
+                    ],
+                    "dependencies": {
+                        "old_parameter_group": [
+                            "parameter_group"
+                        ]
+                    }
                 },
                 {
                     "additionalProperties": false,
@@ -5883,6 +6209,9 @@
                         "identifier": {
                             "type": "string"
                         },
+                        "es_identifier": {
+                            "type": "string"
+                        },
                         "region": {
                             "$ref": "/aws/regions-1.yml#/properties/region"
                         },
@@ -6156,48 +6485,93 @@
                             "type": "object"
                         },
                         "image": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                                "tag_name": {
-                                    "description": "name of tag to use to correlate AMI ID to commit",
-                                    "type": "string"
-                                },
-                                "url": {
-                                    "description": "url of source code repository",
-                                    "type": "string",
-                                    "format": "uri"
-                                },
-                                "ref": {
-                                    "description": "commit or branch name",
-                                    "type": "string",
-                                    "pattern": "^([0-9a-f]{40}|master|main)$"
-                                },
-                                "upstream": {
-                                    "description": "jenkins instance and job to wait for",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "instance": {
-                                            "$ref": "/common-1.json#/definitions/crossref",
-                                            "$schemaRef": "/dependencies/jenkins-instance-1.yml"
-                                        },
-                                        "name": {
-                                            "description": "name of jenkins job to wait for",
-                                            "type": "string"
-                                        }
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "provider": {
+                                        "type": "string"
                                     },
-                                    "required": [
-                                        "instance",
-                                        "name"
-                                    ]
-                                }
-                            },
-                            "required": [
-                                "tag_name",
-                                "url",
-                                "ref"
-                            ]
+                                    "tag_name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "oneOf": [
+                                    {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "provider": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "git"
+                                                ]
+                                            },
+                                            "tag_name": {
+                                                "description": "name of tag to use to correlate AMI ID to commit",
+                                                "type": "string"
+                                            },
+                                            "url": {
+                                                "description": "url of source code repository",
+                                                "type": "string",
+                                                "format": "uri"
+                                            },
+                                            "ref": {
+                                                "description": "commit or branch name",
+                                                "type": "string",
+                                                "pattern": "^([0-9a-f]{40}|master|main)$"
+                                            },
+                                            "upstream": {
+                                                "description": "jenkins instance and job to wait for",
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "instance": {
+                                                        "$ref": "/common-1.json#/definitions/crossref",
+                                                        "$schemaRef": "/dependencies/jenkins-instance-1.yml"
+                                                    },
+                                                    "name": {
+                                                        "description": "name of jenkins job to wait for",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "instance",
+                                                    "name"
+                                                ]
+                                            }
+                                        },
+                                        "required": [
+                                            "tag_name",
+                                            "url",
+                                            "ref"
+                                        ]
+                                    },
+                                    {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "provider": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "static"
+                                                ]
+                                            },
+                                            "tag_name": {
+                                                "description": "name of tag to use",
+                                                "type": "string"
+                                            },
+                                            "value": {
+                                                "description": "value",
+                                                "type": "string",
+                                                "format": "uri"
+                                            }
+                                        },
+                                        "required": [
+                                            "tag_name",
+                                            "value"
+                                        ]
+                                    }
+                                ]
+                            }
                         },
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
@@ -6437,6 +6811,372 @@
                 "region"
             ]
         },
+        "/cloudflare/account-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/cloudflare/account-1.yml"
+                    ]
+                },
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "providerVersion": {
+                    "type": "string"
+                },
+                "accountOwners": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email"
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "email"
+                        ]
+                    }
+                },
+                "apiCredentials": {
+                    "$ref": "/common-1.json#/definitions/vaultSecret"
+                },
+                "terraformStateAccount": {
+                    "description": "AWS Account to use for state in S3",
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/aws/account-1.yml"
+                }
+            },
+            "required": [
+                "$schema",
+                "name",
+                "description",
+                "providerVersion",
+                "apiCredentials",
+                "accountOwners",
+                "terraformStateAccount"
+            ]
+        },
+        "/cloudflare/terraform-resource-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/cloudflare/terraform-resource-1.yml"
+                    ]
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "identifier": {
+                    "$ref": "/common-1.json#/definitions/longIdentifier"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "content_from_github": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "repo": {
+                            "type": "string"
+                        },
+                        "path": {
+                            "type": "string"
+                        },
+                        "ref": {
+                            "type": "string",
+                            "pattern": "^([0-9a-f]{40})$"
+                        }
+                    },
+                    "required": [
+                        "repo",
+                        "path",
+                        "ref"
+                    ]
+                },
+                "vars": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "text": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "text"
+                        ]
+                    }
+                },
+                "zone": {
+                    "type": "string"
+                },
+                "plan": {
+                    "enum": [
+                        "enterprise",
+                        "free"
+                    ]
+                },
+                "type": {
+                    "enum": [
+                        "full",
+                        "partial"
+                    ]
+                },
+                "settings": {
+                    "type": "object"
+                },
+                "argo": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "tiered_caching": {
+                            "type": "boolean"
+                        },
+                        "smart_routing": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string"
+                            },
+                            "ttl": {
+                                "type": "integer"
+                            },
+                            "value": {
+                                "type": "string"
+                            },
+                            "proxied": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                },
+                "workers": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "identifier": {
+                                "type": "string"
+                            },
+                            "pattern": {
+                                "type": "string"
+                            },
+                            "script_name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "identifier",
+                            "pattern",
+                            "script_name"
+                        ]
+                    }
+                }
+            },
+            "oneOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "worker_script"
+                            ]
+                        },
+                        "identifier": {
+                            "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "content_from_github": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "repo": {
+                                    "type": "string"
+                                },
+                                "path": {
+                                    "type": "string"
+                                },
+                                "ref": {
+                                    "type": "string",
+                                    "pattern": "^([0-9a-f]{40})$"
+                                }
+                            },
+                            "required": [
+                                "repo",
+                                "path",
+                                "ref"
+                            ]
+                        },
+                        "vars": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "text": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "text"
+                                ]
+                            }
+                        }
+                    },
+                    "required": [
+                        "identifier",
+                        "name"
+                    ]
+                },
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "zone"
+                            ]
+                        },
+                        "identifier": {
+                            "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "zone": {
+                            "type": "string"
+                        },
+                        "plan": {
+                            "enum": [
+                                "enterprise",
+                                "free"
+                            ]
+                        },
+                        "type": {
+                            "enum": [
+                                "full",
+                                "partial"
+                            ]
+                        },
+                        "settings": {
+                            "type": "object"
+                        },
+                        "argo": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "tiered_caching": {
+                                    "type": "boolean"
+                                },
+                                "smart_routing": {
+                                    "type": "boolean"
+                                }
+                            }
+                        },
+                        "records": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "type": "string"
+                                    },
+                                    "ttl": {
+                                        "type": "integer"
+                                    },
+                                    "value": {
+                                        "type": "string"
+                                    },
+                                    "proxied": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "type",
+                                    "ttl",
+                                    "value"
+                                ]
+                            }
+                        },
+                        "workers": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "identifier": {
+                                        "type": "string"
+                                    },
+                                    "pattern": {
+                                        "type": "string"
+                                    },
+                                    "script_name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "identifier",
+                                    "pattern",
+                                    "script_name"
+                                ]
+                            }
+                        }
+                    },
+                    "required": [
+                        "identifier",
+                        "zone"
+                    ]
+                }
+            ],
+            "required": [
+                "provider"
+            ]
+        },
         "/dependencies/container-image-mirror-1.yml": {
             "$schema": "/metaschema-1.json",
             "version": "1.0",
@@ -6590,6 +7330,9 @@
                     "$ref": "/common-1.json#/definitions/labels"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "domain_name": {
                     "type": "string"
                 },
                 "description": {
@@ -7438,6 +8181,9 @@
                 },
                 "issueResolveState": {
                     "type": "string"
+                },
+                "issueReopenState": {
+                    "type": "string"
                 }
             },
             "required": [
@@ -7766,6 +8512,43 @@
                 "description",
                 "managedRepos"
             ]
+        },
+        "/dependencies/rosa-aws-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/dependencies/rosa-aws-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "creator_role_arn": {
+                    "type": "string",
+                    "description": "OCM Role arn. This role is created with ROSA cli during the account prerequisites configuration and must have admin permissions."
+                },
+                "installer_role_arn": {
+                    "type": "string",
+                    "description": "Rosa installer Role arn. If empty, the default value arn:...:ManagedOpenShift-Installer-Role will be used."
+                },
+                "support_role_arn": {
+                    "type": "string",
+                    "description": "Rosa support Role arn. If empty, the default value arn:...:ManagedOpenShift-Support-Role will be used."
+                },
+                "controlplane_role_arn": {
+                    "type": "string",
+                    "description": "Rosa control plan role arn. If empty, the default value arn:...:ManagedOpenShift-ControlPlane-Role will be used."
+                },
+                "worker_role_arn": {
+                    "type": "string",
+                    "description": "Rosa workers role arn. If empty, the default value arn:...:ManagedOpenShift-Worker-Role will be used."
+                }
+            }
         },
         "/dependencies/sendgrid-account-1.yml": {
             "$schema": "/metaschema-1.json",
@@ -8710,6 +9493,10 @@
                         },
                         "disable_user_workload_monitoring": {
                             "type": "boolean"
+                        },
+                        "account": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/aws/account-1.yml"
                         }
                     },
                     "required": [
@@ -9409,6 +10196,7 @@
                     "description": "terraform provider type to use",
                     "enum": [
                         "aws",
+                        "cloudflare",
                         "gcp-project"
                     ]
                 },
@@ -9423,6 +10211,9 @@
                         "oneOf": [
                             {
                                 "$ref": "/aws/terraform-resource-2.yml"
+                            },
+                            {
+                                "$ref": "/cloudflare/terraform-resource-1.yml"
                             },
                             {
                                 "$ref": "/gcp/terraform-resource-1.yml"
@@ -9449,6 +10240,27 @@
                             "type": "array",
                             "items": {
                                 "$ref": "/aws/terraform-resource-2.yml"
+                            }
+                        }
+                    }
+                },
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "cloudflare"
+                            ]
+                        },
+                        "provisioner": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/cloudflare/account-1.yml"
+                        },
+                        "resources": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "/cloudflare/terraform-resource-1.yml"
                             }
                         }
                     }
@@ -9930,6 +10742,20 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "upgradePolicyAllowedWorkloads": {
+                    "description": "List of workloads that are allowed to be defined as cluster upgrade policy workload",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "upgradePolicyAllowedMutexes": {
+                    "description": "List of mutexes that are allowed to be defined as cluster upgrade policy mutex",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             },
             "required": [
@@ -9969,6 +10795,10 @@
                 },
                 "alertmanager_config_key": {
                     "type": "string"
+                },
+                "enable_query_support": {
+                    "type": "boolean",
+                    "description": "indicates that this resource is using graphql query results"
                 },
                 "type": {
                     "type": "string"
@@ -10019,6 +10849,10 @@
                         },
                         "alertmanager_config_key": {
                             "type": "string"
+                        },
+                        "enable_query_support": {
+                            "type": "boolean",
+                            "description": "indicates that this resource is using graphql query results"
                         }
                     },
                     "required": [
@@ -10052,6 +10886,10 @@
                         },
                         "alertmanager_config_key": {
                             "type": "string"
+                        },
+                        "enable_query_support": {
+                            "type": "boolean",
+                            "description": "indicates that this resource is using graphql query results"
                         }
                     },
                     "required": [
@@ -10315,6 +11153,9 @@
                                                                     "type": "string"
                                                                 },
                                                                 "latency": {
+                                                                    "type": "string"
+                                                                },
+                                                                "method": {
                                                                     "type": "string"
                                                                 },
                                                                 "quantile": {
@@ -11138,6 +11979,9 @@
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/vault-config/instance-1.yml"
                 },
+                "output_path": {
+                    "type": "string"
+                },
                 "options": {
                     "type": "object",
                     "oneOf": [
@@ -11679,6 +12523,9 @@
                     "required": [
                         "$schema"
                     ]
+                },
+                "dependencies": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -11796,6 +12643,11 @@
                         "name": "ldap",
                         "type": "LdapSettings_v1",
                         "isRequired": false
+                    },
+                    {
+                        "name": "jiraWatcher",
+                        "type": "JiraWatcherSettings_v1",
+                        "isRequired": false
                     }
                 ]
             },
@@ -11853,6 +12705,21 @@
                     {
                         "name": "baseDn",
                         "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "JiraWatcherSettings_v1",
+                "fields": [
+                    {
+                        "name": "readTimeout",
+                        "type": "int",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "connectTimeout",
+                        "type": "int",
                         "isRequired": true
                     }
                 ]
@@ -12582,6 +13449,11 @@
                         "isRequired": true
                     },
                     {
+                        "name": "output_path",
+                        "type": "string",
+                        "isRequired": false
+                    },
+                    {
                         "name": "options",
                         "type": "VaultRoleOptions_v1",
                         "isInterface": true,
@@ -12658,6 +13530,25 @@
                     },
                     {
                         "name": "jsonpath",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "DatafileObject_v1",
+                "isInterface": true,
+                "interfaceResolve": {
+                    "strategy": "schema"
+                },
+                "fields": [
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "schema",
                         "type": "string",
                         "isRequired": true
                     }
@@ -13177,6 +14068,10 @@
                     },
                     {
                         "name": "issueResolveState",
+                        "type": "string"
+                    },
+                    {
+                        "name": "issueReopenState",
                         "type": "string"
                     }
                 ]
@@ -13803,6 +14698,10 @@
                 "interface": "ClusterSpec_v1",
                 "fields": [
                     {
+                        "name": "account",
+                        "type": "AWSAccount_v1"
+                    },
+                    {
                         "name": "product",
                         "type": "string",
                         "isRequired": true
@@ -14293,6 +15192,7 @@
             },
             {
                 "name": "Cluster_v1",
+                "datafile": "/openshift/cluster-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -14556,6 +15456,16 @@
                         "isList": true
                     },
                     {
+                        "name": "upgradePolicyAllowedWorkloads",
+                        "type": "string",
+                        "isList": true
+                    },
+                    {
+                        "name": "upgradePolicyAllowedMutexes",
+                        "type": "string",
+                        "isList": true
+                    },
+                    {
                         "name": "clusters",
                         "type": "Cluster_v1",
                         "isList": true,
@@ -14665,6 +15575,7 @@
             },
             {
                 "name": "AWSAccount_v1",
+                "datafile": "/aws/account-1.yml",
                 "interface": "ExternalResourcesProvisioner_v1",
                 "fields": [
                     {
@@ -14717,6 +15628,10 @@
                         "name": "providerVersion",
                         "type": "string",
                         "isRequired": true
+                    },
+                    {
+                        "name": "qontractReconcileVersion",
+                        "type": "string"
                     },
                     {
                         "name": "terraformUsername",
@@ -14781,6 +15696,11 @@
                         "isRequired": false
                     },
                     {
+                        "name": "rosa",
+                        "type": "RosaAWSSpec_v1",
+                        "isRequired": false
+                    },
+                    {
                         "name": "ecrs",
                         "type": "AWSECR_v1",
                         "isList": true,
@@ -14797,6 +15717,58 @@
                             "schema": "/aws/policy-1.yml",
                             "subAttr": "account"
                         }
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareAccount_v1",
+                "interface": "ExternalResourcesProvisioner_v1",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true,
+                        "isSearchable": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string"
+                    },
+                    {
+                        "name": "providerVersion",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "accountOwners",
+                        "type": "Owner_v1",
+                        "isList": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "enableDeletion",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "apiCredentials",
+                        "type": "VaultSecret_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "terraformStateAccount",
+                        "type": "AWSAccount_v1",
+                        "isRequired": true
                     }
                 ]
             },
@@ -15225,13 +16197,16 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "path",
                         "type": "string",
                         "isRequired": true,
-                        "isResource": true
+                        "isResource": true,
+                        "resolveResource": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "validate_json",
@@ -15244,6 +16219,10 @@
                     {
                         "name": "alertmanager_config_key",
                         "type": "string"
+                    },
+                    {
+                        "name": "enable_query_support",
+                        "type": "boolean"
                     }
                 ]
             },
@@ -15260,7 +16239,8 @@
                         "name": "path",
                         "type": "string",
                         "isRequired": true,
-                        "isResource": true
+                        "isResource": true,
+                        "resolveResource": true
                     },
                     {
                         "name": "type",
@@ -15277,6 +16257,10 @@
                     {
                         "name": "alertmanager_config_key",
                         "type": "string"
+                    },
+                    {
+                        "name": "enable_query_support",
+                        "type": "boolean"
                     }
                 ]
             },
@@ -15287,12 +16271,14 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "path",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "version",
@@ -15301,7 +16287,8 @@
                     },
                     {
                         "name": "name",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "labels",
@@ -15332,13 +16319,16 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "path",
                         "type": "string",
                         "isRequired": true,
-                        "isResource": true
+                        "isResource": true,
+                        "resolveResource": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "vault_tls_secret_path",
@@ -15358,6 +16348,7 @@
                     "field": "provider",
                     "fieldMap": {
                         "aws": "NamespaceTerraformProviderResourceAWS_v1",
+                        "cloudflare": "NamespaceTerraformProviderResourceCloudflare_v1",
                         "gcp-project": "NamespaceTerraformProviderResourceGCPProject_v1"
                     }
                 },
@@ -15382,12 +16373,14 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "provisioner",
                         "type": "AWSAccount_v1",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "resources",
@@ -15399,7 +16392,7 @@
                 ]
             },
             {
-                "name": "NamespaceTerraformProviderResourceGCPProject_v1",
+                "name": "NamespaceTerraformProviderResourceCloudflare_v1",
                 "interface": "NamespaceExternalResource_v1",
                 "fields": [
                     {
@@ -15409,8 +16402,227 @@
                     },
                     {
                         "name": "provisioner",
-                        "type": "GcpProject_v1",
+                        "type": "CloudflareAccount_v1",
                         "isRequired": true
+                    },
+                    {
+                        "name": "resources",
+                        "type": "NamespaceTerraformResourceCloudflare_v1",
+                        "isRequired": true,
+                        "isList": true,
+                        "isInterface": true
+                    }
+                ]
+            },
+            {
+                "name": "NamespaceTerraformResourceCloudflare_v1",
+                "datafile": "/cloudflare/terraform-resource-1.yml",
+                "isInterface": true,
+                "interfaceResolve": {
+                    "strategy": "fieldMap",
+                    "field": "provider",
+                    "fieldMap": {
+                        "zone": "NamespaceTerraformResourceCloudflareZone_v1",
+                        "worker_script": "NamespaceTerraformResourceCloudflareWorkerScript_v1"
+                    }
+                },
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "NamespaceTerraformResourceCloudflareZone_v1",
+                "interface": "NamespaceTerraformResourceCloudflare_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "zone",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "plan",
+                        "type": "string"
+                    },
+                    {
+                        "name": "type",
+                        "type": "string"
+                    },
+                    {
+                        "name": "settings",
+                        "type": "json"
+                    },
+                    {
+                        "name": "argo",
+                        "type": "CloudflareZoneArgo_v1"
+                    },
+                    {
+                        "name": "records",
+                        "type": "CloudflareZoneRecord_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "workers",
+                        "type": "CloudflareZoneWorker_v1",
+                        "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareZoneArgo_v1",
+                "fields": [
+                    {
+                        "name": "tiered_caching",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "smart_routing",
+                        "type": "boolean"
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareZoneRecord_v1",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "type",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "ttl",
+                        "type": "int",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "value",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "proxied",
+                        "type": "boolean"
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareZoneWorker_v1",
+                "fields": [
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "pattern",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "script_name",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "NamespaceTerraformResourceCloudflareWorkerScript_v1",
+                "interface": "NamespaceTerraformResourceCloudflare_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "content_from_github",
+                        "type": "CloudflareZoneWorkerScriptContentFromGithub_v1"
+                    },
+                    {
+                        "name": "vars",
+                        "type": "CloudflareZoneWorkerScriptVars_v1",
+                        "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareZoneWorkerScriptContentFromGithub_v1",
+                "fields": [
+                    {
+                        "name": "repo",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "ref",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareZoneWorkerScriptVars_v1",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "text",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "NamespaceTerraformProviderResourceGCPProject_v1",
+                "interface": "NamespaceExternalResource_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true,
+                        "isContextUnique": true
+                    },
+                    {
+                        "name": "provisioner",
+                        "type": "GcpProject_v1",
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "resources",
@@ -15582,16 +16794,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
@@ -15611,7 +16826,9 @@
                     {
                         "name": "image",
                         "type": "ASGImage_v1",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isList": true,
+                        "isInterface": true
                     },
                     {
                         "name": "output_resource_name",
@@ -15648,7 +16865,37 @@
             },
             {
                 "name": "ASGImage_v1",
+                "isInterface": true,
+                "interfaceResolve": {
+                    "strategy": "fieldMap",
+                    "field": "provider",
+                    "fieldMap": {
+                        "git": "ASGImageGit_v1",
+                        "static": "ASGImageStatic_v1"
+                    }
+                },
                 "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "tag_name",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "ASGImageGit_v1",
+                "interface": "ASGImage_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
                     {
                         "name": "tag_name",
                         "type": "string",
@@ -15671,8 +16918,8 @@
                 ]
             },
             {
-                "name": "NamespaceTerraformResourceSecretsManager_v1",
-                "interface": "NamespaceTerraformResourceAWS_v1",
+                "name": "ASGImageStatic_v1",
+                "interface": "ASGImage_v1",
                 "fields": [
                     {
                         "name": "provider",
@@ -15680,13 +16927,37 @@
                         "isRequired": true
                     },
                     {
+                        "name": "tag_name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "value",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "NamespaceTerraformResourceSecretsManager_v1",
+                "interface": "NamespaceTerraformResourceAWS_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true,
+                        "isContextUnique": true
+                    },
+                    {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "secret",
@@ -15714,16 +16985,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "secret",
@@ -15751,16 +17025,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "secret",
@@ -15792,16 +17069,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
@@ -15836,16 +17116,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
@@ -15859,6 +17142,10 @@
                     },
                     {
                         "name": "parameter_group",
+                        "type": "string"
+                    },
+                    {
+                        "name": "old_parameter_group",
                         "type": "string"
                     },
                     {
@@ -15912,16 +17199,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
@@ -15994,12 +17284,14 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "variables",
@@ -16055,12 +17347,14 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "secrets_prefix",
@@ -16089,12 +17383,14 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "assume_role",
@@ -16131,12 +17427,14 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
@@ -16150,7 +17448,8 @@
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "overrides",
@@ -16195,16 +17494,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "output_resource_name",
@@ -16249,7 +17551,8 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
@@ -16259,12 +17562,14 @@
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "output_resource_name",
@@ -16318,16 +17623,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "output_resource_name",
@@ -16357,16 +17665,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "output_resource_name",
@@ -16399,16 +17710,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
@@ -16442,16 +17756,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "kms_encryption",
@@ -16489,16 +17806,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
@@ -16536,16 +17856,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
@@ -16579,22 +17902,29 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "defaults",
                         "type": "string",
                         "isRequired": true,
                         "isResource": true
+                    },
+                    {
+                        "name": "es_identifier",
+                        "type": "string"
                     },
                     {
                         "name": "overrides",
@@ -16622,16 +17952,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "vpc",
@@ -16686,16 +18019,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "name",
@@ -16724,16 +18060,19 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "api_proxy_uri",
@@ -16824,7 +18163,8 @@
                     {
                         "name": "provider",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "annotations",
@@ -16839,7 +18179,8 @@
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "output_format",
@@ -16852,7 +18193,8 @@
                     },
                     {
                         "name": "region",
-                        "type": "string"
+                        "type": "string",
+                        "isContextUnique": true
                     },
                     {
                         "name": "subnet_ids",
@@ -17172,6 +18514,7 @@
             },
             {
                 "name": "Namespace_v1",
+                "datafile": "/openshift/namespace-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -17695,6 +19038,21 @@
                     {
                         "name": "pipeline_timeout",
                         "type": "int"
+                    },
+                    {
+                        "name": "labels_allowed",
+                        "type": "CodeComponentGitlabHousekeepingLabelsAllowed_v1",
+                        "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "CodeComponentGitlabHousekeepingLabelsAllowed_v1",
+                "fields": [
+                    {
+                        "name": "role",
+                        "type": "Role_v1",
+                        "isRequired": true
                     }
                 ]
             },
@@ -17836,6 +19194,7 @@
             },
             {
                 "name": "App_v1",
+                "datafile": "/app-sre/app-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -18002,6 +19361,7 @@
             },
             {
                 "name": "SaasFile_v2",
+                "datafile": "/app-sre/saas-file-2.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -18059,6 +19419,11 @@
                         "type": "json"
                     },
                     {
+                        "name": "allowedSecretParameterPaths",
+                        "type": "string",
+                        "isList": true
+                    },
+                    {
                         "name": "secretParameters",
                         "type": "SaasSecretParameters_v1",
                         "isList": true
@@ -18080,6 +19445,10 @@
                         "type": "boolean"
                     },
                     {
+                        "name": "deprecated",
+                        "type": "boolean"
+                    },
+                    {
                         "name": "compare",
                         "type": "boolean"
                     },
@@ -18096,20 +19465,16 @@
                         "type": "boolean"
                     },
                     {
-                        "name": "configurableResources",
-                        "type": "boolean"
-                    },
-                    {
                         "name": "deployResources",
                         "type": "DeployResources_v1"
                     },
                     {
-                        "name": "roles",
+                        "name": "selfServiceRoles",
                         "type": "Role_v1",
                         "isList": true,
                         "synthetic": {
                             "schema": "/access/role-1.yml",
-                            "subAttr": "owned_saas_files"
+                            "subAttr": "self_service.datafiles"
                         }
                     }
                 ]
@@ -18202,7 +19567,8 @@
                     {
                         "name": "name",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "url",
@@ -18247,9 +19613,15 @@
                         "type": "string"
                     },
                     {
+                        "name": "name",
+                        "type": "string",
+                        "isContextUnique": true
+                    },
+                    {
                         "name": "namespace",
                         "type": "Namespace_v1",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isContextUnique": true
                     },
                     {
                         "name": "ref",
@@ -18274,6 +19646,10 @@
                         "type": "SaasResourceTemplateTargetUpstream_v1"
                     },
                     {
+                        "name": "image",
+                        "type": "SaasResourceTemplateTargetImage_v1"
+                    },
+                    {
                         "name": "disable",
                         "type": "boolean"
                     },
@@ -18289,6 +19665,21 @@
                     {
                         "name": "instance",
                         "type": "JenkinsInstance_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "SaasResourceTemplateTargetImage_v1",
+                "fields": [
+                    {
+                        "name": "org",
+                        "type": "QuayOrg_v1",
                         "isRequired": true
                     },
                     {
@@ -19223,6 +20614,16 @@
                         "name": "team",
                         "type": "string",
                         "isRequired": true
+                    },
+                    {
+                        "name": "roles",
+                        "type": "Role_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "synthetic": {
+                            "schema": "/access/role-1.yml",
+                            "subAttr": "permissions"
+                        }
                     }
                 ]
             },
@@ -19519,14 +20920,15 @@
                         "isList": true
                     },
                     {
-                        "name": "owned_saas_files",
-                        "type": "SaasFile_v2",
+                        "name": "self_service",
+                        "type": "SelfServiceConfig_v1",
                         "isList": true
                     },
                     {
                         "name": "users",
                         "type": "User_v1",
                         "isList": true,
+                        "isRequired": true,
                         "synthetic": {
                             "schema": "/access/user-1.yml",
                             "subAttr": "roles"
@@ -19536,10 +20938,37 @@
                         "name": "bots",
                         "type": "Bot_v1",
                         "isList": true,
+                        "isRequired": true,
                         "synthetic": {
                             "schema": "/access/bot-1.yml",
                             "subAttr": "roles"
                         }
+                    }
+                ]
+            },
+            {
+                "name": "SelfServiceConfig_v1",
+                "fields": [
+                    {
+                        "name": "datafiles",
+                        "type": "DatafileObject_v1",
+                        "isList": true,
+                        "isInterface": true
+                    },
+                    {
+                        "name": "resources",
+                        "type": "string",
+                        "isList": true,
+                        "isResource": true
+                    },
+                    {
+                        "name": "change_type",
+                        "type": "ChangeType_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string"
                     }
                 ]
             },
@@ -19574,6 +21003,16 @@
                     {
                         "name": "run_for_valid_saas_file_changes",
                         "type": "boolean"
+                    },
+                    {
+                        "name": "early_exit",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "shardSpecOverride",
+                        "type": "IntegrationSpecShardSpecOverride_v1",
+                        "isList": true,
+                        "isInterface": true
                     }
                 ]
             },
@@ -19604,6 +21043,50 @@
                     {
                         "name": "slack",
                         "type": "boolean"
+                    }
+                ]
+            },
+            {
+                "name": "AWSShardSpecOverride_v1",
+                "interface": "IntegrationSpecShardSpecOverride_v1",
+                "fields": [
+                    {
+                        "name": "shardingStrategy",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "awsAccount",
+                        "type": "AWSAccount_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "imageRef",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "IntegrationSpecShardSpecOverride_v1",
+                "isInterface": true,
+                "interfaceResolve": {
+                    "strategy": "fieldMap",
+                    "field": "shardingStrategy",
+                    "fieldMap": {
+                        "per-aws-account": "AWSShardSpecOverride_v1"
+                    }
+                },
+                "fields": [
+                    {
+                        "name": "shardingStrategy",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "imageRef",
+                        "type": "string",
+                        "isRequired": true
                     }
                 ]
             },
@@ -19695,6 +21178,10 @@
                     {
                         "name": "failedJobHistoryLimit",
                         "type": "int"
+                    },
+                    {
+                        "name": "imageRef",
+                        "type": "string"
                     }
                 ]
             },
@@ -19705,6 +21192,12 @@
                         "name": "namespace",
                         "type": "Namespace_v1",
                         "isRequired": true
+                    },
+                    {
+                        "name": "shardSpecOverride",
+                        "type": "IntegrationSpecShardSpecOverride_v1",
+                        "isList": true,
+                        "isInterface": true
                     },
                     {
                         "name": "spec",
@@ -19957,6 +21450,12 @@
                         "type": "QontractQuery_v1",
                         "isList": true,
                         "isRequired": true
+                    },
+                    {
+                        "name": "resources",
+                        "type": "NamespaceOpenshiftResource_v1",
+                        "isList": true,
+                        "isInterface": true
                     }
                 ]
             },
@@ -20204,6 +21703,7 @@
                         "name": "permissions_v1",
                         "type": "Permission_v1",
                         "isList": true,
+                        "isRequired": true,
                         "isInterface": true,
                         "datafileSchema": "/access/permission-1.yml"
                     },
@@ -20218,6 +21718,12 @@
                         "type": "AWSAccount_v1",
                         "isList": true,
                         "datafileSchema": "/aws/account-1.yml"
+                    },
+                    {
+                        "name": "cloudflare_accounts_v1",
+                        "type": "CloudflareAccount_v1",
+                        "isList": true,
+                        "datafileSchema": "/cloudflare/account-1.yml"
                     },
                     {
                         "name": "clusters_v1",
@@ -20515,6 +22021,12 @@
                         "isList": true,
                         "isInterface": true,
                         "datafileSchema": "/dependencies/endpoint-monitoring-provider-1.yml"
+                    },
+                    {
+                        "name": "change_types_v1",
+                        "type": "ChangeType_v1",
+                        "isList": true,
+                        "datafileSchema": "/app-interface/change-type-1.yml"
                     }
                 ]
             },
@@ -20836,6 +22348,10 @@
                         "name": "name",
                         "type": "string",
                         "isRequired": true
+                    },
+                    {
+                        "name": "domain_name",
+                        "type": "string"
                     },
                     {
                         "name": "description",
@@ -21456,6 +22972,147 @@
                         "type": "string"
                     }
                 ]
+            },
+            {
+                "name": "ChangeType_v1",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "labels",
+                        "type": "json"
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "contextType",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "contextSchema",
+                        "type": "string"
+                    },
+                    {
+                        "name": "changes",
+                        "type": "ChangeTypeChangeDetector_v1",
+                        "isInterface": true,
+                        "isRequired": true,
+                        "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "ChangeTypeChangeDetector_v1",
+                "isInterface": true,
+                "interfaceResolve": {
+                    "strategy": "fieldMap",
+                    "field": "provider",
+                    "fieldMap": {
+                        "jsonPath": "ChangeTypeChangeDetectorJsonPathProvider_v1"
+                    }
+                },
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "changeSchema",
+                        "type": "string"
+                    },
+                    {
+                        "name": "context",
+                        "type": "ChangeTypeChangeDetectorContextSelector_v1"
+                    }
+                ]
+            },
+            {
+                "name": "ChangeTypeChangeDetectorJsonPathProvider_v1",
+                "interface": "ChangeTypeChangeDetector_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "changeSchema",
+                        "type": "string"
+                    },
+                    {
+                        "name": "jsonPathSelectors",
+                        "type": "string",
+                        "isList": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "context",
+                        "type": "ChangeTypeChangeDetectorContextSelector_v1"
+                    }
+                ]
+            },
+            {
+                "name": "ChangeTypeChangeDetectorContextSelector_v1",
+                "fields": [
+                    {
+                        "name": "selector",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "when",
+                        "type": "string"
+                    }
+                ]
+            },
+            {
+                "name": "RosaAWSSpec_v1",
+                "fields": [
+                    {
+                        "name": "creator_role_arn",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "installer_role_arn",
+                        "type": "string",
+                        "isRequired": false
+                    },
+                    {
+                        "name": "support_role_arn",
+                        "type": "string",
+                        "isRequired": false
+                    },
+                    {
+                        "name": "controlplane_role_arn",
+                        "type": "string",
+                        "isRequired": false
+                    },
+                    {
+                        "name": "worker_role_arn",
+                        "type": "string",
+                        "isRequired": false
+                    }
+                ]
             }
         ]
     },
@@ -21465,6 +23122,7 @@
             "labels": {},
             "name": "app-interface-settings",
             "description": "App Interface settings",
+            "repoUrl": "https://placeholder",
             "vault": false,
             "kubeBinary": "kubectl",
             "saasDeployJobTemplate": "openshift-saas-deploy",
@@ -21895,6 +23553,7 @@
             "instance": {
                 "$ref": "/services/vault/config/instances/master.yml"
             },
+            "output_path": "app-interface/vault-manager-approle",
             "options": {
                 "_type": "approle",
                 "bind_secret_id": "true",
@@ -22004,6 +23663,7 @@
             "instance": {
                 "$ref": "/services/vault/config/instances/secondary.yml"
             },
+            "output_path": "app-interface/app-interface-approle",
             "options": {
                 "_type": "approle",
                 "bind_secret_id": "true",

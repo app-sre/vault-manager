@@ -6,6 +6,8 @@ labels: {}
 name: app-interface-settings
 description: App Interface settings
 
+repoUrl: https://placeholder
+
 # if set to true, use vault as secret source
 # if set to false, use config file as secret source
 vault: false

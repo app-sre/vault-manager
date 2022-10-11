@@ -48,8 +48,8 @@ func FormatSecretPath(secret string, secretEngine string) string {
 }
 
 // write secret to vault
-func WriteSecret(instanceAddr string, secretPath string, secretData map[string]interface{}) error {
-	dataExists, err := DataInSecret(instanceAddr, secretData, secretPath)
+func WriteSecret(instanceAddr, secretPath, engineVersion string, secretData map[string]interface{}) error {
+	dataExists, err := DataInSecret(instanceAddr, secretData, secretPath, engineVersion)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":     secretPath,
@@ -58,13 +58,23 @@ func WriteSecret(instanceAddr string, secretPath string, secretData map[string]i
 		return err
 	}
 	if !dataExists {
-		_, err := getClient(instanceAddr).Logical().Write(secretPath, secretData)
+		versionedPath := FormatSecretPath(secretPath, engineVersion)
+		var err error
+		switch engineVersion {
+		case KV_V1:
+			_, err = getClient(instanceAddr).Logical().Write(versionedPath, secretData)
+		case KV_V2:
+			// need to wrap data within json with key "data"
+			v2Data := make(map[string]interface{})
+			v2Data["data"] = secretData
+			_, err = getClient(instanceAddr).Logical().Write(versionedPath, v2Data)
+		}
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
 				"path":     secretPath,
 				"instance": instanceAddr,
 			}).Info("[Vault Client] failed to write Vault secret")
-			return errors.New("failed to write secret")
+			return err
 		}
 	}
 	return nil
@@ -72,9 +82,10 @@ func WriteSecret(instanceAddr string, secretPath string, secretData map[string]i
 
 // read secret from vault and return the secret map
 func ReadSecret(instanceAddr, secretPath, engineVersion string) (map[string]interface{}, error) {
+	versionedPath := FormatSecretPath(secretPath, engineVersion)
 	// vault manager does not support reverting and should always reference latest data within a-i
 	// therefore, secret version is not specified for KV V2 secrets
-	raw, err := getClient(instanceAddr).Logical().Read(secretPath)
+	raw, err := getClient(instanceAddr).Logical().Read(versionedPath)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"path":          secretPath,
@@ -104,7 +115,7 @@ func ReadSecret(instanceAddr, secretPath, engineVersion string) (map[string]inte
 		}
 		return mapped, nil
 	default:
-		log.WithError(err).WithFields(log.Fields{
+		log.WithFields(log.Fields{
 			"path":          secretPath,
 			"instance":      instanceAddr,
 			"engineVersion": engineVersion,
@@ -436,6 +447,20 @@ func GetGroupInfo(instanceAddr string, name string) (map[string]interface{}, err
 		return nil, nil
 	}
 	return entity.Data, nil
+}
+
+// "write" empty secret to approle secret-id endpoint in order to generate new secret_id
+// https://www.vaultproject.io/docs/auth/approle#via-the-api-1
+func GenerateApproleSecretID(instanceAddr, secretPath string) (*api.Secret, error) {
+	secret, err := getClient(instanceAddr).Logical().Write(secretPath, map[string]interface{}{})
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"path":     secretPath,
+			"instance": instanceAddr,
+		}).Info("[Vault Client] failed to write Vault secret")
+		return nil, errors.New("failed to write secret")
+	}
+	return secret, nil
 }
 
 func mustGetenv(name string) string {

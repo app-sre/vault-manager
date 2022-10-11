@@ -73,7 +73,6 @@ func GetInstances(entriesBytes []byte, threadPoolSize int) []string {
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Instance] failed to retrieve access credentials")
 	}
-
 	initClients(instanceCreds, threadPoolSize)
 
 	// return list of addresses that clients were initialized for
@@ -87,7 +86,6 @@ func GetInstances(entriesBytes []byte, threadPoolSize int) []string {
 // generates map of instance addresses to access credentials stored in master vault
 func processInstances(instances []Instance) (map[string]AuthBundle, error) {
 	instanceCreds := make(map[string]AuthBundle)
-
 	for _, i := range instances {
 		bundle := AuthBundle{
 			SecretEngine: i.Auth.SecretEngine,
@@ -103,14 +101,14 @@ func processInstances(instances []Instance) (map[string]AuthBundle, error) {
 				{
 					Name:    ROLE_ID,
 					Type:    APPROLE_AUTH,
-					Path:    FormatSecretPath(i.Auth.RoleID.Path, i.Auth.SecretEngine),
+					Path:    i.Auth.RoleID.Path,
 					Field:   i.Auth.RoleID.Field,
 					Version: i.Auth.RoleID.Version,
 				},
 				{
 					Name:    SECRET_ID,
 					Type:    APPROLE_AUTH,
-					Path:    FormatSecretPath(i.Auth.SecretID.Path, i.Auth.SecretEngine),
+					Path:    i.Auth.SecretID.Path,
 					Field:   i.Auth.SecretID.Field,
 					Version: i.Auth.SecretID.Version,
 				},
@@ -123,7 +121,7 @@ func processInstances(instances []Instance) (map[string]AuthBundle, error) {
 				{
 					Name:    TOKEN,
 					Type:    TOKEN_AUTH,
-					Path:    FormatSecretPath(i.Auth.Token.Path, i.Auth.SecretEngine),
+					Path:    i.Auth.Token.Path,
 					Field:   i.Auth.Token.Field,
 					Version: i.Auth.Token.Version,
 				},
@@ -134,7 +132,6 @@ func processInstances(instances []Instance) (map[string]AuthBundle, error) {
 		}
 		instanceCreds[i.Address] = bundle
 	}
-
 	return instanceCreds, nil
 }
 
@@ -143,7 +140,6 @@ func processInstances(instances []Instance) (map[string]AuthBundle, error) {
 func initClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
 	vaultClients = make(map[string]*api.Client)
 	masterAddress := configureMaster()
-
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 	var mutex = &sync.Mutex{}
 	// read access credentials for other vault instances and configure clients
