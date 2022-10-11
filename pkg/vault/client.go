@@ -451,7 +451,7 @@ func GetGroupInfo(instanceAddr string, name string) (map[string]interface{}, err
 
 // "write" empty secret to approle secret-id endpoint in order to generate new secret_id
 // https://www.vaultproject.io/docs/auth/approle#via-the-api-1
-func WriteApproleSecretID(instanceAddr, secretPath string) (*api.Secret, error) {
+func GenerateApproleSecretID(instanceAddr, secretPath string) (*api.Secret, error) {
 	secret, err := getClient(instanceAddr).Logical().Write(secretPath, map[string]interface{}{})
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{

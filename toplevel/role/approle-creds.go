@@ -133,7 +133,7 @@ func generatePayload(address string, role entry) (map[string]interface{}, error)
 		return nil, errors.New("role_id retrieval failed")
 	}
 	creds["role_id"] = roleSecret["role_id"]
-	secretIdResult, err := vault.WriteApproleSecretID(
+	secretIdResult, err := vault.GenerateApproleSecretID(
 		address,
 		fmt.Sprintf("auth/approle/role/%s/secret-id", role.Name),
 	)
