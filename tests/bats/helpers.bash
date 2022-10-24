@@ -4,6 +4,7 @@ rerun_check() {
     [ "$status" -eq 0 ]
     # check vault-manager output
     [[ "${output}" == "" ]]
+    echo ${output}
 }
 
 # write the given string to the console.
