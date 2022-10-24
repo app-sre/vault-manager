@@ -28,7 +28,7 @@ func populateApproleCreds(address string, roles []entry, dryRun bool) error {
 				}).Info("[Vault Approle] Invalid output_path length")
 				return errors.New("output_path must contain at least two segments")
 			}
-			pathRoot := strings.Split(role.OutputPath, "/")[1] // skip root /
+			pathRoot := pathSegments[1] // skip root /
 			formattedPath := strings.Join(pathSegments[1:], "/")
 			fmt.Println("PATH ROOT")
 			fmt.Println(fmt.Sprint(pathRoot, "/"))
