@@ -30,6 +30,7 @@ func populateApproleCreds(address string, roles []entry, dryRun bool) error {
 			}
 			pathRoot := strings.Split(role.OutputPath, "/")[1] // skip root /
 			formattedPath := strings.Join(pathSegments[1:], "/")
+			fmt.Println(kvVersions)
 			if _, exists := kvVersions[fmt.Sprint(pathRoot, "/")]; !exists {
 				log.WithFields(log.Fields{
 					"name":     role.Name,
