@@ -3,6 +3,7 @@
 package role
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -206,6 +207,10 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}
 	}
 
+	fmt.Println("OUTPUT PATHS")
+	for _, role := range instancesToDesiredRoles[address] {
+		fmt.Println(role.OutputPath)
+	}
 	err = populateApproleCreds(address, instancesToDesiredRoles[address], dryRun)
 	if err != nil {
 		return err
