@@ -9,7 +9,7 @@ type: "approle"
 mount: "approle/"
 instance:
   $ref: /services/vault/config/instances/master.yml
-output_path: app-interface/vault-manager-approle
+output_path: /app-interface/vault-manager-approle
 options:
   _type: "approle"
   bind_secret_id: "true"

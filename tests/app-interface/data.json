@@ -7007,6 +7007,62 @@
                             "script_name"
                         ]
                     }
+                },
+                "certificates": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "identifier": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "advanced"
+                                ]
+                            },
+                            "hosts": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "validation_method": {
+                                "type": "string",
+                                "enum": [
+                                    "txt"
+                                ]
+                            },
+                            "validity_days": {
+                                "type": "integer",
+                                "enum": [
+                                    90
+                                ]
+                            },
+                            "certificate_authority": {
+                                "type": "string",
+                                "enum": [
+                                    "lets_encrypt"
+                                ]
+                            },
+                            "cloudflare_branding": {
+                                "type": "boolean"
+                            },
+                            "wait_for_active_status": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "required": [
+                        "identifier",
+                        "type",
+                        "hosts",
+                        "validation_method",
+                        "validity_days",
+                        "certificate_authority"
+                    ]
                 }
             },
             "oneOf": [
@@ -7165,6 +7221,62 @@
                                     "script_name"
                                 ]
                             }
+                        },
+                        "certificates": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "identifier": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "advanced"
+                                        ]
+                                    },
+                                    "hosts": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "validation_method": {
+                                        "type": "string",
+                                        "enum": [
+                                            "txt"
+                                        ]
+                                    },
+                                    "validity_days": {
+                                        "type": "integer",
+                                        "enum": [
+                                            90
+                                        ]
+                                    },
+                                    "certificate_authority": {
+                                        "type": "string",
+                                        "enum": [
+                                            "lets_encrypt"
+                                        ]
+                                    },
+                                    "cloudflare_branding": {
+                                        "type": "boolean"
+                                    },
+                                    "wait_for_active_status": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "identifier",
+                                "type",
+                                "hosts",
+                                "validation_method",
+                                "validity_days",
+                                "certificate_authority"
+                            ]
                         }
                     },
                     "required": [
@@ -16478,6 +16590,11 @@
                         "name": "workers",
                         "type": "CloudflareZoneWorker_v1",
                         "isList": true
+                    },
+                    {
+                        "name": "certificates",
+                        "type": "CloudflareZoneCertificate_v1",
+                        "isList": true
                     }
                 ]
             },
@@ -16540,6 +16657,50 @@
                         "name": "script_name",
                         "type": "string",
                         "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareZoneCertificate_v1",
+                "fields": [
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "type",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "hosts",
+                        "type": "string",
+                        "isRequired": true,
+                        "isList": true
+                    },
+                    {
+                        "name": "validation_method",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "validity_days",
+                        "type": "int",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "certificate_authority",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "cloudflare_branding",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "wait_for_active_status",
+                        "type": "boolean"
                     }
                 ]
             },
@@ -23475,6 +23636,17 @@
             },
             "rules": "path \"devtools-osio-ci/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-sre/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\npath \"app-interface/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\n\n# https://www.vaultproject.io/api/system/audit-hash#calculate-hash\npath \"/sys/audit-hash/file\" {\n  capabilities = [\"create\", \"read\", \"update\"]\n}\n\n#allow vault seal/unseal\npath \"/sys/seal\" {\n  policy = \"sudo\"\n}\npath \"/sys/unseal\" {\n  policy = \"sudo\"\n}\n"
         },
+        "/services/vault/config/policies/master/vault-manager.yml": {
+            "$schema": "/vault-config/policy-1.yml",
+            "labels": {
+                "service": "vault.devshift.net"
+            },
+            "name": "vault-manager-policy",
+            "instance": {
+                "$ref": "/services/vault/config/instances/master.yml"
+            },
+            "rules": "#manage audit\npath \"/sys/audit\" {\n  policy = \"sudo\"\n  capabilities = [\"create\", \"update\", \"delete\"]\n}\n#manage auth\npath \"/auth/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\n#manage github\n#note '/auth/github*' allows to have multiple GH orgs\n#path \"/auth/github*\" {\n#  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n#}\n#manage policies\n#allow CRUD on policies\npath \"/sys/policy/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\"]\n}\n#allow LIST policies\npath \"/sys/policy\" {\n  capabilities = [\"read\",\"list\"]\n}\n#allow CRUD policies on web UI\npath \"/sys/policies/acl/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\",\"list\"]\n}\n#manage secret-engines\n#allow CRUD on mounts\npath \"sys/mounts/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\"]\n}\n#allow LIST mounts\npath \"sys/mounts\" {\n  capabilities = [\"read\",\"list\"]\n}\n#manage auth-backends\n#allow CRUD on auth\npath \"/sys/auth/*\" {\n  policy = \"sudo\"\n  capabilities = [\"create\", \"read\", \"update\", \"delete\"]\n}\n#allow LIST auth\npath \"/sys/auth\" {\n  policy = \"sudo\"\n  capabilities = [\"read\",\"list\"]\n}\n#manage identity resources\npath \"/identity/*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}\n#allow read of vault-manager secret\npath \"/secret/data/master\" {\n  policy = \"sudo\"\n  capabilities = [\"read\"]\n}\n# allow read of oidc\npath \"/secret/data/oidc\" {\n  capabilities = [\"read\"]\n}\n# allow read of oidc\npath \"/secret/data/secondary\" {\n  capabilities = [\"read\"]\n}\n# allow read of approle output_path\npath \"/app-interface/data/vault-manager-approle\" {\n  capabilities = [\"read\", \"create\"]\n}\n"
+        },
         "/services/vault/config/policies/secondary/app-interface-approle-policy.yml": {
             "$schema": "/vault-config/policy-1.yml",
             "labels": {
@@ -23553,7 +23725,7 @@
             "instance": {
                 "$ref": "/services/vault/config/instances/master.yml"
             },
-            "output_path": "app-interface/vault-manager-approle",
+            "output_path": "/app-interface/vault-manager-approle",
             "options": {
                 "_type": "approle",
                 "bind_secret_id": "true",
@@ -23652,41 +23824,6 @@
                 "user_claim": "email"
             }
         },
-        "/services/vault/config/roles/secondary/approles/app-interface.yml": {
-            "$schema": "/vault-config/role-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "name": "app-interface",
-            "type": "approle",
-            "mount": "approle/",
-            "instance": {
-                "$ref": "/services/vault/config/instances/secondary.yml"
-            },
-            "output_path": "app-interface/app-interface-approle",
-            "options": {
-                "_type": "approle",
-                "bind_secret_id": "true",
-                "local_secret_ids": "false",
-                "token_period": "0",
-                "secret_id_num_uses": "0",
-                "secret_id_ttl": "0",
-                "token_explicit_max_ttl": "0",
-                "token_max_ttl": "1800",
-                "token_no_default_policy": false,
-                "token_num_uses": "0",
-                "token_ttl": "1800",
-                "token_type": "default",
-                "token_policies": [
-                    "app-interface-approle-policy"
-                ],
-                "policies": [
-                    "app-interface-approle-policy"
-                ],
-                "secret_id_bound_cidrs": [],
-                "token_bound_cidrs": []
-            }
-        },
         "/services/vault/config/roles/secondary/approles/vault-manager.yml": {
             "$schema": "/vault-config/role-1.yml",
             "labels": {
@@ -23716,6 +23853,41 @@
                 ],
                 "policies": [
                     "vault-manager-policy"
+                ],
+                "secret_id_bound_cidrs": [],
+                "token_bound_cidrs": []
+            }
+        },
+        "/services/vault/config/roles/secondary/approles/app-interface.yml": {
+            "$schema": "/vault-config/role-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "app-interface",
+            "type": "approle",
+            "mount": "approle/",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "output_path": "/app-interface/app-interface-approle",
+            "options": {
+                "_type": "approle",
+                "bind_secret_id": "true",
+                "local_secret_ids": "false",
+                "token_period": "0",
+                "secret_id_num_uses": "0",
+                "secret_id_ttl": "0",
+                "token_explicit_max_ttl": "0",
+                "token_max_ttl": "1800",
+                "token_no_default_policy": false,
+                "token_num_uses": "0",
+                "token_ttl": "1800",
+                "token_type": "default",
+                "token_policies": [
+                    "app-interface-approle-policy"
+                ],
+                "policies": [
+                    "app-interface-approle-policy"
                 ],
                 "secret_id_bound_cidrs": [],
                 "token_bound_cidrs": []
