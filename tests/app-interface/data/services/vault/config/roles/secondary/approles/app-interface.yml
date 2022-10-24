@@ -9,7 +9,7 @@ type: "approle"
 mount: "approle/"
 instance:
   $ref: /services/vault/config/instances/secondary.yml
-output_path: app-interface/app-interface-approle
+output_path: /app-interface/app-interface-approle
 options:
   _type: "approle"
   bind_secret_id: "true"

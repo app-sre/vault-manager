@@ -17,8 +17,19 @@ func populateApproleCreds(address string, roles []entry, dryRun bool) error {
 
 	for _, role := range roles {
 		if strings.ToLower(role.Type) == "approle" && len(role.OutputPath) > 0 {
+			// assumed output path format: /engine-name/foo/bar
 			// root of secret path is name of the secret engine
-			pathRoot := strings.Split(role.OutputPath, "/")[0]
+			pathSegments := strings.Split(role.OutputPath, "/")
+			if len(pathSegments) < 2 {
+				log.WithFields(log.Fields{
+					"name":     role.Name,
+					"path":     role.OutputPath,
+					"instance": address,
+				}).Info("[Vault Approle] Invalid output_path length")
+				return errors.New("output_path must contain at least two segments")
+			}
+			pathRoot := strings.Split(role.OutputPath, "/")[1] // skip root /
+			formattedPath := strings.Join(pathSegments[1:], "/")
 			if _, exists := kvVersions[fmt.Sprint(pathRoot, "/")]; !exists {
 				log.WithFields(log.Fields{
 					"name":     role.Name,
@@ -45,7 +56,7 @@ func populateApproleCreds(address string, roles []entry, dryRun bool) error {
 				}).Info("[Vault Approle] Retrieved KV version is not supported")
 				return errors.New("approle creds unsupported KV version")
 			}
-			secret, err := vault.ReadSecret(address, role.OutputPath, version)
+			secret, err := vault.ReadSecret(address, formattedPath, version)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"name":       role.Name,
@@ -72,7 +83,7 @@ func populateApproleCreds(address string, roles []entry, dryRun bool) error {
 					return err
 				}
 				// write creds to desired output
-				err = vault.WriteSecret(address, role.OutputPath, version, creds)
+				err = vault.WriteSecret(address, formattedPath, version, creds)
 				if err != nil {
 					return err
 				}
