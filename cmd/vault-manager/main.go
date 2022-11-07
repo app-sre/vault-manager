@@ -65,6 +65,7 @@ func main() {
 	flag.Parse()
 
 	var sleepDuration time.Duration
+	var livenessFile string
 	if !runOnce {
 		// configure sleep duration
 		sleep, _ := os.LookupEnv("RECONCILE_SLEEP_TIME")
@@ -76,6 +77,11 @@ func main() {
 			log.Fatalln(err)
 		}
 		sleepDuration = sleepDur
+
+		livenessFile, _ = os.LookupEnv("LIVENESS_PROBE_FILE")
+		if livenessFile == "" {
+			log.Fatalln("`LIVENESS_PROBE_FILE` must be set when `run-once` flag is false")
+		}
 
 		// configure prometheus metrics handler
 		port, _ := os.LookupEnv("METRICS_SERVER_PORT")
@@ -137,6 +143,7 @@ func main() {
 
 			if !runOnce {
 				utils.RecordMetrics(address, status, time.Since(start))
+				utils.UpdateSwitch(livenessFile)
 			}
 		}
 

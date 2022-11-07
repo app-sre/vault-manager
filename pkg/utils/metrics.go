@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"log"
+	"os"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -70,4 +72,15 @@ func RecordMetrics(instance string, status int, duration time.Duration) {
 			"shard_id":    instance,
 			"integration": INTEGRATION,
 		}).Set(duration.Seconds())
+}
+
+// UpdateSwitch supports liveness probe check
+func UpdateSwitch(livenessFile string) {
+	f, err := os.OpenFile(livenessFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	f.Write([]byte("VALUE=0"))
 }

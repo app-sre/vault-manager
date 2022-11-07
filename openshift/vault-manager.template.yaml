@@ -90,14 +90,14 @@ objects:
               memory: ${MEMORY_LIMIT}
               cpu: ${CPU_LIMIT}
           livenessProbe:
-            httpGet:
-              path: /metrics
-              port: ${METRICS_SERVER_PORT}
-              scheme: HTTP
-            failureThreshold: 3
-            periodSeconds: 10
+            exec:
+            - /bin/bash
+            - /liveness.sh
+            - ${LIVENESS_PROBE_FILE}
+            initialDelaySeconds: 60
+            periodSeconds: ${LIVENESS_PROBE_PERIOD_SECONDS}
+            failureThreshold: 2
             successThreshold: 1
-            initialDelaySeconds: 10
 parameters:
 - name: IMAGE
   value: quay.io/app-sre/vault-manager
@@ -119,6 +119,10 @@ parameters:
   value: '3'
 - name: RECONCILE_SLEEP_TIME
   value: '15m'
+- name: LIVENESS_PROBE_FILE
+  value: '/switch.txt'
+- name: LIVENESS_PROBE_PERIOD_SECONDS
+  value: '900'
 - name: DRY_RUN
   description: runs vault-manager in dry-run mode when true
   value: 'false'
