@@ -182,7 +182,7 @@ func getConfig() (config, error) {
 		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(graphqlUsername+":"+graphqlPassword)))
 	}
 
-	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*6)
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	var response map[string]interface{}
