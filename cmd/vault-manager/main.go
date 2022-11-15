@@ -182,13 +182,13 @@ func getConfig() (config, error) {
 		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(graphqlUsername+":"+graphqlPassword)))
 	}
 
-	// define a Context for the request
-	ctx := context.Background()
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
 	var response map[string]interface{}
 
 	// execute query and capture the response
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Run(ctxTimeout, req, &response); err != nil {
 		return config{}, errors.Wrap(err, "failed to query graphql server")
 	}
 
