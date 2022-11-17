@@ -198,7 +198,7 @@ func getConfig() (config, error) {
 	}
 
 	if err != nil {
-		return config{}, errors.Wrap(err, "failed to query graphql server")
+		return config{}, errors.Wrap(err, "retries to query graphql server have been exhausted")
 	}
 
 	return response, nil
