@@ -1,0 +1,10 @@
+logs:
+  slack: false
+  googleChat: true
+fluentdResources:
+  requests:
+    memory: 60Mi
+    cpu: 15m
+  limits:
+    memory: 240Mi
+    cpu: 25m
