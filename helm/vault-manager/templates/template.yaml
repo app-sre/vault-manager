@@ -45,79 +45,79 @@ objects:
             limits:
               memory: 20Mi
               cpu: 25m
-        env:
-        {{- if .Values.slack }}
-        - name: SLACK_WEBHOOK_URL
-          valueFrom:
-            secretKeyRef:
-              key: slack.webhook_url
-              name: ${VAULT_MANAGER_SECRET_NAME}
-        - name: SLACK_CHANNEL
-          value: ${SLACK_CHANNEL}
-        - name: SLACK_ICON_EMOJI
-          value: ${SLACK_ICON_EMOJI}
-        {{- end }}
-        {{- if .Values.googleChat }}
-        - name: GOOGLE_CHAT_WEBHOOK_URL
-          valueFrom:
-          secretKeyRef:
-            key: google_chat.webhook_url
-            name: ${VAULT_MANAGER_SECRET_NAME}
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        {{- end }} 
-        - name: LOG_GROUP_NAME
-          valueFrom:
-            secretKeyRef:
-              name: ${CLOUDWATCH_SECRET}
-              key: log_group_name
-        command: ["/bin/sh", "-c"]
-        args:
-        - |
-          # generate fluent.conf
-          cat > /fluentd/etc/fluent.conf <<EOF
-          <source>
-            @type tail
-            path /fluentd/log/integration.log
-            pos_file /fluentd/log/integration.log.pos
-            tag integration
-            <parse>
-              @type none
-            </parse>
-          </source>
-          <match integration>
-            @type copy
+          env:
             {{- if .Values.slack }}
-            <store>
-              @type slack
-              webhook_url ${SLACK_WEBHOOK_URL}
-              channel ${SLACK_CHANNEL}
-              icon_emoji ${SLACK_ICON_EMOJI}
-              username sd-app-sre-bot
-              flush_interval 10s
-              message "\`\`\`[{{ ${INTEGRATION_NAME} }}] %s\`\`\`"
-            </store>
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  key: slack.webhook_url
+                  name: ${APP_INTERFACE_SECRET_NAME}
+            - name: SLACK_CHANNEL
+              value: ${SLACK_CHANNEL}
+            - name: SLACK_ICON_EMOJI
+              value: ${SLACK_ICON_EMOJI}
             {{- end }}
             {{- if .Values.googleChat }}
-            <store>
-              @type teams
-              webhook_url "${GOOGLE_CHAT_WEBHOOK_URL}&threadKey=${POD_NAME}"
-              text "<%= Time.at(time) %> [${POD_NAME}] <%= record['message'] %>\n\n"
-            </store>
-            {{- end }}
-            <store>
-              @type cloudwatch_logs
-              log_group_name ${LOG_GROUP_NAME}
-              log_stream_name {{ ${INTEGRATION_NAME} }}
-              auto_create_stream true
-            </store>
-          </match>
-          EOF
-        volumeMounts:
-        - name: fluentd-config
-          mountPath: /fluentd/etc/
+            - name: GOOGLE_CHAT_WEBHOOK_URL
+              valueFrom:
+              secretKeyRef:
+                key: google_chat.webhook_url
+                name: ${APP_INTERFACE_SECRET_NAME}
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            {{- end }} 
+            - name: LOG_GROUP_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: ${CLOUDWATCH_SECRET}
+                  key: log_group_name
+          command: ["/bin/sh", "-c"]
+          args:
+          - |
+            # generate fluent.conf
+            cat > /fluentd/etc/fluent.conf <<EOF
+            <source>
+              @type tail
+              path /fluentd/log/integration.log
+              pos_file /fluentd/log/integration.log.pos
+              tag integration
+              <parse>
+                @type none
+              </parse>
+            </source>
+            <match integration>
+              @type copy
+              {{- if .Values.slack }}
+              <store>
+                @type slack
+                webhook_url ${SLACK_WEBHOOK_URL}
+                channel ${SLACK_CHANNEL}
+                icon_emoji ${SLACK_ICON_EMOJI}
+                username sd-app-sre-bot
+                flush_interval 10s
+                message "\`\`\`[{{ ${INTEGRATION_NAME} }}] %s\`\`\`"
+              </store>
+              {{- end }}
+              {{- if .Values.googleChat }}
+              <store>
+                @type teams
+                webhook_url "${GOOGLE_CHAT_WEBHOOK_URL}&threadKey=${POD_NAME}"
+                text "<%= Time.at(time) %> [${POD_NAME}] <%= record['message'] %>\n\n"
+              </store>
+              {{- end }}
+              <store>
+                @type cloudwatch_logs
+                log_group_name ${LOG_GROUP_NAME}
+                log_stream_name {{ ${INTEGRATION_NAME} }}
+                auto_create_stream true
+              </store>
+            </match>
+            EOF
+          volumeMounts:
+          - name: fluentd-config
+            mountPath: /fluentd/etc/
         containers:
         - name: vault-manager
           image: ${IMAGE}:${IMAGE_TAG}
@@ -174,6 +174,9 @@ objects:
             limits:
               memory: ${MEMORY_LIMIT}
               cpu: ${CPU_LIMIT}
+          volumeMounts:
+          - name: logs
+            mountPath: /fluentd/log
         - name: fluentd
           image: ${FLUENTD_IMAGE}:${FLUENTD_IMAGE_TAG}
           imagePullPolicy: ${FLUENTD_IMAGE_PULL_POLICY}
@@ -205,6 +208,11 @@ objects:
             mountPath: /fluentd/log/
           - name: fluentd-config
             mountPath: /fluentd/etc/
+        volumes:
+        - name: logs
+          emptyDir: {}
+        - name: fluentd-config
+          emptyDir: {}
 parameters:
 - name: IMAGE
   value: quay.io/app-sre/vault-manager
@@ -237,8 +245,10 @@ parameters:
   value: '9090'
 - name: VAULT_SECRET_NAME
   value: vault-creds
-- name: VAULT_MANAGER_SECRET_NAME
-  value: vault-manager
+- name: APP_INTERFACE_SECRET_NAME
+  value: app-interface
+- name: CLOUDWATCH_SECRET
+  value: app-interface-cloudwatch
 - name: GQL_SECRET_NAME
   value: gql-creds
 - name: THREAD_POOL_SIZE
