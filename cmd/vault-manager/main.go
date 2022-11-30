@@ -54,7 +54,7 @@ func init() {
 			log.WithError(err).Error("Unable to log to file. Reverting to stdout logging")
 		} else {
 			log.SetOutput(io.MultiWriter(os.Stdout, logIO))
-			log.Println("Logging to file")
+			log.Println("Logging to file and stdout")
 		}
 	} else {
 		log.SetOutput(os.Stdout)
