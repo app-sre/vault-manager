@@ -287,3 +287,5 @@ parameters:
   value: {{ default "15m" .Values.fluentdResources.requests.cpu }}
 - name: FLUENTD_MEMORY_REQUEST
   value: {{ default "30Mi" .Values.fluentdResources.requests.memory }}
+- name: LOG_FILE_LOCATION
+  value: /fluentd/log/integration.log
