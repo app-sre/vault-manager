@@ -50,7 +50,8 @@ func init() {
 	if logFileLocation == "" {
 		log.SetOutput(os.Stdout)
 	} else {
-		logFile, err := os.Create(logFileLocation)
+                var err error
+		logFile, err = os.Create(logFileLocation)
 		if err != nil {
 			log.SetOutput(os.Stdout)
 			log.WithError(err).Error("Unable to log to file. Reverting to stdout logging")
