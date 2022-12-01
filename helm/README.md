@@ -11,3 +11,9 @@ To generate OpenShift templates from this Helm chart:
 ## Install Helm (v3)
 
 https://github.com/helm/helm/releases
+
+## Usage
+
+Refer to [values.yaml](./vault-manager/values.yaml) for default options.
+One configuration is produced for the standard commercial environment and one for
+FedRamp using [Google Chat logging](https://github.com/app-sre/qontract-reconcile/tree/master/helm#logging).
