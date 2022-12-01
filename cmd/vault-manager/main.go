@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -37,12 +38,28 @@ type TopLevelConfig struct {
 
 type ByPriority []TopLevelConfig
 
+var logFile *os.File
+
 func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,
 		DisableColors:    true,
 	})
-	log.SetOutput(os.Stdout)
+	// optionally log to a file so that fluentd can ingest logs
+	logFileLocation, _ := os.LookupEnv("LOG_FILE_LOCATION")
+	if logFileLocation == "" {
+		log.SetOutput(os.Stdout)
+	} else {
+                var err error
+		logFile, err = os.Create(logFileLocation)
+		if err != nil {
+			log.SetOutput(os.Stdout)
+			log.WithError(err).Error("Unable to log to file. Reverting to stdout logging")
+		} else {
+			log.SetOutput(io.MultiWriter(os.Stdout, logFile))
+		}
+	}
+
 }
 func (a ByPriority) Len() int {
 	return len(a)
@@ -55,6 +72,8 @@ func (a ByPriority) Swap(i, j int) {
 }
 
 func main() {
+	defer logFile.Close()
+
 	var dryRun bool
 	var runOnce bool
 	var threadPoolSize int
