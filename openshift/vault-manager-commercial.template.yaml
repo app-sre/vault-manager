@@ -1,3 +1,5 @@
+---
+# Source: vault-manager/templates/template.yaml
 apiVersion: v1
 kind: Template
 metadata:
@@ -18,7 +20,7 @@ objects:
       ignore-check.kube-linter.io/no-liveness-probe: "vault-manager is monitored for being stuck"
     name: vault-manager
   spec:
-    replicas: {{`${{REPLICAS}}`}}
+    replicas: ${{REPLICAS}}
     strategy:
       type: RollingUpdate
       rollingUpdate:
@@ -46,7 +48,6 @@ objects:
               memory: 20Mi
               cpu: 25m
           env:
-            {{- if .Values.logs.slack }}
             - name: SLACK_WEBHOOK_URL
               valueFrom:
                 secretKeyRef:
@@ -55,19 +56,7 @@ objects:
             - name: SLACK_CHANNEL
               value: ${SLACK_CHANNEL}
             - name: SLACK_ICON_EMOJI
-              value: ${SLACK_ICON_EMOJI}
-            {{- end }}
-            {{- if .Values.logs.googleChat }}
-            - name: GOOGLE_CHAT_WEBHOOK_URL
-              valueFrom:
-              secretKeyRef:
-                key: google_chat.webhook_url
-                name: ${APP_INTERFACE_SECRET_NAME}
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            {{- end }} 
+              value: ${SLACK_ICON_EMOJI} 
             - name: LOG_GROUP_NAME
               valueFrom:
                 secretKeyRef:
@@ -89,7 +78,6 @@ objects:
             </source>
             <match integration>
               @type copy
-              {{- if .Values.logs.slack }}
               <store>
                 @type slack
                 webhook_url ${SLACK_WEBHOOK_URL}
@@ -99,14 +87,6 @@ objects:
                 flush_interval 10s
                 message "\`\`\`[${INTEGRATION_NAME}] %s\`\`\`"
               </store>
-              {{- end }}
-              {{- if .Values.logs.googleChat }}
-              <store>
-                @type teams
-                webhook_url "${GOOGLE_CHAT_WEBHOOK_URL}&threadKey=${POD_NAME}"
-                text "<%= Time.at(time) %> [${POD_NAME}] <%= record['message'] %>\n\n"
-              </store>
-              {{- end }}
               <store>
                 @type cloudwatch_logs
                 log_group_name ${LOG_GROUP_NAME}
@@ -280,12 +260,12 @@ parameters:
 - name: INTEGRATION_NAME
   value: vault-manager
 - name: FLUENTD_CPU_LIMIT
-  value: {{ .Values.fluentdResources.limits.cpu }}
+  value: 25m
 - name: FLUENTD_MEMORY_LIMIT
-  value: {{ .Values.fluentdResources.limits.memory }}
+  value: 120Mi
 - name: FLUENTD_CPU_REQUEST
-  value: {{ .Values.fluentdResources.requests.cpu }}
+  value: 15m
 - name: FLUENTD_MEMORY_REQUEST
-  value: {{ .Values.fluentdResources.requests.memory }}
+  value: 30Mi
 - name: LOG_FILE_LOCATION
   value: /fluentd/log/integration.log

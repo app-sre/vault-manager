@@ -47,17 +47,16 @@ func init() {
 	})
 	// optionally log to a file so that fluentd can ingest logs
 	logFileLocation, _ := os.LookupEnv("LOG_FILE_LOCATION")
-	if logFileLocation != "" {
+	if logFileLocation == "" {
+		log.SetOutput(os.Stdout)
+	} else {
 		logIO, err := os.Create(logFileLocation)
 		if err != nil {
 			log.SetOutput(os.Stdout)
 			log.WithError(err).Error("Unable to log to file. Reverting to stdout logging")
 		} else {
 			log.SetOutput(io.MultiWriter(os.Stdout, logIO))
-			log.Println("Logging to file and stdout")
 		}
-	} else {
-		log.SetOutput(os.Stdout)
 	}
 
 }
