@@ -22,7 +22,7 @@ push:
 
 generate:
 	@helm lint helm/vault-manager
-	@helm template helm/vault-manager -n vault-manager -f helm/vault-manager/values-commercial.yaml > openshift/vault-manager-commercial.template.yaml
+	@helm template helm/vault-manager -n vault-manager -f helm/vault-manager/values-commercial.yaml > openshift/vault-manager.template.yaml
 	@helm template helm/vault-manager -n vault-manager -f helm/vault-manager/values-fedramp.yaml > openshift/vault-manager-fedramp.template.yaml
 
 build-test-container:
