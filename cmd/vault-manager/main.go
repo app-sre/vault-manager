@@ -201,23 +201,14 @@ func getConfig() (config, error) {
 		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(graphqlUsername+":"+graphqlPassword)))
 	}
 
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
 	var response map[string]interface{}
-	// execute query with retry logic and capture the response
-	for _, backoff := range []time.Duration{1 * time.Second, 3 * time.Second, 10 * time.Second} {
-		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
 
-		err = client.Run(ctxTimeout, req, &response)
-		if err == nil {
-			break
-		}
-
-		log.WithError(err).Info("failed to query graphql server")
-		time.Sleep(backoff)
-	}
-
-	if err != nil {
-		return config{}, errors.Wrap(err, "retries to query graphql server have been exhausted")
+	// execute query and capture the response
+	if err := client.Run(ctxTimeout, req, &response); err != nil {
+		return config{}, errors.Wrap(err, "failed to query graphql server")
 	}
 
 	return response, nil
