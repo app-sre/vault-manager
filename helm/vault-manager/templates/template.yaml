@@ -80,7 +80,7 @@ objects:
             cat > /fluentd/etc/fluent.conf <<EOF
             <source>
               @type tail
-              path /fluentd/log/integration.log
+              path ${LOG_FILE_LOCATION}
               pos_file /fluentd/log/integration.log.pos
               tag integration
               <parse>
@@ -127,6 +127,8 @@ objects:
           - "-c"
           - "/vault-manager -dry-run=${DRY_RUN} -run-once=${RUN_ONCE} -thread-pool-size=${THREAD_POOL_SIZE}"
           env:
+          - name: LOG_FILE_LOCATION
+            value: ${LOG_FILE_LOCATION}
           - name: GRAPHQL_QUERY_FILE
             value: ${GRAPHQL_QUERY_FILE}
           - name: DISABLE_IDENTITY
