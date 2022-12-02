@@ -60,9 +60,9 @@ objects:
             {{- if .Values.logs.googleChat }}
             - name: GOOGLE_CHAT_WEBHOOK_URL
               valueFrom:
-              secretKeyRef:
-                key: google_chat.webhook_url
-                name: ${APP_INTERFACE_SECRET_NAME}
+                secretKeyRef:
+                  key: google_chat.webhook_url
+                  name: ${APP_INTERFACE_SECRET_NAME}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
