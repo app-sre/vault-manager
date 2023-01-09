@@ -322,6 +322,7 @@ func getGroupDetails(g *group, ch chan<- error, wg *utils.BoundedWaitGroup) {
 			"No information returned for group: %s", g.Name))
 		return
 	}
+
 	if _, exists := info["member_entity_ids"]; !exists {
 		ch <- errors.New(fmt.Sprintf(
 			"Required `member_entity_ids` attribute not found for group: %s", g.Name))
@@ -340,9 +341,14 @@ func getGroupDetails(g *group, ch chan<- error, wg *utils.BoundedWaitGroup) {
 			"Required `policies` attribute not found for group: %s", g.Name))
 		return
 	}
-	for _, policy := range info["policies"].([]interface{}) {
-		g.Policies = append(g.Policies, policy.(string))
+	if info["policies"] == nil {
+		g.Policies = []string{}
+	} else {
+		for _, policy := range info["policies"].([]interface{}) {
+			g.Policies = append(g.Policies, policy.(string))
+		}
 	}
+
 	if _, exists := info["metadata"]; !exists {
 		ch <- errors.New(fmt.Sprintf(
 			"Required `metadata` attribute not found for group: %s", g.Name))
