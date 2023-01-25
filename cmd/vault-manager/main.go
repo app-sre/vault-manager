@@ -50,7 +50,7 @@ func init() {
 	if logFileLocation == "" {
 		log.SetOutput(os.Stdout)
 	} else {
-                var err error
+		var err error
 		logFile, err = os.Create(logFileLocation)
 		if err != nil {
 			log.SetOutput(os.Stdout)
@@ -153,6 +153,8 @@ func main() {
 					break
 				}
 			}
+
+			// call to new toplevel func to flush policies variable (reset for next instance)
 
 			if !runOnce {
 				utils.RecordMetrics(address, status, time.Since(start))

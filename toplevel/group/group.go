@@ -165,8 +165,13 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}
 	}
 
+	// call to new function defined bottom of this file
+	// pass desired
+
 	return nil
 }
+
+func compareAlteredPoliciesVsGroups()
 
 // processDesired accepts the yaml-marshalled result of the `vault_groups` graphql
 // query and returns group objects
@@ -425,3 +430,7 @@ func dryRunOutput(instanceAddr string, groups []vault.Item, action string) {
 		}).Infof("[Dry Run] [Vault Identity] group to be %s", action)
 	}
 }
+
+// a new func to output affected group information
+// this needs to call the new "GetPolicy" func from toplevel
+// should also accept the `desired` object within Apply

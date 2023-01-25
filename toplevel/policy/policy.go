@@ -141,6 +141,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}
 	}
 
+	// if dryRyn, call new "update policies" func defined in toplevel
+	// pass both tobeWritten and toBeDeleted
 	return nil
 }
 

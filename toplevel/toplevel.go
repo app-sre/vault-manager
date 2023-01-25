@@ -12,6 +12,9 @@ import (
 var (
 	configs  = make(map[string]Configuration)
 	configsM sync.RWMutex
+	// add a new map variable here. the keys will be policy names and the values will be `delete` or `update`
+	// your discretion for how to store delete/update value
+	// could be an enum?
 )
 
 // Configuration represents a block of declarative configuration data that can
@@ -58,3 +61,14 @@ func Apply(name string, address string, cfg []byte, dryRun bool, threadPoolSize 
 	}
 	return c.Apply(address, cfg, dryRun, threadPoolSize)
 }
+
+// a function to update the package level polices variable
+// this will need to accept written / deleted policies from the policy toplevel Apply function
+// those objects are of type vault.Item (defined within pkg/reconcile.go)
+// this func needs to iterate over both lists and populate the package level variable
+
+// a simple get function that returns the package level policies variable
+
+// a function to clear the package level policies variable
+// recall that vault-manager reconciles multiple vault instances
+// changed policies needs to be cleared before the next instance is reconciled
