@@ -144,6 +144,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		dryRunOutput(address, toBeWritten, "written")
 		dryRunOutput(address, toBeDeleted, "deleted")
 		dryRunOutput(address, toBeUpdated, "updated")
+		outputAffectedGroups(desired)
 	} else {
 		for _, w := range toBeWritten {
 			err := w.(group).CreateOrUpdate("written")
@@ -423,5 +424,24 @@ func dryRunOutput(instanceAddr string, groups []vault.Item, action string) {
 			"type":     g.KeyForType(),
 			"instance": instanceAddr,
 		}).Infof("[Dry Run] [Vault Identity] group to be %s", action)
+	}
+}
+
+// Output a list of groups and counts of users that will be affected by policy changes
+func outputAffectedGroups(desired []group) {
+	policyActions := toplevel.GetPolicies()
+
+	for _, d := range desired {
+		for _, p := range d.Policies {
+			action, ok := policyActions[p]
+			if ok {
+				// this group will be affected by the policy change
+				log.WithFields(log.Fields{
+					"policy": p,
+					"group":  d.Name,
+					"action": action,
+				}).Infof("[Dry Run] %s users in this group will be affected by this change", len(d.EntityIds))
+			}
+		}
 	}
 }
