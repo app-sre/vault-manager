@@ -171,8 +171,6 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	return nil
 }
 
-func compareAlteredPoliciesVsGroups()
-
 // processDesired accepts the yaml-marshalled result of the `vault_groups` graphql
 // query and returns group objects
 func processDesired(instanceAddr string, users []user, entityNamesToIds map[string]string) []group {
