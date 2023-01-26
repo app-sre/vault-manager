@@ -88,3 +88,14 @@ func GetPolicies() map[string]PolicyAction {
 func ClearPolicies() {
 	policyActions = make(map[string]PolicyAction)
 }
+
+// Output policy actions in string format
+func PrintPolicyAction(policyAction PolicyAction) string {
+	switch policyAction {
+	case Write:
+		return "added"
+	case Delete:
+		return "removed"
+	}
+	return "invalid"
+}
