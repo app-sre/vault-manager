@@ -24,3 +24,41 @@ runs vault-manager in dry-run mode and only print planned actions
 - `-thread-pool-size`, default=10<br>
 Some operations are running in parallel to achieve the best performance,
 so `-thread-pool-size` determine how many threads can be utilized
+
+# Changing data.json used for testing
+`data.json` within `tests/app-interface` is utilized by the qontract-server created for testing. If schema / query changes are made, this data bundle must be re-generated and committed with the PR. To re-generate: update `SCHEMAS_IMAGE_TAG` within `.env` (make sure to commit this change as well) and execute `make data` within `/tests/app-interface`
+
+# Local Development
+
+For local development, the script `/local-dev.sh` can be ran to configure necessary resources to mirror testing performed within PR check builds.  
+
+Once the script completes, the following containers will be running:
+* keycloak 
+    * necessary for oidc testing
+    * view `/tests/keycloak` for configuration files applied to the instance
+* qontract-server 
+    * view `/tests/app-interface/data/services/vault/config` for all resources being reconciled by tests
+* primary vault instance
+    * running on `localhost:8200`
+* secondary vault instance
+    * running on `localhost:8202`
+
+From root of repo, run `source dev-env`
+
+You can now execute run vault-manager against the local vault instances. Note that after a non `-dry-run`, the resources will be added to the vault instances. To reset, simply rerun `local-dev.sh`
+
+## Gotchas
+
+### Approle output_path
+You will notice that the first `-dry-run` execution after spinning up environment will fail stating a `specified output path does not match existing KV engines`. This is due to how the tests within `/tests/run-tests.sh` are executed.  
+To resolve you can either:  
+
+a) manually create the `app-interface` secret engine for both vault instances
+
+b) remove `output_path` from the following files:  
+* `/tests/app-interface/data/services/vault/config/roles/master/approles/vault-manager.yml`  
+* `/tests/app-interface/data/services/vault/config/roles/secondary/approles/app-interface.yml`  
+* update data.json following directions above **do not commit data.json with these attributes missing**
+
+### Vault audit device 
+Depending on local container runtime, permission issues when attempting to reconcile the vault audit devices may be encountered. If your development is not affecting logic within `/toplevel/audit.go`, you can remove the files within `/tests/app-interface/data/services/vault/config/audit-backends` and re-generate the data.json. **do not commit data.json with these attributes missing**
