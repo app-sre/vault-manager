@@ -47,6 +47,15 @@ container_alive () {
   echo ""
 }
 
+audit_perms() {
+  # allow container to write to audit log location
+  # which by default only has root permissions
+  AUDIT_LOC=/var/log/vault
+
+  docker exec -u 0:0 $1 mkdir -p $AUDIT_LOC
+  docker exec -u 0:0 $1 chown vault:vault $AUDIT_LOC
+}
+
 cleanup
 
 # spin up keycloak server
@@ -83,17 +92,16 @@ docker run -d --rm \
   $QONTRACT_SERVER_IMAGE:$QONTRACT_SERVER_IMAGE_TAG
 container_alive "http://127.0.0.1:4000" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $QONTRACT_SERVER_NAME
 
-mkdir -p $(pwd)/tmp
-
 # spin up primary vault server
 docker run -d --name=$VAULT_NAME \
   --net=host \
   --cap-add=IPC_LOCK \
   -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
   -p 8200:8200 \
-  -v $(pwd)/tmp/:/var/log/vault/:rw \
   $VAULT_IMAGE:$VAULT_IMAGE_TAG
 container_alive "http://127.0.0.1:8200" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME
+
+audit_perms $VAULT_NAME
 
 # populate necessary vault access vars to master
 vault kv put secret/master rootToken=root
@@ -107,9 +115,10 @@ docker run -d --name=$VAULT_NAME_SECONDARY \
   -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
   -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8202' \
   -p 8202:8202 \
-  -v $(pwd)/tmp/:/var/log/vault/:rw \
   $VAULT_IMAGE:$VAULT_IMAGE_TAG
 container_alive "http://127.0.0.1:8202" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME_SECONDARY
+
+audit_perms $VAULT_NAME_SECONDARY
 
 # populate oidc client secret in secondary
 export VAULT_ADDR=http://127.0.0.1:8202
