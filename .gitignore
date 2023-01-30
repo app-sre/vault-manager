@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+vault-manager
+
 
 # Test binary, build with `go test -c`
 *.test
