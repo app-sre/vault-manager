@@ -74,7 +74,7 @@ load ../helpers
     [ "$status" -eq 0 ]
 
     [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) in group: 'app-sre-vault-oidc' will have policy: 'vault-oidc-app-sre-policy' updated"*"action=updated"*"group=app-sre-vault-oidc"*"instance=\"http://127.0.0.1:8200\""*"policy=vault-oidc-app-sre-policy"* ]]
-    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) in group: 'app-interface-vault-oidc' will have policy: 'vault-oidc-app-sre-policy' updated"*"action=updated"*"group=app-sre-vault-oidc"*"instance=\"http://127.0.0.1:8200\""*"policy=vault-oidc-app-sre-policy"* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) in group: 'app-interface-vault-oidc' will have policy: 'vault-oidc-app-sre-policy' updated"*"action=updated"*"group=app-interface-vault-oidc"*"instance=\"http://127.0.0.1:8200\""*"policy=vault-oidc-app-sre-policy"* ]]
 
     # cleanup afterwards
     run vault-manager
