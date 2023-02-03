@@ -432,6 +432,10 @@ func dryRunOutput(instanceAddr string, groups []vault.Item, action string) {
 func outputPolicyAffectedGroups(desired []group) {
 	policyActions := toplevel.GetPolicies()
 
+	if len(policyActions) > 0 {
+		return
+	}
+
 	for _, d := range desired {
 		for _, p := range d.Policies {
 			action, ok := policyActions[p]
