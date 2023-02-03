@@ -439,9 +439,10 @@ func outputPolicyAffectedGroups(desired []group) {
 				action := toplevel.PrintPolicyAction(action)
 				// this group will be affected by the policy change
 				log.WithFields(log.Fields{
-					"policy": p,
-					"group":  d.Name,
-					"action": action,
+					"policy":   p,
+					"group":    d.Name,
+					"action":   action,
+					"instance": d.Instance.Address,
 				}).Infof("[Dry Run] [Vault Identity] %d user(s) in group: '%s' will have policy: '%s' %s", len(d.EntityIds), d.Name, p, action)
 			}
 		}
@@ -451,15 +452,6 @@ func outputPolicyAffectedGroups(desired []group) {
 // Compare existing and desired groups to determine who is affected by policy additions and removals
 // existing and desired should be sorted
 func outputGroupsWithPolicyChanges(existing []group, desired []group) {
-	// what do i want to do here
-	// step one is compare existing and desired groups
-	// if i find a match between group names then i want to compare policies between them
-
-	// what groups and thus policies are being added
-	//	anything that's not in existing but is in desired
-	// what groups and thus policies are being removed
-	//	anything that's in existing but not in desired
-
 	existingMap := groupToMap(existing)
 	desiredMap := groupToMap(desired)
 

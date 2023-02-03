@@ -93,7 +93,7 @@ func ClearPolicies() {
 func PrintPolicyAction(policyAction PolicyAction) string {
 	switch policyAction {
 	case Write:
-		return "added"
+		return "updated"
 	case Delete:
 		return "removed"
 	}

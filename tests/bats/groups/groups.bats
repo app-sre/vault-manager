@@ -3,10 +3,20 @@
 load ../helpers
 
 @test "test vault-manager manage groups" {
+    GROUP_FIXTURES=/tests/fixtures/groups
     #
     # CASE: create groups
     #
-    export GRAPHQL_QUERY_FILE=/tests/fixtures/groups/enable_vault_groups.graphql
+    export GRAPHQL_QUERY_FILE=${GROUP_FIXTURES}/enable_vault_groups.graphql
+
+    # test dry run output
+    run vault-manager -dry-run
+    [ "$status" -eq 0 ]
+
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) are in the group to be created"*"group=app-sre-vault-oidc"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"http://127.0.0.1:8200\""* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) are in the group to be created"*"group=app-interface-vault-oidc"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"http://127.0.0.1:8200\""* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) are in the group to be created"*"group=app-sre-vault-oidc-secondary"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"http://127.0.0.1:8202\""* ]]
+
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
@@ -54,6 +64,24 @@ load ../helpers
     [[ "${output}" == *"member_entity_ids"*"[$entity_id]"* ]]
     [[ "${output}" == *"metadata"*"map[app-sre-vault-admin:app-sre vault administrator permission]"* ]]
 
+    # test that updating a policy will display the number of users affected by the change
     export VAULT_ADDR=http://127.0.0.1:8200
+    export GRAPHQL_QUERY_FILE=${GROUP_FIXTURES}/vault_groups_and_policies.graphql
+    run vault policy write vault-oidc-app-sre-policy ${GROUP_FIXTURES}/vault-oidc-app-sre-policy.hcl
+    [ "$status" -eq 0 ]
+
+    run vault-manager -dry-run
+    [ "$status" -eq 0 ]
+
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) in group: 'app-sre-vault-oidc' will have policy: 'vault-oidc-app-sre-policy' updated"*"action=updated"*"group=app-sre-vault-oidc"*"instance=\"http://127.0.0.1:8200\""*"policy=vault-oidc-app-sre-policy"* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) in group: 'app-interface-vault-oidc' will have policy: 'vault-oidc-app-sre-policy' updated"*"action=updated"*"group=app-sre-vault-oidc"*"instance=\"http://127.0.0.1:8200\""*"policy=vault-oidc-app-sre-policy"* ]]
+
+    # cleanup afterwards
+    run vault-manager
+    [ "$status" -eq 0 ]
+
+    export GRAPHQL_QUERY_FILE=${GROUP_FIXTURES}/enable_vault_groups.graphql
+    export VAULT_ADDR=http://127.0.0.1:8200
+    
     rerun_check
 }

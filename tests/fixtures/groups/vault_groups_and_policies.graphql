@@ -1,0 +1,54 @@
+{
+  vault_instances: vault_instances_v1 {
+    address
+    auth {
+      secretEngine
+      provider
+      ... on VaultInstanceAuthApprole_v1 {
+        roleID {
+          path
+          field
+          version
+        }
+        secretID {
+          path
+          field
+          version
+        }
+      }
+      ... on VaultInstanceAuthToken_v1 {
+        token {
+          path
+          field
+          version
+        }
+      }
+    }
+  }
+  vault_groups: users_v1 {
+    org_username
+    roles {
+      name
+      oidc_permissions {
+        name
+        description
+        service
+        ... on OidcPermissionVault_v1 {
+          vault_policies {
+            name
+          }
+          instance {
+            address
+          }
+        }
+      }
+    }
+  }
+  vault_policies: vault_policies_v1 {
+        name
+        rules
+        instance {
+            address
+        }
+    }
+}
