@@ -50,7 +50,7 @@ func init() {
 	if logFileLocation == "" {
 		log.SetOutput(os.Stdout)
 	} else {
-                var err error
+		var err error
 		logFile, err = os.Create(logFileLocation)
 		if err != nil {
 			log.SetOutput(os.Stdout)
@@ -157,6 +157,7 @@ func main() {
 			if !runOnce {
 				utils.RecordMetrics(address, status, time.Since(start))
 			}
+			toplevel.ClearPolicies()
 		}
 
 		if runOnce {

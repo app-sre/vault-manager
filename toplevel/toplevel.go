@@ -6,12 +6,21 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/app-sre/vault-manager/pkg/vault"
 	log "github.com/sirupsen/logrus"
 )
 
+type PolicyAction int
+
+const (
+	Write = iota
+	Delete
+)
+
 var (
-	configs  = make(map[string]Configuration)
-	configsM sync.RWMutex
+	configs       = make(map[string]Configuration)
+	configsM      sync.RWMutex
+	policyActions = make(map[string]PolicyAction)
 )
 
 // Configuration represents a block of declarative configuration data that can
@@ -57,4 +66,36 @@ func Apply(name string, address string, cfg []byte, dryRun bool, threadPoolSize 
 		log.WithField("name", name).Fatal("failed to find top-level configuration")
 	}
 	return c.Apply(address, cfg, dryRun, threadPoolSize)
+}
+
+// Update package level policies which are to be written or deleted
+func UpdatePolicies(toBeWritten []vault.Item, toBeDeleted []vault.Item) {
+	for _, w := range toBeWritten {
+		policyActions[w.Key()] = Write
+	}
+
+	for _, d := range toBeDeleted {
+		policyActions[d.Key()] = Delete
+	}
+}
+
+// Return the list of policy actions
+func GetPolicies() map[string]PolicyAction {
+	return policyActions
+}
+
+// Clear list of policy actions
+func ClearPolicies() {
+	policyActions = make(map[string]PolicyAction)
+}
+
+// Output policy actions in string format
+func PrintPolicyAction(policyAction PolicyAction) string {
+	switch policyAction {
+	case Write:
+		return "updated"
+	case Delete:
+		return "removed"
+	}
+	return "invalid"
 }

@@ -144,6 +144,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		dryRunOutput(address, toBeWritten, "written")
 		dryRunOutput(address, toBeDeleted, "deleted")
 		dryRunOutput(address, toBeUpdated, "updated")
+		outputPolicyAffectedGroups(desired)
+		outputGroupsWithPolicyChanges(existing, desired)
 	} else {
 		for _, w := range toBeWritten {
 			err := w.(group).CreateOrUpdate("written")
@@ -424,4 +426,110 @@ func dryRunOutput(instanceAddr string, groups []vault.Item, action string) {
 			"instance": instanceAddr,
 		}).Infof("[Dry Run] [Vault Identity] group to be %s", action)
 	}
+}
+
+// Output a list of groups and counts of users that will be affected by policy changes
+func outputPolicyAffectedGroups(desired []group) {
+	policyActions := toplevel.GetPolicies()
+
+	if len(policyActions) == 0 {
+		return
+	}
+
+	for _, d := range desired {
+		for _, p := range d.Policies {
+			action, ok := policyActions[p]
+			if ok {
+				action := toplevel.PrintPolicyAction(action)
+				// this group will be affected by the policy change
+				log.WithFields(log.Fields{
+					"policy":   p,
+					"group":    d.Name,
+					"action":   action,
+					"instance": d.Instance.Address,
+				}).Infof("[Dry Run] [Vault Identity] %d user(s) in group: '%s' will have policy: '%s' %s", len(d.EntityIds), d.Name, p, action)
+			}
+		}
+	}
+}
+
+// Compare existing and desired groups to determine who is affected by policy additions and removals
+// existing and desired should be sorted
+func outputGroupsWithPolicyChanges(existing []group, desired []group) {
+	existingMap := groupToMap(existing)
+	desiredMap := groupToMap(desired)
+
+	for _, e := range existingMap {
+		d, exists := desiredMap[e.Name]
+		if !exists {
+			log.WithFields(log.Fields{
+				"group":         e.Name,
+				"groupPolicies": e.Policies,
+				"instance":      e.Instance.Address,
+			}).Infof("[Dry Run] [Vault Identity] %d user(s) are in the group to be deleted", len(e.EntityIds))
+		} else {
+			comparePoliciesBetweenGroups(e, d)
+		}
+	}
+
+	for _, d := range desiredMap {
+		_, exists := existingMap[d.Name]
+		if !exists {
+			log.WithFields(log.Fields{
+				"group":         d.Name,
+				"instance":      d.Instance.Address,
+				"groupPolicies": d.Policies,
+			}).Infof("[Dry Run] [Vault Identity] %d user(s) are in the group to be created", len(d.EntityIds))
+		}
+	}
+
+}
+
+// Outputs policies that will be added or removed between an existing and desired group
+func comparePoliciesBetweenGroups(existing group, desired group) {
+	toBeAdded := []string{}
+	toBeRemoved := []string{}
+
+	existingMap := policyToMap(existing.Policies)
+	desiredMap := policyToMap(desired.Policies)
+
+	for _, e := range existingMap {
+		_, exists := desiredMap[e]
+		if !exists {
+			toBeRemoved = append(toBeRemoved, e)
+		}
+	}
+
+	for _, d := range desiredMap {
+		_, exists := existingMap[d]
+		if !exists {
+			toBeAdded = append(toBeAdded, d)
+		}
+	}
+
+	if len(toBeAdded) > 0 || len(toBeRemoved) > 0 {
+		log.WithFields(log.Fields{
+			"group":           existing.Name,
+			"instance":        existing.Instance.Address,
+			"policiesAdded":   toBeAdded,
+			"policiesRemoved": toBeRemoved,
+		}).Infof("[Dry Run] [Vault Identity] %d user(s) affected by policy changes in this group", len(existing.EntityIds))
+	}
+}
+
+// creates a map of group names to groups for easier comparison between groups
+func groupToMap(groups []group) map[string]group {
+	newMap := make(map[string]group)
+	for _, g := range groups {
+		newMap[g.Name] = g
+	}
+	return newMap
+}
+
+func policyToMap(policies []string) map[string]string {
+	newMap := make(map[string]string)
+	for _, p := range policies {
+		newMap[p] = p
+	}
+	return newMap
 }

@@ -119,6 +119,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 			}
 			log.WithField("instance", address).Infof("[Dry Run] [Vault Policy] policy to be deleted='%v'", d.Key())
 		}
+		toplevel.UpdatePolicies(toBeWritten, toBeDeleted)
 	} else {
 		// Write any missing policies to the Vault instance.
 		for _, e := range toBeWritten {
