@@ -1,0 +1,16 @@
+---
+$schema: /access/user-1.yml
+
+labels: {}
+
+name: The Second Tester
+org_username: tester2
+github_username: tester2
+quay_username: rh_ee_tester2
+
+roles:
+- $ref: /teams/app-sre/roles/app-sre-vault-oidc.yml
+- $ref: /teams/app-sre/roles/app-interface-vault-oidc.yml
+- $ref: /teams/app-sre/roles/app-sre-vault-oidc-secondary.yml
+
+public_gpg_key: nada

@@ -49,6 +49,7 @@ type group struct {
 	Metadata  map[string]interface{}
 	Policies  []string
 	EntityIds []string
+	Usernames []string
 }
 
 func (g group) Key() string {
@@ -177,6 +178,7 @@ func processDesired(instanceAddr string, users []user, entityNamesToIds map[stri
 	processedGroups := make(map[string]*group)
 	// role(group) name to make of user names
 	existingEntitiesPerGroup := make(map[string]map[string]bool)
+	usernamesPerGroup := make(map[string]map[string]bool)
 	for _, user := range users {
 		for _, role := range user.Roles {
 			for _, permission := range role.Permissions {
@@ -186,6 +188,12 @@ func processDesired(instanceAddr string, users []user, entityNamesToIds map[stri
 					if existingEntitiesPerGroup[role.Name] == nil {
 						existingEntitiesPerGroup[role.Name] = make(map[string]bool)
 					}
+
+					if usernamesPerGroup[role.Name] == nil {
+						usernamesPerGroup[role.Name] = make(map[string]bool)
+					}
+
+					usernamesPerGroup[role.Name][user.Name] = true
 
 					handleNewDesired(processedGroups, permission, role.Name,
 						entityNamesToIds[user.Name], existingEntitiesPerGroup[role.Name][user.Name])
@@ -197,6 +205,16 @@ func processDesired(instanceAddr string, users []user, entityNamesToIds map[stri
 		}
 	}
 	for _, v := range processedGroups {
+		groupUsernames := []string{}
+		usernamesInThisGroup, ok := usernamesPerGroup[v.Name]
+
+		if ok {
+			for u := range usernamesInThisGroup {
+				groupUsernames = append(groupUsernames, u)
+			}
+			v.Usernames = groupUsernames
+		}
+
 		desired = append(desired, *v)
 	}
 	return desired
@@ -443,10 +461,11 @@ func outputPolicyAffectedGroups(desired []group) {
 				action := toplevel.PrintPolicyAction(action)
 				// this group will be affected by the policy change
 				log.WithFields(log.Fields{
-					"policy":   p,
-					"group":    d.Name,
-					"action":   action,
-					"instance": d.Instance.Address,
+					"policy":     p,
+					"group":      d.Name,
+					"action":     action,
+					"instance":   d.Instance.Address,
+					"groupUsers": d.Usernames,
 				}).Infof("[Dry Run] [Vault Identity] %d user(s) in group: '%s' will have policy: '%s' %s", len(d.EntityIds), d.Name, p, action)
 			}
 		}
