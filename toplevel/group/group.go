@@ -49,6 +49,7 @@ type group struct {
 	Metadata  map[string]interface{}
 	Policies  []string
 	EntityIds []string
+	Usernames []string
 }
 
 func (g group) Key() string {
@@ -144,6 +145,10 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		dryRunOutput(address, toBeWritten, "written")
 		dryRunOutput(address, toBeDeleted, "deleted")
 		dryRunOutput(address, toBeUpdated, "updated")
+
+		desired := getGroupsWithUsernames(desired, users, address)
+		existing := getGroupsWithUsernames(existing, users, address)
+
 		outputPolicyAffectedGroups(desired)
 		outputGroupsWithPolicyChanges(existing, desired)
 	} else {
@@ -400,6 +405,49 @@ func getEntityNamesToIds(instanceAddr string) (map[string]string, error) {
 	return entityNamesToIds, nil
 }
 
+// return a new sorted group list that includes group member usernames
+func getGroupsWithUsernames(groups []group, users []user, instanceAddr string) []group {
+	groupMap := groupToMap(groups)
+	// build up a map that pairs a map of group names to a map of
+	// the usernames in that particular group
+	usernamesPerGroup := make(map[string]map[string]string)
+	for _, user := range users {
+		for _, role := range user.Roles {
+			for _, permission := range role.Permissions {
+				if permission.Service == "vault" && permission.Instance.Address == instanceAddr {
+					if usernamesPerGroup[role.Name] == nil {
+						usernamesPerGroup[role.Name] = make(map[string]string)
+					}
+
+					usernamesPerGroup[role.Name][user.Name] = user.Name
+				}
+			}
+		}
+	}
+
+	// then iterate through the maps of usernames per groups
+	// to update the group map to include usernames for each group
+	for groupName, usernames := range usernamesPerGroup {
+		for _, u := range usernames {
+			group, exists := groupMap[groupName]
+			if exists {
+				group.Usernames = append(group.Usernames, u)
+				groupMap[groupName] = group
+			}
+		}
+	}
+
+	// and finally, convert that group map to a slice
+	desired := []group{}
+	for _, g := range groupMap {
+		desired = append(desired, g)
+	}
+
+	sortSlices(desired)
+
+	return desired
+}
+
 // Sorts slices of strings within each group object
 // Necessary for reflect.DeepEqual to be consistent in group.Equals()
 func sortSlices(groups []group) {
@@ -448,9 +496,19 @@ func outputPolicyAffectedGroups(desired []group) {
 					"action":   action,
 					"instance": d.Instance.Address,
 				}).Infof("[Dry Run] [Vault Identity] %d user(s) in group: '%s' will have policy: '%s' %s", len(d.EntityIds), d.Name, p, action)
+				outputUserList(d.Usernames, d.Name, d.Instance.Address)
 			}
 		}
 	}
+}
+
+// output list of users with newlines
+func outputUserList(users []string, groupName string, instance string) {
+	log.WithFields(log.Fields{
+		"group":    groupName,
+		"users":    users,
+		"instance": instance,
+	}).Info("[Dry Run] [Vault Identity] Affected user list")
 }
 
 // Compare existing and desired groups to determine who is affected by policy additions and removals
@@ -467,6 +525,7 @@ func outputGroupsWithPolicyChanges(existing []group, desired []group) {
 				"groupPolicies": e.Policies,
 				"instance":      e.Instance.Address,
 			}).Infof("[Dry Run] [Vault Identity] %d user(s) are in the group to be deleted", len(e.EntityIds))
+			outputUserList(e.Usernames, e.Name, e.Instance.Address)
 		} else {
 			comparePoliciesBetweenGroups(e, d)
 		}
@@ -480,6 +539,7 @@ func outputGroupsWithPolicyChanges(existing []group, desired []group) {
 				"instance":      d.Instance.Address,
 				"groupPolicies": d.Policies,
 			}).Infof("[Dry Run] [Vault Identity] %d user(s) are in the group to be created", len(d.EntityIds))
+			outputUserList(d.Usernames, d.Name, d.Instance.Address)
 		}
 	}
 

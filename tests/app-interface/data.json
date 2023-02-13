@@ -594,6 +594,39 @@
                         "$schemaRef": "/aws/policy-1.yml"
                     }
                 },
+                "glitchtip_teams": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/dependencies/glitchtip-team-1.yml"
+                    }
+                },
+                "glitchtip_roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "organization": {
+                                "$ref": "/common-1.json#/definitions/crossref",
+                                "$schemaRef": "/dependencies/glitchtip-organization-1.yml"
+                            },
+                            "role": {
+                                "type": "string",
+                                "enum": [
+                                    "member",
+                                    "admin",
+                                    "manager",
+                                    "owner"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "organization",
+                            "role"
+                        ]
+                    }
+                },
                 "sentry_teams": {
                     "type": "array",
                     "items": {
@@ -659,10 +692,30 @@
                                                 "enum": [
                                                     "/app-sre/saas-file-2.yml",
                                                     "/app-sre/saas-file-target-1.yml",
+                                                    "/dependencies/dns-zone-1.yml",
                                                     "/openshift/namespace-1.yml",
                                                     "/access/role-1.yml",
                                                     "/openshift/cluster-1.yml",
-                                                    "/aws/account-1.yml"
+                                                    "/aws/account-1.yml",
+                                                    "/app-sre/app-1.yml",
+                                                    "/app-sre/gabi-instance-1.yml",
+                                                    "/app-sre/scorecard-2.yml",
+                                                    "/openshift/shared-resources-1.yml",
+                                                    "/access/user-1.yml",
+                                                    "/app-sre/tekton-provider-defaults-1.yml",
+                                                    "/openshift/openshift-cluster-manager-1.yml",
+                                                    "/dependencies/jira-board-1.yml",
+                                                    "/dependencies/glitchtip-project-1.yml",
+                                                    "/dependencies/status-page-component-1.yml",
+                                                    "/dependencies/jenkins-config-1.yml",
+                                                    "/access/permission-1.yml",
+                                                    "/app-sre/environment-1.yml",
+                                                    "/app-sre/product-1.yml",
+                                                    "/app-sre/schedule-1.yml",
+                                                    "/app-sre/slo-document-1.yml",
+                                                    "/app-sre/unleash-instance-1.yml",
+                                                    "/dependencies/dns-zone-1.yml",
+                                                    "/dependencies/quay-org-1.yml"
                                                 ]
                                             }
                                         }
@@ -874,13 +927,6 @@
                         "oc"
                     ]
                 },
-                "pullRequestGateway": {
-                    "type": "string",
-                    "enum": [
-                        "gitlab",
-                        "sqs"
-                    ]
-                },
                 "mergeRequestGateway": {
                     "type": "string",
                     "enum": [
@@ -1057,6 +1103,21 @@
                         "readTimeout",
                         "connectTimeout"
                     ]
+                },
+                "glitchtip": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "readTimeout": {
+                            "type": "integer"
+                        },
+                        "maxRetries": {
+                            "type": "integer"
+                        },
+                        "mailDomain": {
+                            "type": "string"
+                        }
+                    }
                 }
             },
             "required": [
@@ -1229,16 +1290,82 @@
                 "description": {
                     "type": "string"
                 },
+                "priority": {
+                    "type": "string",
+                    "description": "influence order in which merge requests are processed",
+                    "enum": [
+                        "critical",
+                        "urgent",
+                        "high",
+                        "medium",
+                        "low"
+                    ]
+                },
                 "contextType": {
                     "type": "string"
                 },
                 "contextSchema": {
                     "type": "string"
                 },
+                "disabled": {
+                    "type": "boolean",
+                    "description": "a disabled change-type does not have any effect but will still log into the PR check logs"
+                },
+                "inherit": {
+                    "type": "array",
+                    "description": "inherit the changes of additional change types",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/app-interface/change-type-1.yml"
+                    }
+                },
                 "changes": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "provider": {
+                                "type": "string",
+                                "enum": [
+                                    "jsonPath",
+                                    "change-type"
+                                ]
+                            },
+                            "changeSchema": {
+                                "type": "string"
+                            },
+                            "jsonPathSelectors": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "changeTypes": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "/common-1.json#/definitions/crossref",
+                                    "$schemaRef": "/app-interface/change-type-1.yml"
+                                }
+                            },
+                            "context": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "selector": {
+                                        "type": "string"
+                                    },
+                                    "when": {
+                                        "type": "string",
+                                        "enum": [
+                                            "added",
+                                            "removed"
+                                        ]
+                                    }
+                                }
+                            }
+                        },
                         "oneOf": [
                             {
                                 "type": "object",
@@ -1280,6 +1407,75 @@
                                     "provider",
                                     "jsonPathSelectors"
                                 ]
+                            },
+                            {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "provider": {
+                                        "type": "string",
+                                        "enum": [
+                                            "change-type"
+                                        ]
+                                    },
+                                    "changeSchema": {
+                                        "type": "string"
+                                    },
+                                    "changeTypes": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "/common-1.json#/definitions/crossref",
+                                            "$schemaRef": "/app-interface/change-type-1.yml"
+                                        }
+                                    },
+                                    "context": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "selector": {
+                                                "type": "string"
+                                            },
+                                            "when": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "added",
+                                                    "removed"
+                                                ]
+                                            }
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "provider",
+                                    "changeTypes",
+                                    "context"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "implicitOwnership": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "provider": {
+                                        "type": "string",
+                                        "enum": [
+                                            "jsonPath"
+                                        ]
+                                    },
+                                    "jsonPathSelector": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "provider",
+                                    "jsonPathSelector"
+                                ]
                             }
                         ]
                     }
@@ -1290,6 +1486,7 @@
                 "labels",
                 "name",
                 "description",
+                "priority",
                 "contextType"
             ]
         },
@@ -1329,6 +1526,34 @@
                 "description",
                 "user",
                 "credentials"
+            ]
+        },
+        "/app-interface/deletion-approval-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/app-interface/deletion-approval-1.yml"
+                    ]
+                },
+                "expiration": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "expiration",
+                "name",
+                "type"
             ]
         },
         "/app-interface/graphql-schemas-1.yml": {
@@ -1575,7 +1800,7 @@
                                                         "type": "string"
                                                     },
                                                     "value": {
-                                                        "type": "integer"
+                                                        "type": "number"
                                                     }
                                                 },
                                                 "required": [
@@ -1739,7 +1964,7 @@
                 },
                 "grafanaUrls": {
                     "type": "array",
-                    "description": "List of links to Grafana Dashboard/Folders associated with the service. Please provide \na title together with the link.\n",
+                    "description": "List of links to Grafana Dashboard/Folders associated with the service. Please provide\na title together with the link.\n",
                     "items": {
                         "type": "object",
                         "additionalProperties": false,
@@ -1829,13 +2054,6 @@
                     "items": {
                         "$ref": "/common-1.json#/definitions/crossref",
                         "$schemaRef": "/dependencies/dependency-1.yml"
-                    }
-                },
-                "statusPageComponents": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "/common-1.json#/definitions/crossref",
-                        "$schemaRef": "/dependencies/status-page-component-1.yml"
                     }
                 },
                 "gcrRepos": {
@@ -2065,8 +2283,49 @@
                                     "other"
                                 ]
                             },
+                            "showInReviewQueue": {
+                                "type": "boolean",
+                                "description": "Include MRs from this repo in the AppSRE Review Queue"
+                            },
                             "url": {
                                 "type": "string"
+                            },
+                            "gitlabSync": {
+                                "type": "object",
+                                "properties": {
+                                    "sourceProject": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "group": {
+                                                "type": "string"
+                                            },
+                                            "branch": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "destinationProject": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "group": {
+                                                "type": "string"
+                                            },
+                                            "branch": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "sourceProject",
+                                    "destinationProject"
+                                ]
                             },
                             "gitlabRepoOwners": {
                                 "type": "object",
@@ -2258,6 +2517,13 @@
                             "team",
                             "projects"
                         ]
+                    }
+                },
+                "glitchtipProjects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/dependencies/glitchtip-project-1.yml"
                     }
                 }
             },
@@ -2682,16 +2948,20 @@
                         "per-aws-account"
                     ]
                 },
-                "awsAccount": {
-                    "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": "/aws/account-1.yml"
+                "awsAccounts": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/aws/account-1.yml"
+                    }
                 },
                 "imageRef": {
                     "type": "string"
                 }
             },
             "required": [
-                "awsAccount",
+                "awsAccounts",
                 "imageRef"
             ]
         },
@@ -2805,10 +3075,17 @@
                         "slack": {
                             "type": "boolean",
                             "description": "ship logs to slack"
+                        },
+                        "googleChat": {
+                            "type": "boolean",
+                            "description": "ship logs to google chat"
                         }
                     }
                 },
                 "resources": {
+                    "$ref": "/openshift/deploy-resources-1.yml"
+                },
+                "fluentdResources": {
                     "$ref": "/openshift/deploy-resources-1.yml"
                 },
                 "shards": {
@@ -2824,7 +3101,7 @@
                     ]
                 },
                 "sleepDurationSecs": {
-                    "type": "integer",
+                    "type": "string",
                     "description": "time to sleep in seconds between integration executions"
                 },
                 "state": {
@@ -2877,6 +3154,51 @@
             },
             "required": [
                 "resources"
+            ]
+        },
+        "/app-sre/pgp-reencrypt-settings-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/app-sre/pgp-reencrypt-settings-1.yml"
+                    ]
+                },
+                "public_gpg_key": {
+                    "description": "This PGP Public key will be used to encrypt the users, instead of the users keys.\nIt is owned by APP-SRE. The field name is not a type as it is consistent with access/user-1.yml schema.\n",
+                    "type": "string"
+                },
+                "private_pgp_key_vault_path": {
+                    "description": "This is the vault path to the private key used for reencryption.\n",
+                    "type": "string"
+                },
+                "reencrypt_vault_path": {
+                    "description": "Base path to read/write pgp encrypted entries from/to.\n",
+                    "type": "string"
+                },
+                "aws_account_output_vault_path": {
+                    "description": "Path to write reencrypted AWS Account passwords to.\n",
+                    "type": "string"
+                },
+                "skip_aws_accounts": {
+                    "description": "This is kind of a feature flipper. Access requests for AWS accounts listed here will be sent\nusing the SMTP mail send implementation in terraform-users integration.\n",
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/aws/account-1.yml"
+                    }
+                }
+            },
+            "required": [
+                "$schema",
+                "public_gpg_key",
+                "private_pgp_key_vault_path",
+                "reencrypt_vault_path",
+                "aws_account_output_vault_path"
             ]
         },
         "/app-sre/pipelines-provider-1.yml": {
@@ -3280,6 +3602,11 @@
                 "compare": {
                     "type": "boolean"
                 },
+                "timeout": {
+                    "type": "string",
+                    "pattern": "(\\d+[dhms])+",
+                    "description": "Maximum time the deployment job is allowed to last. In Tekton it defaults to\n60 minutes. We don't allow smaller times as Tekton implementation currently deletes\nPipelineRun pods, hence destroying logs. The format is a subset of Go's ParseDuration\nformat, only allowing from days to seconds in resolution, e.g. \"1h\", \"1d1h1m2s\", ...\n"
+                },
                 "publishJobLogs": {
                     "type": "boolean"
                 },
@@ -3505,6 +3832,109 @@
                 "labels",
                 "name",
                 "schedule"
+            ]
+        },
+        "/app-sre/scorecard-2.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/app-sre/scorecard-2.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "app": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/app-sre/app-1.yml"
+                },
+                "date": {
+                    "type": "string",
+                    "pattern": "^2[0-9]{3}-[01][0-9]-[0123][0-9]$",
+                    "description": "YYYY-mm-dd (year, month, day)"
+                },
+                "acceptanceCriteria": {
+                    "type": "array",
+                    "description": "acceptance criteria items",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "name of acceptance criteria item",
+                                "enum": [
+                                    "CONTINUITY-0001",
+                                    "CONTINUITY-0002",
+                                    "CONTINUITY-0003",
+                                    "INCIDENT-MGMT-0001",
+                                    "INCIDENT-MGMT-0002",
+                                    "INCIDENT-MGMT-0003",
+                                    "INCIDENT-MGMT-0004",
+                                    "INCIDENT-MGMT-0005",
+                                    "INCIDENT-MGMT-0006",
+                                    "INCIDENT-MGMT-0007",
+                                    "INCIDENT-MGMT-0008",
+                                    "OBSERVABILITY-0001",
+                                    "OBSERVABILITY-0002",
+                                    "OBSERVABILITY-0003",
+                                    "OBSERVABILITY-0004",
+                                    "OBSERVABILITY-0005",
+                                    "OBSERVABILITY-0006",
+                                    "RELEASING-0001",
+                                    "RELEASING-0002",
+                                    "RELEASING-0003",
+                                    "RELEASING-0004",
+                                    "RELEASING-0005",
+                                    "RELIABILITY-0001",
+                                    "RELIABILITY-0002",
+                                    "RELIABILITY-0003",
+                                    "RELIABILITY-0004",
+                                    "RELIABILITY-0005",
+                                    "RELIABILITY-0006",
+                                    "RELIABILITY-0007",
+                                    "RELIABILITY-0008",
+                                    "RELIABILITY-0009",
+                                    "RELIABILITY-0010",
+                                    "RELIABILITY-0011",
+                                    "SECURITY-0001",
+                                    "SECURITY-0002",
+                                    "SECURITY-0003",
+                                    "SECURITY-0004"
+                                ]
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "green",
+                                    "yellow",
+                                    "red"
+                                ]
+                            },
+                            "comment": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "status"
+                        ]
+                    },
+                    "minItems": 37,
+                    "maxItems": 37
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "app",
+                "date",
+                "acceptanceCriteria"
             ]
         },
         "/app-sre/slo-document-1.yml": {
@@ -4009,24 +4439,7 @@
                 "deletionApprovals": {
                     "type": "array",
                     "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                            "type": {
-                                "type": "string"
-                            },
-                            "name": {
-                                "type": "string"
-                            },
-                            "expiration": {
-                                "type": "string"
-                            }
-                        },
-                        "required": [
-                            "type",
-                            "name",
-                            "expiration"
-                        ]
+                        "$ref": "/app-interface/deletion-approval-1.yml"
                     }
                 },
                 "disable": {
@@ -4099,7 +4512,7 @@
                 "rosa": {
                     "description": "Rosa related attributes in the aws account.",
                     "$ref": "/common-1.json#/definitions/crossref",
-                    "$schemaRef": "/dependencies/rosa-aws-1.yml"
+                    "$schemaRef": "/dependencies/rosa-ocm-1.yml"
                 }
             },
             "required": [
@@ -4154,6 +4567,15 @@
                 },
                 "max_instance_lifetime": {
                     "type": "integer"
+                },
+                "protect_from_scale_in": {
+                    "type": "boolean"
+                },
+                "enabled_metrics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "instances_distribution": {
                     "type": "object",
@@ -5223,7 +5645,8 @@
                             "protocol": {
                                 "type": "string",
                                 "enum": [
-                                    "email"
+                                    "email",
+                                    "sms"
                                 ]
                             },
                             "endpoint": {
@@ -5231,6 +5654,15 @@
                             }
                         }
                     }
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/dependencies/dns-record-1.yml"
+                    }
+                },
+                "extra_tags": {
+                    "type": "object"
                 }
             },
             "oneOf": [
@@ -5893,7 +6325,8 @@
                                     "protocol": {
                                         "type": "string",
                                         "enum": [
-                                            "email"
+                                            "email",
+                                            "sms"
                                         ]
                                     },
                                     "endpoint": {
@@ -6299,7 +6732,6 @@
                         },
                         "targets": {
                             "type": "array",
-                            "minItems": 2,
                             "items": {
                                 "type": "object",
                                 "additionalProperties": false,
@@ -6461,6 +6893,17 @@
                         "defaults": {
                             "$ref": "/common-1.json#/definitions/resourceref"
                         },
+                        "overrides": {
+                            "type": "object",
+                            "properties": {
+                                "max_size": {
+                                    "type": "integer"
+                                },
+                                "min_size": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
                         "cloudinit_configs": {
                             "type": "array",
                             "items": {
@@ -6482,6 +6925,9 @@
                             }
                         },
                         "variables": {
+                            "type": "object"
+                        },
+                        "extra_tags": {
                             "type": "object"
                         },
                         "image": {
@@ -6607,6 +7053,12 @@
                         },
                         "region": {
                             "$ref": "/aws/regions-1.yml#/properties/region"
+                        },
+                        "records": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "/dependencies/dns-record-1.yml"
+                            }
                         },
                         "output_resource_name": {
                             "$ref": "/common-1.json#/definitions/longIdentifier"
@@ -6854,10 +7306,26 @@
                 "apiCredentials": {
                     "$ref": "/common-1.json#/definitions/vaultSecret"
                 },
+                "enforceTwofactor": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "standard",
+                        "enterprise"
+                    ]
+                },
                 "terraformStateAccount": {
                     "description": "AWS Account to use for state in S3",
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/aws/account-1.yml"
+                },
+                "deletionApprovals": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/app-interface/deletion-approval-1.yml"
+                    }
                 }
             },
             "required": [
@@ -7007,6 +7475,62 @@
                             "script_name"
                         ]
                     }
+                },
+                "certificates": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "identifier": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "advanced"
+                                ]
+                            },
+                            "hosts": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "validation_method": {
+                                "type": "string",
+                                "enum": [
+                                    "txt"
+                                ]
+                            },
+                            "validity_days": {
+                                "type": "integer",
+                                "enum": [
+                                    90
+                                ]
+                            },
+                            "certificate_authority": {
+                                "type": "string",
+                                "enum": [
+                                    "lets_encrypt"
+                                ]
+                            },
+                            "cloudflare_branding": {
+                                "type": "boolean"
+                            },
+                            "wait_for_active_status": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "required": [
+                        "identifier",
+                        "type",
+                        "hosts",
+                        "validation_method",
+                        "validity_days",
+                        "certificate_authority"
+                    ]
                 }
             },
             "oneOf": [
@@ -7165,6 +7689,62 @@
                                     "script_name"
                                 ]
                             }
+                        },
+                        "certificates": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "identifier": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "advanced"
+                                        ]
+                                    },
+                                    "hosts": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "validation_method": {
+                                        "type": "string",
+                                        "enum": [
+                                            "txt"
+                                        ]
+                                    },
+                                    "validity_days": {
+                                        "type": "integer",
+                                        "enum": [
+                                            90
+                                        ]
+                                    },
+                                    "certificate_authority": {
+                                        "type": "string",
+                                        "enum": [
+                                            "lets_encrypt"
+                                        ]
+                                    },
+                                    "cloudflare_branding": {
+                                        "type": "boolean"
+                                    },
+                                    "wait_for_active_status": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "identifier",
+                                "type",
+                                "hosts",
+                                "validation_method",
+                                "validity_days",
+                                "certificate_authority"
+                            ]
                         }
                     },
                     "required": [
@@ -7175,6 +7755,87 @@
             ],
             "required": [
                 "provider"
+            ]
+        },
+        "/cna/asset-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/cna/asset-1.yml"
+                    ]
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "annotations": {
+                    "$ref": "/common-1.json#/definitions/annotations"
+                },
+                "identifier": {
+                    "$ref": "/common-1.json#/definitions/longIdentifier"
+                },
+                "addr_block": {
+                    "type": "string"
+                }
+            },
+            "oneOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "null-asset"
+                            ]
+                        },
+                        "identifier": {
+                            "$ref": "/common-1.json#/definitions/longIdentifier"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "addr_block": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "identifier"
+                    ]
+                }
+            ]
+        },
+        "/cna/experimental-provisioner-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/cna/experimental-provisioner-1.yml"
+                    ]
+                },
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "ocm": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/openshift/openshift-cluster-manager-1.yml"
+                }
+            },
+            "required": [
+                "$schema",
+                "name",
+                "description",
+                "ocm"
             ]
         },
         "/dependencies/container-image-mirror-1.yml": {
@@ -7314,6 +7975,168 @@
                 "monitoring"
             ]
         },
+        "/dependencies/dns-record-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/dependencies/dns-record-1.yml"
+                    ]
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "A",
+                        "AAAA",
+                        "CNAME",
+                        "MX",
+                        "NS",
+                        "SPF",
+                        "SRV",
+                        "TXT"
+                    ]
+                },
+                "ttl": {
+                    "type": "integer"
+                },
+                "alias": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "zone_id": {
+                            "type": "string"
+                        },
+                        "evaluate_target_health": {
+                            "type": "boolean"
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "zone_id",
+                        "evaluate_target_health"
+                    ]
+                },
+                "weighted_routing_policy": {
+                    "type": "object",
+                    "properties": {
+                        "weight": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "set_identifier": {
+                    "type": "string"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "failover_routing_policy": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "PRIMARY",
+                                "SECONDARY"
+                            ]
+                        }
+                    }
+                },
+                "_healthcheck": {
+                    "type": "object",
+                    "properties": {
+                        "fqdn": {
+                            "type": "string"
+                        },
+                        "port": {
+                            "type": "integer"
+                        },
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "HTTP",
+                                "HTTPS",
+                                "HTTP_STR_MATCH",
+                                "HTTPS_STR_MATCH",
+                                "TCP"
+                            ]
+                        },
+                        "resource_path": {
+                            "type": "string"
+                        },
+                        "failure_threshold": {
+                            "type": "integer"
+                        },
+                        "request_interval": {
+                            "type": "integer"
+                        },
+                        "search_string": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "_target_cluster": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/openshift/cluster-1.yml"
+                },
+                "_target_namespace_zone": {
+                    "type": "object",
+                    "description": "a namespace and a route53 zone name provisioned within that namespace",
+                    "additionalProperties": false,
+                    "properties": {
+                        "namespace": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/openshift/namespace-1.yml"
+                        },
+                        "name": {
+                            "$ref": "/common-1.json#/definitions/k8sValidContainerName"
+                        }
+                    },
+                    "required": [
+                        "namespace",
+                        "name"
+                    ]
+                }
+            },
+            "oneOf": [
+                {
+                    "required": [
+                        "records"
+                    ]
+                },
+                {
+                    "required": [
+                        "_target_cluster"
+                    ]
+                },
+                {
+                    "required": [
+                        "_target_namespace_zone"
+                    ]
+                },
+                {
+                    "required": [
+                        "alias"
+                    ]
+                }
+            ],
+            "required": [
+                "name",
+                "type"
+            ]
+        },
         "/dependencies/dns-zone-1.yml": {
             "$schema": "/metaschema-1.json",
             "version": "1.0",
@@ -7346,166 +8169,10 @@
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/aws/vpc-1.yml"
                 },
-                "unmanaged_record_names": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "records": {
                     "type": "array",
                     "items": {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string"
-                            },
-                            "type": {
-                                "type": "string",
-                                "enum": [
-                                    "A",
-                                    "AAAA",
-                                    "CNAME",
-                                    "MX",
-                                    "NS",
-                                    "SPF",
-                                    "SRV",
-                                    "TXT"
-                                ]
-                            },
-                            "ttl": {
-                                "type": "integer"
-                            },
-                            "alias": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "zone_id": {
-                                        "type": "string"
-                                    },
-                                    "evaluate_target_health": {
-                                        "type": "boolean"
-                                    }
-                                },
-                                "required": [
-                                    "name",
-                                    "zone_id",
-                                    "evaluate_target_health"
-                                ]
-                            },
-                            "weighted_routing_policy": {
-                                "type": "object",
-                                "properties": {
-                                    "weight": {
-                                        "type": "integer"
-                                    }
-                                }
-                            },
-                            "set_identifier": {
-                                "type": "string"
-                            },
-                            "records": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "failover_routing_policy": {
-                                "type": "object",
-                                "properties": {
-                                    "type": {
-                                        "type": "string",
-                                        "enum": [
-                                            "PRIMARY",
-                                            "SECONDARY"
-                                        ]
-                                    }
-                                }
-                            },
-                            "_healthcheck": {
-                                "type": "object",
-                                "properties": {
-                                    "fqdn": {
-                                        "type": "string"
-                                    },
-                                    "port": {
-                                        "type": "integer"
-                                    },
-                                    "type": {
-                                        "type": "string",
-                                        "enum": [
-                                            "HTTP",
-                                            "HTTPS",
-                                            "HTTP_STR_MATCH",
-                                            "HTTPS_STR_MATCH",
-                                            "TCP"
-                                        ]
-                                    },
-                                    "resource_path": {
-                                        "type": "string"
-                                    },
-                                    "failure_threshold": {
-                                        "type": "integer"
-                                    },
-                                    "request_interval": {
-                                        "type": "integer"
-                                    },
-                                    "search_string": {
-                                        "type": "string"
-                                    }
-                                }
-                            },
-                            "_target_cluster": {
-                                "$ref": "/common-1.json#/definitions/crossref",
-                                "$schemaRef": "/openshift/cluster-1.yml"
-                            },
-                            "_target_namespace_zone": {
-                                "type": "object",
-                                "description": "a namespace and a route53 zone name provisioned within that namespace",
-                                "additionalProperties": false,
-                                "properties": {
-                                    "namespace": {
-                                        "$ref": "/common-1.json#/definitions/crossref",
-                                        "$schemaRef": "/openshift/namespace-1.yml"
-                                    },
-                                    "name": {
-                                        "$ref": "/common-1.json#/definitions/k8sValidContainerName"
-                                    }
-                                },
-                                "required": [
-                                    "namespace",
-                                    "name"
-                                ]
-                            }
-                        },
-                        "oneOf": [
-                            {
-                                "required": [
-                                    "records"
-                                ]
-                            },
-                            {
-                                "required": [
-                                    "_target_cluster"
-                                ]
-                            },
-                            {
-                                "required": [
-                                    "_target_namespace_zone"
-                                ]
-                            },
-                            {
-                                "required": [
-                                    "alias"
-                                ]
-                            }
-                        ],
-                        "required": [
-                            "name",
-                            "type"
-                        ]
+                        "$ref": "/dependencies/dns-record-1.yml"
                     }
                 }
             },
@@ -7873,6 +8540,214 @@
                 "managedGroups",
                 "description",
                 "url"
+            ]
+        },
+        "/dependencies/glitchtip-instance-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/dependencies/glitchtip-instance-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "$ref": "/common-1.json#/definitions/identifierLowercase64"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "consoleUrl": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "automationUserEmail": {
+                    "type": "string",
+                    "format": "email"
+                },
+                "automationToken": {
+                    "$ref": "/common-1.json#/definitions/vaultSecret"
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description",
+                "consoleUrl",
+                "automationUserEmail",
+                "automationToken"
+            ]
+        },
+        "/dependencies/glitchtip-organization-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/dependencies/glitchtip-organization-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "$ref": "/common-1.json#/definitions/identifierLowercase64"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "instance": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/dependencies/glitchtip-instance-1.yml"
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description",
+                "instance"
+            ]
+        },
+        "/dependencies/glitchtip-project-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/dependencies/glitchtip-project-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "$ref": "/common-1.json#/definitions/identifierLowercase64"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "app": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/app-sre/app-1.yml"
+                },
+                "platform": {
+                    "type": "string",
+                    "enum": [
+                        "cocoa",
+                        "cocoa-objc",
+                        "cocoa-swift",
+                        "cordova",
+                        "csharp",
+                        "electron",
+                        "elixir",
+                        "go",
+                        "go-http",
+                        "java",
+                        "java-android",
+                        "java-appengine",
+                        "java-log4j",
+                        "java-log4j2",
+                        "java-logback",
+                        "java-logging",
+                        "javascript",
+                        "javascript-angular",
+                        "javascript-angularjs",
+                        "javascript-backbone",
+                        "javascript-ember",
+                        "javascript-nextjs",
+                        "javascript-react",
+                        "javascript-vue",
+                        "minidump",
+                        "native",
+                        "node",
+                        "node-connect",
+                        "node-express",
+                        "node-koa",
+                        "other",
+                        "php",
+                        "php-laravel",
+                        "php-monolog",
+                        "php-symfony",
+                        "python",
+                        "python-bottle",
+                        "python-celery",
+                        "python-django",
+                        "python-flask",
+                        "python-pylons",
+                        "python-pyramid",
+                        "python-pythonawslambda",
+                        "python-rq",
+                        "python-sanic",
+                        "python-tornado",
+                        "react-native",
+                        "ruby",
+                        "ruby-rack",
+                        "ruby-rails",
+                        "rust"
+                    ]
+                },
+                "teams": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/dependencies/glitchtip-team-1.yml"
+                    }
+                },
+                "organization": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/dependencies/glitchtip-organization-1.yml"
+                }
+            },
+            "required": [
+                "name",
+                "description",
+                "app",
+                "platform",
+                "teams",
+                "organization"
+            ]
+        },
+        "/dependencies/glitchtip-team-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/dependencies/glitchtip-team-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "name": {
+                    "$ref": "/common-1.json#/definitions/identifier"
+                },
+                "description": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "$schema",
+                "labels",
+                "name",
+                "description"
             ]
         },
         "/dependencies/jenkins-config-1.yml": {
@@ -8513,7 +9388,7 @@
                 "managedRepos"
             ]
         },
-        "/dependencies/rosa-aws-1.yml": {
+        "/dependencies/rosa-ocm-1.yml": {
             "$schema": "/metaschema-1.json",
             "version": "1.0",
             "type": "object",
@@ -8522,31 +9397,36 @@
                 "$schema": {
                     "type": "string",
                     "enum": [
-                        "/dependencies/rosa-aws-1.yml"
+                        "/dependencies/rosa-ocm-1.yml"
                     ]
                 },
-                "labels": {
-                    "$ref": "/common-1.json#/definitions/labels"
-                },
-                "creator_role_arn": {
-                    "type": "string",
-                    "description": "OCM Role arn. This role is created with ROSA cli during the account prerequisites configuration and must have admin permissions."
-                },
-                "installer_role_arn": {
-                    "type": "string",
-                    "description": "Rosa installer Role arn. If empty, the default value arn:...:ManagedOpenShift-Installer-Role will be used."
-                },
-                "support_role_arn": {
-                    "type": "string",
-                    "description": "Rosa support Role arn. If empty, the default value arn:...:ManagedOpenShift-Support-Role will be used."
-                },
-                "controlplane_role_arn": {
-                    "type": "string",
-                    "description": "Rosa control plan role arn. If empty, the default value arn:...:ManagedOpenShift-ControlPlane-Role will be used."
-                },
-                "worker_role_arn": {
-                    "type": "string",
-                    "description": "Rosa workers role arn. If empty, the default value arn:...:ManagedOpenShift-Worker-Role will be used."
+                "ocm_environments": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "ocm": {
+                                "$ref": "/common-1.json#/definitions/crossref",
+                                "$schemaRef": "/openshift/openshift-cluster-manager-1.yml"
+                            },
+                            "creator_role_arn": {
+                                "type": "string"
+                            },
+                            "installer_role_arn": {
+                                "type": "string"
+                            },
+                            "support_role_arn": {
+                                "type": "string"
+                            },
+                            "controlplane_role_arn": {
+                                "type": "string"
+                            },
+                            "worker_role_arn": {
+                                "type": "string"
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -8734,7 +9614,7 @@
                                     "sentry-helper",
                                     "slack-sender",
                                     "openshift-upgrade-watcher",
-                                    "slack-cluster-usergroups",
+                                    "slack-usergroups",
                                     "qontract-cli"
                                 ]
                             }
@@ -8842,6 +9722,10 @@
                 "name": {
                     "type": "string"
                 },
+                "app": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/app-sre/app-1.yml"
+                },
                 "displayName": {
                     "type": "string"
                 },
@@ -8870,6 +9754,7 @@
                 "$schema",
                 "labels",
                 "name",
+                "app",
                 "displayName",
                 "instructions",
                 "page"
@@ -9304,76 +10189,113 @@
                     "format": "uri"
                 },
                 "auth": {
-                    "type": "object",
-                    "properties": {
-                        "service": {
-                            "type": "string",
-                            "enum": [
-                                "github-org",
-                                "github-org-team",
-                                "oidc"
-                            ]
-                        },
-                        "org": {
-                            "type": "string"
-                        },
-                        "team": {
-                            "type": "string"
-                        }
-                    },
-                    "oneOf": [
-                        {
-                            "properties": {
-                                "service": {
-                                    "type": "string",
-                                    "enum": [
-                                        "github-org"
-                                    ]
-                                },
-                                "org": {
-                                    "type": "string"
-                                }
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "service": {
+                                "type": "string",
+                                "enum": [
+                                    "github-org",
+                                    "github-org-team",
+                                    "oidc"
+                                ]
                             },
-                            "required": [
-                                "service",
-                                "org"
-                            ]
-                        },
-                        {
-                            "properties": {
-                                "service": {
-                                    "type": "string",
-                                    "enum": [
-                                        "github-org-team"
-                                    ]
-                                },
-                                "org": {
-                                    "type": "string"
-                                },
-                                "team": {
-                                    "type": "string"
-                                }
+                            "org": {
+                                "type": "string"
                             },
-                            "required": [
-                                "service",
-                                "org",
-                                "team"
-                            ]
+                            "team": {
+                                "type": "string"
+                            }
                         },
-                        {
-                            "properties": {
-                                "service": {
-                                    "type": "string",
-                                    "enum": [
-                                        "oidc"
-                                    ]
-                                }
+                        "oneOf": [
+                            {
+                                "properties": {
+                                    "service": {
+                                        "type": "string",
+                                        "enum": [
+                                            "github-org"
+                                        ]
+                                    },
+                                    "org": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "service",
+                                    "org"
+                                ]
                             },
-                            "required": [
-                                "service"
-                            ]
-                        }
-                    ]
+                            {
+                                "properties": {
+                                    "service": {
+                                        "type": "string",
+                                        "enum": [
+                                            "github-org-team"
+                                        ]
+                                    },
+                                    "org": {
+                                        "type": "string"
+                                    },
+                                    "team": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "service",
+                                    "org",
+                                    "team"
+                                ]
+                            },
+                            {
+                                "properties": {
+                                    "service": {
+                                        "type": "string",
+                                        "enum": [
+                                            "oidc"
+                                        ]
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "issuer": {
+                                        "type": "string",
+                                        "format": "uri"
+                                    },
+                                    "claims": {
+                                        "email": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "username": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "name": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "groups": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "service",
+                                    "name"
+                                ]
+                            }
+                        ]
+                    }
                 },
                 "observabilityNamespace": {
                     "$ref": "/common-1.json#/definitions/crossref",
@@ -9497,6 +10419,23 @@
                         "account": {
                             "$ref": "/common-1.json#/definitions/crossref",
                             "$schemaRef": "/aws/account-1.yml"
+                        },
+                        "subnet_ids": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Hosted Clusters only: list of subnet_ids to use with the cluster creation.\n"
+                        },
+                        "availability_zones": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Hosted Clusters only: list of availability_zones to use with the cluster creation.\n"
+                        },
+                        "hypershift": {
+                            "type": "boolean"
                         }
                     },
                     "required": [
@@ -9535,53 +10474,7 @@
                     ]
                 },
                 "upgradePolicy": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "schedule_type": {
-                            "type": "string",
-                            "enum": [
-                                "automatic"
-                            ]
-                        },
-                        "schedule": {
-                            "type": "string",
-                            "pattern": "(((\\d+,)+\\d+|(\\d+(\\/|-)\\d+)|\\d+|\\*) ?){5}"
-                        },
-                        "workloads": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "conditions": {
-                            "additionalProperties": false,
-                            "properties": {
-                                "soakDays": {
-                                    "type": "integer"
-                                },
-                                "mutexes": {
-                                    "type": "array",
-                                    "description": "list of named upgrade mutex locks for this cluster. A cluster needs\nto acquire all its mutex locks in order to be upgraded. A mutex lock\ncan be held by only one cluster at a time.\n",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                }
-                            },
-                            "oneOf": [
-                                {
-                                    "required": [
-                                        "soakDays"
-                                    ]
-                                }
-                            ]
-                        }
-                    },
-                    "required": [
-                        "workloads",
-                        "schedule",
-                        "conditions"
-                    ]
+                    "$ref": "/openshift/cluster-upgrade-policy-1.yml"
                 },
                 "additionalRouters": {
                     "type": "array",
@@ -9726,6 +10619,9 @@
                                     "manageRoutes": {
                                         "type": "boolean"
                                     },
+                                    "manageAccountRoutes": {
+                                        "type": "boolean"
+                                    },
                                     "manageSecurityGroups": {
                                         "type": "boolean"
                                     },
@@ -9760,6 +10656,10 @@
                                             },
                                             "manageRoutes": {
                                                 "type": "boolean"
+                                            },
+                                            "manageAccountRoutes": {
+                                                "type": "boolean",
+                                                "description": "historically, account-vpc did not have support for managing routes on the aws side.\ninstead of re-using manageRoutes, this is a backwards compatible field for managing such routes.\nonce all account-vpc connections that have manageRoutes also have manageAccountRoutes,\nwe can consolidate to use managedRoutes only.\n"
                                             },
                                             "delete": {
                                                 "type": "boolean"
@@ -9948,6 +10848,10 @@
                 "automationToken": {
                     "$ref": "/common-1.json#/definitions/vaultSecret"
                 },
+                "clusterAdmin": {
+                    "type": "boolean",
+                    "description": "should enable cluster admin for this cluster"
+                },
                 "clusterAdminAutomationToken": {
                     "$ref": "/common-1.json#/definitions/vaultSecret"
                 },
@@ -9979,7 +10883,18 @@
                                     "openshift-resourcequotas",
                                     "openshift-limitranges",
                                     "openshift-serviceaccount-tokens",
-                                    "terraform-resources"
+                                    "terraform-resources",
+                                    "ocm-additional-routers",
+                                    "ocm-addons",
+                                    "ocm-aws-infrastructure-access",
+                                    "ocm-external-configuration-labels",
+                                    "ocm-clusters",
+                                    "ocm-github-idp",
+                                    "ocm-oidc-idp",
+                                    "ocm-groups",
+                                    "ocm-machine-pools",
+                                    "ocm-upgrade-scheduler",
+                                    "slack-usergroups"
                                 ]
                             }
                         },
@@ -10095,6 +11010,9 @@
                 ],
                 "addons": [
                     "ocm"
+                ],
+                "clusterAdmin": [
+                    "ocm"
                 ]
             }
         },
@@ -10142,6 +11060,67 @@
                 "$schema",
                 "labels",
                 "name"
+            ]
+        },
+        "/openshift/cluster-upgrade-policy-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/openshift/cluster-upgrade-policy-1.yml"
+                    ]
+                },
+                "schedule_type": {
+                    "type": "string",
+                    "enum": [
+                        "automatic"
+                    ]
+                },
+                "schedule": {
+                    "type": "string",
+                    "pattern": "(((\\d+,)+\\d+|(\\d+(\\/|-)\\d+)|\\d+|\\*) ?){5}"
+                },
+                "workloads": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "conditions": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "soakDays": {
+                            "type": "integer"
+                        },
+                        "mutexes": {
+                            "type": "array",
+                            "description": "list of named upgrade mutex locks for this cluster. A cluster needs\nto acquire all its mutex locks in order to be upgraded. A mutex lock\ncan be held by only one cluster at a time.\n",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "sector": {
+                            "type": "string",
+                            "description": "The sector which the cluster is part of. Sector dependencies are\ndefined in openshift-cluster-manager-1.yml. A cluster will be\nupgraded to a version only if clusters in previous sectors are\nrunning that version or higher.\n"
+                        }
+                    },
+                    "oneOf": [
+                        {
+                            "required": [
+                                "soakDays"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "workloads",
+                "schedule",
+                "conditions"
             ]
         },
         "/openshift/deploy-resources-1.yml": {
@@ -10197,7 +11176,8 @@
                     "enum": [
                         "aws",
                         "cloudflare",
-                        "gcp-project"
+                        "gcp-project",
+                        "cna-experimental"
                     ]
                 },
                 "provisioner": {
@@ -10217,6 +11197,9 @@
                             },
                             {
                                 "$ref": "/gcp/terraform-resource-1.yml"
+                            },
+                            {
+                                "$ref": "/cna/asset-1.yml"
                             }
                         ]
                     }
@@ -10282,6 +11265,27 @@
                             "type": "array",
                             "items": {
                                 "$ref": "/gcp/terraform-resource-1.yml"
+                            }
+                        }
+                    }
+                },
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "cna-experimental"
+                            ]
+                        },
+                        "provisioner": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/cna/experimental-provisioner-1.yml"
+                        },
+                        "resources": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "/cna/asset-1.yml"
                             }
                         }
                     }
@@ -10672,6 +11676,13 @@
                         ]
                     }
                 },
+                "glitchtipProjects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/dependencies/glitchtip-project-1.yml"
+                    }
+                },
                 "kafkaCluster": {
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/kafka/cluster-1.yml"
@@ -10733,8 +11744,81 @@
                     "type": "string",
                     "format": "uri"
                 },
-                "offlineToken": {
+                "accessTokenClientSecret": {
                     "$ref": "/common-1.json#/definitions/vaultSecret"
+                },
+                "addonManagedUpgrades": {
+                    "type": "boolean"
+                },
+                "addonUpgradeTests": {
+                    "description": "trigger a job in jenkins following an addon upgrade",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "addon": {
+                                "$ref": "/common-1.json#/definitions/crossref",
+                                "$schemaRef": "/openshift/cluster-addon-1.yml"
+                            },
+                            "instance": {
+                                "$ref": "/common-1.json#/definitions/crossref",
+                                "$schemaRef": "/dependencies/jenkins-instance-1.yml"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "addon",
+                            "instance",
+                            "name"
+                        ]
+                    }
+                },
+                "recommendedVersions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "recommendedVersion": {
+                                "description": "Recommended version for provisioning new clusters",
+                                "type": "string"
+                            },
+                            "initialVersion": {
+                                "description": "Initial version string, as used by the OCM API",
+                                "type": "string"
+                            },
+                            "workload": {
+                                "description": "Workload the version is recommended for",
+                                "type": "string"
+                            },
+                            "channel": {
+                                "description": "Channel version can be found, stable if not set",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "recommendedVersion",
+                            "initialVersion",
+                            "workload"
+                        ]
+                    }
+                },
+                "recommendedVersionWeight": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "majority": {
+                            "description": "most used version currently running that workload",
+                            "type": "number"
+                        },
+                        "highest": {
+                            "description": "highest version currently running that workload",
+                            "type": "number"
+                        }
+                    }
                 },
                 "blockedVersions": {
                     "description": "List of versions that will be rejected for upgrades. They can be regular expressions",
@@ -10756,7 +11840,157 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "sectors": {
+                    "description": "List of allowed deployment sectors and their dependencies",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "description": "sector name",
+                                "type": "string"
+                            },
+                            "dependencies": {
+                                "description": "list of sectors this one is depending on",
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "name": {
+                                            "description": "sector name",
+                                            "type": "string"
+                                        },
+                                        "ocm": {
+                                            "$ref": "/common-1.json#/definitions/crossref",
+                                            "$schemaRef": "/openshift/openshift-cluster-manager-1.yml"
+                                        }
+                                    },
+                                    "required": [
+                                        "name"
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ]
+                    }
+                },
+                "upgradePolicyDefaults": {
+                    "description": "List of default upgrade policies to apply to clusters by external configuration labels",
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "matchLabels": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "upgradePolicy": {
+                                        "$ref": "/openshift/cluster-upgrade-policy-1.yml"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "matchLabels",
+                                    "upgradePolicy"
+                                ]
+                            },
+                            {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "matchLabels": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "upgradePolicyTemplate": {
+                                        "type": "object",
+                                        "properties": {
+                                            "path": {
+                                                "$ref": "/common-1.json#/definitions/resourceref"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "jinja2",
+                                                    "extracurlyjinja2"
+                                                ]
+                                            },
+                                            "variables": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "required": [
+                                            "path"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "matchLabels",
+                                    "upgradePolicyTemplate"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "upgradePolicyClusters": {
+                    "description": "List of clusters to define upgrade policies for (no cluster management in such OCM orgs)",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "description": "cluster name",
+                                "type": "string"
+                            },
+                            "upgradePolicy": {
+                                "$ref": "/openshift/cluster-upgrade-policy-1.yml"
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "upgradePolicy"
+                        ]
+                    }
+                },
+                "inheritVersionData": {
+                    "description": "list of OCM organizations from which we will retrieve cluster version informations (current versions stats, soak days, sectors, ..).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/openshift/openshift-cluster-manager-1.yml"
+                    }
+                },
+                "publishVersionData": {
+                    "description": "list of OCM organizations to which we will publish cluster version informations (current versions stats, soak days, sectors, ..)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/openshift/openshift-cluster-manager-1.yml"
+                    }
                 }
+            },
+            "dependencies": {
+                "upgradePolicyDefaults": [
+                    "upgradePolicyClusters"
+                ]
             },
             "required": [
                 "$schema",
@@ -10766,7 +12000,7 @@
                 "description",
                 "accessTokenClientId",
                 "accessTokenUrl",
-                "offlineToken"
+                "accessTokenClientSecret"
             ]
         },
         "/openshift/openshift-resource-1.yml": {
@@ -11468,6 +12702,13 @@
                             "serviceAccountName"
                         ]
                     }
+                },
+                "glitchtipProjects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/dependencies/glitchtip-project-1.yml"
+                    }
                 }
             },
             "required": [
@@ -11830,6 +13071,12 @@
                 },
                 "auth": {
                     "$ref": "/vault-config/instance-auth-1.yml"
+                },
+                "replication": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/vault-config/replication-1.yml"
+                    }
                 }
             },
             "required": [
@@ -11948,6 +13195,114 @@
                 "name",
                 "instance",
                 "rules"
+            ]
+        },
+        "/vault-config/replication-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/vault-config/replication-1.yml"
+                    ]
+                },
+                "vaultInstance": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/vault-config/instance-1.yml"
+                },
+                "destAuth": {
+                    "$ref": "/vault-config/instance-auth-1.yml"
+                },
+                "sourceAuth": {
+                    "ref": "/vault-config/instance-auth-1.yml"
+                },
+                "paths": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/vault-config/replication-paths-1.yml"
+                    }
+                }
+            },
+            "required": [
+                "vaultInstance",
+                "destAuth",
+                "sourceAuth",
+                "paths"
+            ]
+        },
+        "/vault-config/replication-paths-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/vault-config/replication-paths-1.yml"
+                    ]
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "jenkinsInstance": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/dependencies/jenkins-instance-1.yml"
+                },
+                "policy": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/vault-config/policy-1.yml"
+                }
+            },
+            "oneOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "jenkins"
+                            ]
+                        },
+                        "jenkinsInstance": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/dependencies/jenkins-instance-1.yml"
+                        },
+                        "policy": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/vault-config/policy-1.yml"
+                        }
+                    },
+                    "required": [
+                        "provider",
+                        "jenkinsInstance"
+                    ]
+                },
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "policy"
+                            ]
+                        },
+                        "policy": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/vault-config/policy-1.yml"
+                        }
+                    },
+                    "required": [
+                        "provider",
+                        "policy"
+                    ]
+                }
+            ],
+            "required": [
+                "provider"
             ]
         },
         "/vault-config/role-1.yml": {
@@ -12329,6 +13684,10 @@
                     "type": "string",
                     "pattern": "^[A-Za-z0-9][A-Za-z0-9-_]{0,30}[A-Za-z0-9]$"
                 },
+                "identifierLowercase64": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,63}[a-z0-9]$"
+                },
                 "resourceref": {
                     "type": "string",
                     "pattern": "^/(?:[^/]+/)*[^/]+$"
@@ -12582,10 +13941,6 @@
                         "isRequired": true
                     },
                     {
-                        "name": "pullRequestGateway",
-                        "type": "string"
-                    },
-                    {
                         "name": "mergeRequestGateway",
                         "type": "string"
                     },
@@ -12647,6 +14002,11 @@
                     {
                         "name": "jiraWatcher",
                         "type": "JiraWatcherSettings_v1",
+                        "isRequired": false
+                    },
+                    {
+                        "name": "glitchtip",
+                        "type": "GlitchtipSettings_v1",
                         "isRequired": false
                     }
                 ]
@@ -12721,6 +14081,23 @@
                         "name": "connectTimeout",
                         "type": "int",
                         "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "GlitchtipSettings_v1",
+                "fields": [
+                    {
+                        "name": "readTimeout",
+                        "type": "int"
+                    },
+                    {
+                        "name": "maxRetries",
+                        "type": "int"
+                    },
+                    {
+                        "name": "mailDomain",
+                        "type": "string"
                     }
                 ]
             },
@@ -13709,6 +15086,7 @@
             },
             {
                 "name": "QuayOrg_v1",
+                "datafile": "/dependencies/quay-org-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -13882,6 +15260,7 @@
             },
             {
                 "name": "JenkinsConfig_v1",
+                "datafile": "/dependencies/jenkins-config-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -14025,6 +15404,7 @@
             },
             {
                 "name": "JiraBoard_v1",
+                "datafile": "/dependencies/jira-board-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -14502,6 +15882,44 @@
                         "name": "service",
                         "type": "string",
                         "isRequired": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "issuer",
+                        "type": "string"
+                    },
+                    {
+                        "name": "claims",
+                        "type": "ClusterAuthOIDCClaims_v1"
+                    }
+                ]
+            },
+            {
+                "name": "ClusterAuthOIDCClaims_v1",
+                "fields": [
+                    {
+                        "name": "email",
+                        "type": "string",
+                        "isList": true
+                    },
+                    {
+                        "name": "username",
+                        "type": "string",
+                        "isList": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isList": true
+                    },
+                    {
+                        "name": "groups",
+                        "type": "string",
+                        "isList": true
                     }
                 ]
             },
@@ -14605,6 +16023,11 @@
                     {
                         "name": "disable_user_workload_monitoring",
                         "type": "boolean"
+                    },
+                    {
+                        "name": "hypershift",
+                        "type": "boolean",
+                        "isRequired": false
                     }
                 ]
             },
@@ -14680,6 +16103,11 @@
                     {
                         "name": "disable_user_workload_monitoring",
                         "type": "boolean"
+                    },
+                    {
+                        "name": "hypershift",
+                        "type": "boolean",
+                        "isRequired": false
                     },
                     {
                         "name": "storage",
@@ -14769,6 +16197,21 @@
                     {
                         "name": "disable_user_workload_monitoring",
                         "type": "boolean"
+                    },
+                    {
+                        "name": "hypershift",
+                        "type": "boolean",
+                        "isRequired": false
+                    },
+                    {
+                        "name": "subnet_ids",
+                        "type": "string",
+                        "isList": true
+                    },
+                    {
+                        "name": "availability_zones",
+                        "type": "string",
+                        "isList": true
                     }
                 ]
             },
@@ -14822,6 +16265,10 @@
                         "name": "mutexes",
                         "type": "string",
                         "isList": true
+                    },
+                    {
+                        "name": "sector",
+                        "type": "string"
                     }
                 ]
             },
@@ -14987,6 +16434,10 @@
                     },
                     {
                         "name": "manageRoutes",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "manageAccountRoutes",
                         "type": "boolean"
                     },
                     {
@@ -15222,7 +16673,9 @@
                     {
                         "name": "auth",
                         "type": "ClusterAuth_v1",
-                        "isInterface": true
+                        "isInterface": true,
+                        "isList": true,
+                        "isRequired": true
                     },
                     {
                         "name": "observabilityNamespace",
@@ -15324,6 +16777,10 @@
                         "type": "VaultSecret_v1"
                     },
                     {
+                        "name": "clusterAdmin",
+                        "type": "boolean"
+                    },
+                    {
                         "name": "clusterAdminAutomationToken",
                         "type": "VaultSecret_v1"
                     },
@@ -15406,7 +16863,145 @@
                 ]
             },
             {
+                "name": "OpenShiftClusterManagerUpgradePolicyClusterSpec_v1",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "OpenShiftClusterManagerSectorDependencies_v1",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "ocm",
+                        "type": "OpenShiftClusterManager_v1"
+                    }
+                ]
+            },
+            {
+                "name": "OpenShiftClusterManagerSector_v1",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isContextUnique": true
+                    },
+                    {
+                        "name": "dependencies",
+                        "type": "OpenShiftClusterManagerSectorDependencies_v1",
+                        "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "OpenShiftClusterManagerUpgradePolicyTemplate_v1",
+                "fields": [
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true,
+                        "isResource": true,
+                        "resolveResource": true
+                    },
+                    {
+                        "name": "type",
+                        "type": "string"
+                    },
+                    {
+                        "name": "variables",
+                        "type": "json"
+                    }
+                ]
+            },
+            {
+                "name": "OpenShiftClusterManagerUpgradePolicyDefault_v1",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "matchLabels",
+                        "type": "json",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "upgradePolicy",
+                        "type": "ClusterUpgradePolicy_v1"
+                    },
+                    {
+                        "name": "upgradePolicyTemplate",
+                        "type": "OpenShiftClusterManagerUpgradePolicyTemplate_v1"
+                    }
+                ]
+            },
+            {
+                "name": "OpenShiftClusterManagerUpgradePolicyCluster_v1",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "upgradePolicy",
+                        "type": "ClusterUpgradePolicy_v1",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "OpenShiftClusterManagerRecommendedVersionsWeight_v1",
+                "fields": [
+                    {
+                        "name": "majority",
+                        "type": "int"
+                    },
+                    {
+                        "name": "highest",
+                        "type": "int"
+                    }
+                ]
+            },
+            {
+                "name": "OpenShiftClusterManagerRecommendedVersions_v1",
+                "fields": [
+                    {
+                        "name": "recommendedVersion",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "initialVersion",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "workload",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "channel",
+                        "type": "string"
+                    }
+                ]
+            },
+            {
                 "name": "OpenShiftClusterManager_v1",
+                "datafile": "/openshift/openshift-cluster-manager-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -15425,7 +17020,9 @@
                     {
                         "name": "name",
                         "type": "string",
-                        "isRequired": true
+                        "isRequired": true,
+                        "isUnique": true,
+                        "isSearchable": true
                     },
                     {
                         "name": "description",
@@ -15447,8 +17044,26 @@
                         "isRequired": true
                     },
                     {
-                        "name": "offlineToken",
+                        "name": "accessTokenClientSecret",
                         "type": "VaultSecret_v1"
+                    },
+                    {
+                        "name": "addonManagedUpgrades",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "addonUpgradeTests",
+                        "type": "AddonUpgradeTest_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "recommendedVersions",
+                        "type": "OpenShiftClusterManagerRecommendedVersions_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "recommendedVersionWeight",
+                        "type": "OpenShiftClusterManagerRecommendedVersionsWeight_v1"
                     },
                     {
                         "name": "blockedVersions",
@@ -15466,6 +17081,31 @@
                         "isList": true
                     },
                     {
+                        "name": "sectors",
+                        "type": "OpenShiftClusterManagerSector_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "upgradePolicyDefaults",
+                        "type": "OpenShiftClusterManagerUpgradePolicyDefault_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "upgradePolicyClusters",
+                        "type": "OpenShiftClusterManagerUpgradePolicyCluster_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "inheritVersionData",
+                        "type": "OpenShiftClusterManager_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "publishVersionData",
+                        "type": "OpenShiftClusterManager_v1",
+                        "isList": true
+                    },
+                    {
                         "name": "clusters",
                         "type": "Cluster_v1",
                         "isList": true,
@@ -15473,6 +17113,26 @@
                             "schema": "/openshift/cluster-1.yml",
                             "subAttr": "cluster"
                         }
+                    }
+                ]
+            },
+            {
+                "name": "AddonUpgradeTest_v1",
+                "fields": [
+                    {
+                        "name": "addon",
+                        "type": "ClusterAddon_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "instance",
+                        "type": "JenkinsInstance_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
                     }
                 ]
             },
@@ -15658,7 +17318,7 @@
                     },
                     {
                         "name": "deletionApprovals",
-                        "type": "AWSAccountDeletionApproval_v1",
+                        "type": "DeletionApproval_v1",
                         "isList": true
                     },
                     {
@@ -15697,7 +17357,7 @@
                     },
                     {
                         "name": "rosa",
-                        "type": "RosaAWSSpec_v1",
+                        "type": "RosaOcmSpec_v1",
                         "isRequired": false
                     },
                     {
@@ -15717,6 +17377,105 @@
                             "schema": "/aws/policy-1.yml",
                             "subAttr": "account"
                         }
+                    }
+                ]
+            },
+            {
+                "name": "CNAExperimentalProvisioner_v1",
+                "interface": "ExternalResourcesProvisioner_v1",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true,
+                        "isSearchable": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string"
+                    },
+                    {
+                        "name": "ocm",
+                        "type": "OpenShiftClusterManager_v1",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "NamespaceCNAsset_v1",
+                "interface": "NamespaceExternalResource_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "provisioner",
+                        "type": "CNAExperimentalProvisioner_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "resources",
+                        "type": "CNAsset_v1",
+                        "isRequired": true,
+                        "isList": true,
+                        "isInterface": true
+                    }
+                ]
+            },
+            {
+                "name": "CNAsset_v1",
+                "datafile": "/cna/asset-1.yml",
+                "isInterface": true,
+                "interfaceResolve": {
+                    "strategy": "fieldMap",
+                    "field": "provider",
+                    "fieldMap": {
+                        "null-asset": "CNANullAsset_v1"
+                    }
+                },
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "CNANullAsset_v1",
+                "interface": "CNAsset_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string"
+                    },
+                    {
+                        "name": "addr_block",
+                        "type": "string"
                     }
                 ]
             },
@@ -15769,6 +17528,19 @@
                         "name": "terraformStateAccount",
                         "type": "AWSAccount_v1",
                         "isRequired": true
+                    },
+                    {
+                        "name": "deletionApprovals",
+                        "type": "DeletionApproval_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "enforceTwofactor",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "type",
+                        "type": "string"
                     }
                 ]
             },
@@ -15820,7 +17592,7 @@
                 ]
             },
             {
-                "name": "AWSAccountDeletionApproval_v1",
+                "name": "DeletionApproval_v1",
                 "fields": [
                     {
                         "name": "type",
@@ -16349,7 +18121,8 @@
                     "fieldMap": {
                         "aws": "NamespaceTerraformProviderResourceAWS_v1",
                         "cloudflare": "NamespaceTerraformProviderResourceCloudflare_v1",
-                        "gcp-project": "NamespaceTerraformProviderResourceGCPProject_v1"
+                        "gcp-project": "NamespaceTerraformProviderResourceGCPProject_v1",
+                        "cna-experimental": "NamespaceCNAsset_v1"
                     }
                 },
                 "fields": [
@@ -16478,6 +18251,11 @@
                         "name": "workers",
                         "type": "CloudflareZoneWorker_v1",
                         "isList": true
+                    },
+                    {
+                        "name": "certificates",
+                        "type": "CloudflareZoneCertificate_v1",
+                        "isList": true
                     }
                 ]
             },
@@ -16540,6 +18318,50 @@
                         "name": "script_name",
                         "type": "string",
                         "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareZoneCertificate_v1",
+                "fields": [
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "type",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "hosts",
+                        "type": "string",
+                        "isRequired": true,
+                        "isList": true
+                    },
+                    {
+                        "name": "validation_method",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "validity_days",
+                        "type": "int",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "certificate_authority",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "cloudflare_branding",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "wait_for_active_status",
+                        "type": "boolean"
                     }
                 ]
             },
@@ -16821,6 +18643,14 @@
                     },
                     {
                         "name": "variables",
+                        "type": "json"
+                    },
+                    {
+                        "name": "overrides",
+                        "type": "json"
+                    },
+                    {
+                        "name": "extra_tags",
                         "type": "json"
                     },
                     {
@@ -18039,6 +19869,11 @@
                         "isRequired": true
                     },
                     {
+                        "name": "records",
+                        "type": "DnsRecord_v1",
+                        "isList": true
+                    },
+                    {
                         "name": "output_resource_name",
                         "type": "string"
                     },
@@ -18471,6 +20306,7 @@
             },
             {
                 "name": "SharedResources_v1",
+                "datafile": "/openshift/shared-resources-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -18509,6 +20345,21 @@
                         "name": "openshiftServiceAccountTokens",
                         "type": "ServiceAccountTokenSpec_v1",
                         "isList": true
+                    },
+                    {
+                        "name": "glitchtipProjects",
+                        "type": "GlitchtipProjects_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "namespaces",
+                        "type": "Namespace_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "synthetic": {
+                            "schema": "/openshift/namespace-1.yml",
+                            "subAttr": "sharedResources"
+                        }
                     }
                 ]
             },
@@ -18623,6 +20474,11 @@
                     {
                         "name": "openshiftServiceAccountTokens",
                         "type": "ServiceAccountTokenSpec_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "glitchtipProjects",
+                        "type": "GlitchtipProjects_v1",
                         "isList": true
                     },
                     {
@@ -19057,6 +20913,41 @@
                 ]
             },
             {
+                "name": "CodeComponentGitlabSync_v1",
+                "fields": [
+                    {
+                        "name": "sourceProject",
+                        "type": "CodeComponentGitlabSyncProject_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "destinationProject",
+                        "type": "CodeComponentGitlabSyncProject_v1",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "CodeComponentGitlabSyncProject_v1",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "group",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "branch",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
                 "name": "AppCodeComponents_v1",
                 "fields": [
                     {
@@ -19073,6 +20964,14 @@
                         "name": "url",
                         "type": "string",
                         "isRequired": true
+                    },
+                    {
+                        "name": "gitlabSync",
+                        "type": "CodeComponentGitlabSync_v1"
+                    },
+                    {
+                        "name": "showInReviewQueue",
+                        "type": "boolean"
                     },
                     {
                         "name": "gitlabRepoOwners",
@@ -19094,6 +20993,7 @@
             },
             {
                 "name": "Product_v1",
+                "datafile": "/app-sre/product-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -19138,6 +21038,7 @@
             },
             {
                 "name": "Environment_v1",
+                "datafile": "/app-sre/environment-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -19301,7 +21202,11 @@
                     {
                         "name": "statusPageComponents",
                         "type": "StatusPageComponent_v1",
-                        "isList": true
+                        "isList": true,
+                        "synthetic": {
+                            "schema": "/dependencies/status-page-component-1.yml",
+                            "subAttr": "app"
+                        }
                     },
                     {
                         "name": "namespaces",
@@ -19354,6 +21259,15 @@
                         "isList": true,
                         "synthetic": {
                             "schema": "/app-sre/slo-document-1.yml",
+                            "subAttr": "app"
+                        }
+                    },
+                    {
+                        "name": "glitchtipProjects",
+                        "type": "GlitchtipProjects_v1",
+                        "isList": true,
+                        "synthetic": {
+                            "schema": "/dependencies/glitchtip-project-1.yml",
                             "subAttr": "app"
                         }
                     }
@@ -19451,6 +21365,10 @@
                     {
                         "name": "compare",
                         "type": "boolean"
+                    },
+                    {
+                        "name": "timeout",
+                        "type": "string"
                     },
                     {
                         "name": "publishJobLogs",
@@ -19656,6 +21574,22 @@
                     {
                         "name": "delete",
                         "type": "boolean"
+                    }
+                ]
+            },
+            {
+                "name": "SaasResourceTemplateTargetReference_v2",
+                "datafile": "/app-sre/saas-file-target-1.yml",
+                "fields": [
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
                     }
                 ]
             },
@@ -19933,7 +21867,18 @@
             },
             {
                 "name": "PipelinesProviderTektonProviderDefaults_v1",
+                "datafile": "/app-sre/tekton-provider-defaults-1.yml",
                 "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
                     {
                         "name": "name",
                         "type": "string",
@@ -20003,6 +21948,94 @@
                         "type": "VaultInstanceAuth_v1",
                         "isInterface": true,
                         "isRequired": true
+                    },
+                    {
+                        "name": "replication",
+                        "type": "VaultReplicationConfig_v1",
+                        "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "VaultReplicationConfig_v1",
+                "fields": [
+                    {
+                        "name": "vaultInstance",
+                        "type": "VaultInstance_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "destAuth",
+                        "type": "VaultInstanceAuth_v1",
+                        "isInterface": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "sourceAuth",
+                        "type": "VaultInstanceAuth_v1",
+                        "isInterface": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "paths",
+                        "type": "VaultReplicationPaths_v1",
+                        "isInterface": true,
+                        "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "VaultReplicationPaths_v1",
+                "datafile": "/vault-config/replication-paths-1.yml",
+                "isInterface": true,
+                "interfaceResolve": {
+                    "strategy": "fieldMap",
+                    "field": "provider",
+                    "fieldMap": {
+                        "jenkins": "VaultReplicationJenkins_v1",
+                        "policy": "VaultReplicationPolicy_v1"
+                    }
+                },
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "VaultReplicationJenkins_v1",
+                "interface": "VaultReplicationPaths_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "jenkinsInstance",
+                        "type": "JenkinsInstance_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "policy",
+                        "type": "VaultPolicy_v1"
+                    }
+                ]
+            },
+            {
+                "name": "VaultReplicationPolicy_v1",
+                "interface": "VaultReplicationPaths_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "policy",
+                        "type": "VaultPolicy_v1"
                     }
                 ]
             },
@@ -20157,6 +22190,7 @@
             },
             {
                 "name": "Permission_v1",
+                "datafile": "/access/permission-1.yml",
                 "isInterface": true,
                 "interfaceResolve": {
                     "strategy": "fieldMap",
@@ -20204,6 +22238,7 @@
             },
             {
                 "name": "PermissionGithubOrg_v1",
+                "datafile": "/access/permission-1.yml",
                 "interface": "Permission_v1",
                 "fields": [
                     {
@@ -20248,6 +22283,7 @@
             },
             {
                 "name": "PermissionGithubOrgTeam_v1",
+                "datafile": "/access/permission-1.yml",
                 "interface": "Permission_v1",
                 "fields": [
                     {
@@ -20297,6 +22333,7 @@
             },
             {
                 "name": "PermissionJenkinsRole_v1",
+                "datafile": "/access/permission-1.yml",
                 "interface": "Permission_v1",
                 "fields": [
                     {
@@ -20347,6 +22384,7 @@
             },
             {
                 "name": "PermissionGitlabGroupMembership_v1",
+                "datafile": "/access/permission-1.yml",
                 "interface": "Permission_v1",
                 "fields": [
                     {
@@ -20406,6 +22444,7 @@
             },
             {
                 "name": "PermissionSlackUsergroup_v1",
+                "datafile": "/access/permission-1.yml",
                 "interface": "Permission_v1",
                 "fields": [
                     {
@@ -20483,7 +22522,18 @@
             },
             {
                 "name": "Schedule_v1",
+                "datafile": "/app-sre/schedule-1.yml",
                 "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
                     {
                         "name": "name",
                         "type": "string",
@@ -20664,6 +22714,7 @@
             },
             {
                 "name": "User_v1",
+                "datafile": "/access/user-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -20915,6 +22966,16 @@
                         "isList": true
                     },
                     {
+                        "name": "glitchtip_teams",
+                        "type": "GlitchtipTeam_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "glitchtip_roles",
+                        "type": "GlitchtipRole_v1",
+                        "isList": true
+                    },
+                    {
                         "name": "sendgrid_accounts",
                         "type": "SendGridAccount_v1",
                         "isList": true
@@ -21043,6 +23104,10 @@
                     {
                         "name": "slack",
                         "type": "boolean"
+                    },
+                    {
+                        "name": "googleChat",
+                        "type": "boolean"
                     }
                 ]
             },
@@ -21132,6 +23197,10 @@
                         "isRequired": true
                     },
                     {
+                        "name": "fluentdResources",
+                        "type": "DeployResources_v1"
+                    },
+                    {
                         "name": "shards",
                         "type": "int"
                     },
@@ -21141,7 +23210,7 @@
                     },
                     {
                         "name": "sleepDurationSecs",
-                        "type": "int"
+                        "type": "string"
                     },
                     {
                         "name": "state",
@@ -21490,6 +23559,7 @@
             },
             {
                 "name": "UnleashInstance_v1",
+                "datafile": "/app-sre/unleash-instance-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -21559,6 +23629,7 @@
             },
             {
                 "name": "GabiInstance_v1",
+                "datafile": "/app-sre/gabi-instance-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -21649,6 +23720,63 @@
                 ]
             },
             {
+                "name": "AcceptanceCriteriaItem_v1",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "status",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "comment",
+                        "type": "string"
+                    }
+                ]
+            },
+            {
+                "name": "Scorecard_v2",
+                "datafile": "/app-sre/scorecard-2.yml",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "labels",
+                        "type": "json",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "app",
+                        "type": "App_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "date",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "acceptanceCriteria",
+                        "type": "AcceptanceCriteriaItem_v1",
+                        "isRequired": true,
+                        "isList": true
+                    }
+                ]
+            },
+            {
                 "name": "Query",
                 "fields": [
                     {
@@ -21724,6 +23852,12 @@
                         "type": "CloudflareAccount_v1",
                         "isList": true,
                         "datafileSchema": "/cloudflare/account-1.yml"
+                    },
+                    {
+                        "name": "cna_experimental_provisioners_v1",
+                        "type": "CNAExperimentalProvisioner_v1",
+                        "isList": true,
+                        "datafileSchema": "/cna/experimental-provisioner-1.yml"
                     },
                     {
                         "name": "clusters_v1",
@@ -21913,6 +24047,33 @@
                         "datafileSchema": "/dependencies/sentry-instance-1.yml"
                     },
                     {
+                        "name": "glitchtip_instances_v1",
+                        "type": "GlitchtipInstance_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "datafileSchema": "/dependencies/glitchtip-instance-1.yml"
+                    },
+                    {
+                        "name": "glitchtip_organizations_v1",
+                        "type": "GlitchtipOrganization_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "datafileSchema": "/dependencies/glitchtip-organization-1.yml"
+                    },
+                    {
+                        "name": "glitchtip_teams_v1",
+                        "type": "GlitchtipTeam_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "datafileSchema": "/dependencies/glitchtip-team-1.yml"
+                    },
+                    {
+                        "name": "glitchtip_projects_v1",
+                        "type": "GlitchtipProjects_v1",
+                        "isList": true,
+                        "datafileSchema": "/dependencies/glitchtip-project-1.yml"
+                    },
+                    {
                         "name": "app_interface_sql_queries_v1",
                         "type": "AppInterfaceSqlQuery_v1",
                         "isList": true,
@@ -22027,6 +24188,227 @@
                         "type": "ChangeType_v1",
                         "isList": true,
                         "datafileSchema": "/app-interface/change-type-1.yml"
+                    },
+                    {
+                        "name": "scorecards_v2",
+                        "type": "Scorecard_v2",
+                        "isList": true,
+                        "datafileSchema": "/app-sre/scorecard-2.yml"
+                    },
+                    {
+                        "name": "pgp_reencrypt_settings_v1",
+                        "type": "PgpReencryptSettings_v1",
+                        "isList": true,
+                        "datafileSchema": "/app-sre/pgp-reencrypt-settings-1.yml"
+                    }
+                ]
+            },
+            {
+                "name": "GlitchtipInstance_v1",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "labels",
+                        "type": "json"
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "consoleUrl",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "automationUserEmail",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "automationToken",
+                        "type": "VaultSecret_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "organizations",
+                        "type": "GlitchtipOrganization_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "synthetic": {
+                            "schema": "/dependencies/glitchtip-organization-1.yml",
+                            "subAttr": "instance"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "GlitchtipOrganization_v1",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "labels",
+                        "type": "json"
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "instance",
+                        "type": "GlitchtipInstance_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "roles",
+                        "type": "Role_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "synthetic": {
+                            "schema": "/access/role-1.yml",
+                            "subAttr": "glitchtip_roles.organization"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "GlitchtipTeam_v1",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "labels",
+                        "type": "json"
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "roles",
+                        "type": "Role_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "synthetic": {
+                            "schema": "/access/role-1.yml",
+                            "subAttr": "glitchtip_teams"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "GlitchtipRole_v1",
+                "fields": [
+                    {
+                        "name": "role",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "organization",
+                        "type": "GlitchtipOrganization_v1",
+                        "isRequired": true,
+                        "isUnique": true
+                    }
+                ]
+            },
+            {
+                "name": "GlitchtipProjects_v1",
+                "datafile": "/dependencies/glitchtip-project-1.yml",
+                "fields": [
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "app",
+                        "type": "App_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "platform",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "teams",
+                        "type": "GlitchtipTeam_v1",
+                        "isRequired": true,
+                        "isList": true
+                    },
+                    {
+                        "name": "organization",
+                        "type": "GlitchtipOrganization_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "namespaces",
+                        "type": "Namespace_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "synthetic": {
+                            "schema": "/openshift/namespace-1.yml",
+                            "subAttr": "glitchtipProjects"
+                        }
+                    },
+                    {
+                        "name": "sharedResources",
+                        "type": "SharedResources_v1",
+                        "isList": true,
+                        "isRequired": true,
+                        "synthetic": {
+                            "schema": "/openshift/shared-resources-1.yml",
+                            "subAttr": "glitchtipProjects"
+                        }
                     }
                 ]
             },
@@ -22334,9 +24716,15 @@
             },
             {
                 "name": "DnsZone_v1",
+                "datafile": "/dependencies/dns-zone-1.yml",
                 "fields": [
                     {
                         "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
                         "type": "string",
                         "isRequired": true
                     },
@@ -22376,11 +24764,6 @@
                         "name": "origin",
                         "type": "string",
                         "isRequired": true
-                    },
-                    {
-                        "name": "unmanaged_record_names",
-                        "type": "string",
-                        "isList": true
                     },
                     {
                         "name": "records",
@@ -22460,9 +24843,15 @@
             },
             {
                 "name": "SLODocument_v1",
+                "datafile": "/app-sre/slo-document-1.yml",
                 "fields": [
                     {
                         "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
                         "type": "string",
                         "isRequired": true
                     },
@@ -22598,6 +24987,7 @@
             },
             {
                 "name": "StatusPageComponent_v1",
+                "datafile": "/dependencies/status-page-component-1.yml",
                 "fields": [
                     {
                         "name": "schema",
@@ -22618,6 +25008,11 @@
                         "type": "string",
                         "isRequired": true,
                         "isUnique": true
+                    },
+                    {
+                        "name": "app",
+                        "type": "App_v1",
+                        "isRequired": true
                     },
                     {
                         "name": "displayName",
@@ -22647,15 +25042,6 @@
                         "type": "StatusProvider_v1",
                         "isList": true,
                         "isInterface": true
-                    },
-                    {
-                        "name": "apps",
-                        "type": "App_v1",
-                        "isList": true,
-                        "synthetic": {
-                            "schema": "/app-sre/app-1.yml",
-                            "subAttr": "statusPageComponents"
-                        }
                     }
                 ]
             },
@@ -22994,10 +25380,16 @@
                         "name": "name",
                         "type": "string",
                         "isRequired": true,
-                        "isUnique": true
+                        "isUnique": true,
+                        "isSearchable": true
                     },
                     {
                         "name": "description",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "priority",
                         "type": "string",
                         "isRequired": true
                     },
@@ -23011,11 +25403,60 @@
                         "type": "string"
                     },
                     {
+                        "name": "disabled",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "inherit",
+                        "type": "ChangeType_v1",
+                        "isList": true
+                    },
+                    {
                         "name": "changes",
                         "type": "ChangeTypeChangeDetector_v1",
                         "isInterface": true,
                         "isRequired": true,
                         "isList": true
+                    },
+                    {
+                        "name": "implicitOwnership",
+                        "type": "ChangeTypeImplicitOwnership_v1",
+                        "isInterface": true,
+                        "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "ChangeTypeImplicitOwnership_v1",
+                "isInterface": true,
+                "interfaceResolve": {
+                    "strategy": "fieldMap",
+                    "field": "provider",
+                    "fieldMap": {
+                        "jsonPath": "ChangeTypeImplicitOwnershipJsonPathProvider_v1"
+                    }
+                },
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "ChangeTypeImplicitOwnershipJsonPathProvider_v1",
+                "interface": "ChangeTypeImplicitOwnership_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "jsonPathSelector",
+                        "type": "string",
+                        "isRequired": true
                     }
                 ]
             },
@@ -23026,7 +25467,8 @@
                     "strategy": "fieldMap",
                     "field": "provider",
                     "fieldMap": {
-                        "jsonPath": "ChangeTypeChangeDetectorJsonPathProvider_v1"
+                        "jsonPath": "ChangeTypeChangeDetectorJsonPathProvider_v1",
+                        "change-type": "ChangeTypeChangeDetectorChangeTypeProvider_v1"
                     }
                 },
                 "fields": [
@@ -23071,6 +25513,32 @@
                 ]
             },
             {
+                "name": "ChangeTypeChangeDetectorChangeTypeProvider_v1",
+                "interface": "ChangeTypeChangeDetector_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "changeSchema",
+                        "type": "string"
+                    },
+                    {
+                        "name": "changeTypes",
+                        "type": "ChangeType_v1",
+                        "isList": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "context",
+                        "type": "ChangeTypeChangeDetectorContextSelector_v1",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
                 "name": "ChangeTypeChangeDetectorContextSelector_v1",
                 "fields": [
                     {
@@ -23085,8 +25553,23 @@
                 ]
             },
             {
-                "name": "RosaAWSSpec_v1",
+                "name": "RosaOcmSpec_v1",
                 "fields": [
+                    {
+                        "name": "ocm_environments",
+                        "type": "RosaOcmAwsSpec_v1",
+                        "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "RosaOcmAwsSpec_v1",
+                "fields": [
+                    {
+                        "name": "ocm",
+                        "type": "OpenShiftClusterManager_v1",
+                        "isRequired": true
+                    },
                     {
                         "name": "creator_role_arn",
                         "type": "string",
@@ -23095,22 +25578,57 @@
                     {
                         "name": "installer_role_arn",
                         "type": "string",
-                        "isRequired": false
+                        "isRequired": true
                     },
                     {
                         "name": "support_role_arn",
                         "type": "string",
-                        "isRequired": false
+                        "isRequired": true
                     },
                     {
                         "name": "controlplane_role_arn",
                         "type": "string",
-                        "isRequired": false
+                        "isRequired": true
                     },
                     {
                         "name": "worker_role_arn",
                         "type": "string",
-                        "isRequired": false
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "PgpReencryptSettings_v1",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "public_gpg_key",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "private_pgp_key_vault_path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "reencrypt_vault_path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "aws_account_output_vault_path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "skip_aws_accounts",
+                        "type": "AWSAccount_v1",
+                        "isList": true
                     }
                 ]
             }
@@ -23172,101 +25690,6 @@
             "service": "github-org-team",
             "org": "app-sre",
             "team": "vault-app-sre"
-        },
-        "/teams/app-sre/roles/app-interface-vault-oidc.yml": {
-            "$schema": "/access/role-1.yml",
-            "labels": {},
-            "name": "app-interface-vault-oidc",
-            "permissions": [],
-            "oidc_permissions": [
-                {
-                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
-                }
-            ]
-        },
-        "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml": {
-            "$schema": "/access/role-1.yml",
-            "labels": {},
-            "name": "app-sre-vault-oidc-secondary",
-            "permissions": [],
-            "oidc_permissions": [
-                {
-                    "$ref": "/dependencies/vault/permissions/oidc/secondary/app-sre-vault-admin.yml"
-                }
-            ]
-        },
-        "/teams/app-sre/roles/app-sre-vault-oidc.yml": {
-            "$schema": "/access/role-1.yml",
-            "labels": {},
-            "name": "app-sre-vault-oidc",
-            "permissions": [],
-            "oidc_permissions": [
-                {
-                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
-                }
-            ]
-        },
-        "/teams/app-sre/users/tester.yml": {
-            "$schema": "/access/user-1.yml",
-            "labels": {},
-            "name": "The Tester",
-            "org_username": "tester",
-            "github_username": "tester0",
-            "quay_username": "rh_ee_tester",
-            "roles": [
-                {
-                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
-                },
-                {
-                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
-                },
-                {
-                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
-                }
-            ],
-            "public_gpg_key": "nada"
-        },
-        "/services/vault/config/audit-backends/master/file-audit.yml": {
-            "$schema": "/vault-config/audit-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "_path": "file/",
-            "type": "file",
-            "instance": {
-                "$ref": "/services/vault/config/instances/master.yml"
-            },
-            "description": "",
-            "options": {
-                "_type": "file",
-                "file_path": "/var/log/vault/vault_audit.log",
-                "format": "json",
-                "log_raw": "false",
-                "hmac_accessor": "true",
-                "mode": "0600",
-                "prefix": ""
-            }
-        },
-        "/services/vault/config/audit-backends/secondary/file-audit.yml": {
-            "$schema": "/vault-config/audit-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "_path": "file/",
-            "type": "file",
-            "instance": {
-                "$ref": "/services/vault/config/instances/secondary.yml"
-            },
-            "description": "",
-            "options": {
-                "_type": "file",
-                "file_path": "/var/log/vault/vault_audit.log",
-                "format": "json",
-                "log_raw": "false",
-                "hmac_accessor": "true",
-                "mode": "0600",
-                "prefix": ""
-            }
         },
         "/services/vault/config/auth-backends/master/approle.yml": {
             "$schema": "/vault-config/auth-1.yml",
@@ -23652,6 +26075,40 @@
                 "user_claim": "email"
             }
         },
+        "/services/vault/config/roles/secondary/approles/vault-manager.yml": {
+            "$schema": "/vault-config/role-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "vault_manager",
+            "type": "approle",
+            "mount": "approle/",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "options": {
+                "_type": "approle",
+                "bind_secret_id": "true",
+                "local_secret_ids": "false",
+                "token_period": "0",
+                "secret_id_num_uses": "0",
+                "secret_id_ttl": "0",
+                "token_explicit_max_ttl": "0",
+                "token_max_ttl": "1800",
+                "token_no_default_policy": false,
+                "token_num_uses": "0",
+                "token_ttl": "1800",
+                "token_type": "default",
+                "token_policies": [
+                    "vault-manager-policy"
+                ],
+                "policies": [
+                    "vault-manager-policy"
+                ],
+                "secret_id_bound_cidrs": [],
+                "token_bound_cidrs": []
+            }
+        },
         "/services/vault/config/roles/secondary/approles/app-interface.yml": {
             "$schema": "/vault-config/role-1.yml",
             "labels": {
@@ -23682,40 +26139,6 @@
                 ],
                 "policies": [
                     "app-interface-approle-policy"
-                ],
-                "secret_id_bound_cidrs": [],
-                "token_bound_cidrs": []
-            }
-        },
-        "/services/vault/config/roles/secondary/approles/vault-manager.yml": {
-            "$schema": "/vault-config/role-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "name": "vault_manager",
-            "type": "approle",
-            "mount": "approle/",
-            "instance": {
-                "$ref": "/services/vault/config/instances/secondary.yml"
-            },
-            "options": {
-                "_type": "approle",
-                "bind_secret_id": "true",
-                "local_secret_ids": "false",
-                "token_period": "0",
-                "secret_id_num_uses": "0",
-                "secret_id_ttl": "0",
-                "token_explicit_max_ttl": "0",
-                "token_max_ttl": "1800",
-                "token_no_default_policy": false,
-                "token_num_uses": "0",
-                "token_ttl": "1800",
-                "token_type": "default",
-                "token_policies": [
-                    "vault-manager-policy"
-                ],
-                "policies": [
-                    "vault-manager-policy"
                 ],
                 "secret_id_bound_cidrs": [],
                 "token_bound_cidrs": []
@@ -23859,6 +26282,121 @@
                 "_type": "kv",
                 "version": "1"
             }
+        },
+        "/services/vault/config/audit-backends/master/file-audit.yml": {
+            "$schema": "/vault-config/audit-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "file/",
+            "type": "file",
+            "instance": {
+                "$ref": "/services/vault/config/instances/master.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "file",
+                "file_path": "/var/log/vault/vault_audit.log",
+                "format": "json",
+                "log_raw": "false",
+                "hmac_accessor": "true",
+                "mode": "0600",
+                "prefix": ""
+            }
+        },
+        "/services/vault/config/audit-backends/secondary/file-audit.yml": {
+            "$schema": "/vault-config/audit-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "file/",
+            "type": "file",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "file",
+                "file_path": "/var/log/vault/vault_audit.log",
+                "format": "json",
+                "log_raw": "false",
+                "hmac_accessor": "true",
+                "mode": "0600",
+                "prefix": ""
+            }
+        },
+        "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-sre-vault-oidc-secondary",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/secondary/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/roles/app-sre-vault-oidc.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-sre-vault-oidc",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/roles/app-interface-vault-oidc.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-interface-vault-oidc",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/users/tester.yml": {
+            "$schema": "/access/user-1.yml",
+            "labels": {},
+            "name": "The Tester",
+            "org_username": "tester",
+            "github_username": "tester0",
+            "quay_username": "rh_ee_tester",
+            "roles": [
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
+                }
+            ],
+            "public_gpg_key": "nada"
+        },
+        "/teams/app-sre/users/tester2.yml": {
+            "$schema": "/access/user-1.yml",
+            "labels": {},
+            "name": "The Second Tester",
+            "org_username": "tester2",
+            "github_username": "tester2",
+            "quay_username": "rh_ee_tester2",
+            "roles": [
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
+                }
+            ],
+            "public_gpg_key": "nada"
         }
     },
     "resources": {}
