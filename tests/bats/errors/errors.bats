@@ -21,6 +21,7 @@ load ../helpers
     # manually deleting the "orphaned" entity
     # we test for creation of this entity to further validate error handling on per instance basis
     vault delete identity/entity/name/tester
+    vault delete identity/entity/name/tester2
 
     run vault-manager
     [[ "${output}" == *"SKIPPING ALL RECONCILIATION FOR: http://127.0.0.1:8202"* ]]
@@ -48,6 +49,7 @@ load ../helpers
     # reconcile can continue on the other w/out issue
     export VAULT_ADDR=http://127.0.0.1:8200
     vault delete identity/entity/name/tester
+    vault delete identity/entity/name/tester2
 
     run vault-manager
     [[ "${output}" == *"SKIPPING REMAINING RECONCILIATION FOR http://127.0.0.1:8202"* ]]

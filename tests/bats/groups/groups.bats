@@ -13,9 +13,9 @@ load ../helpers
     run vault-manager -dry-run
     [ "$status" -eq 0 ]
 
-    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) are in the group to be created"*"group=app-sre-vault-oidc"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"http://127.0.0.1:8200\""* ]]
-    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) are in the group to be created"*"group=app-interface-vault-oidc"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"http://127.0.0.1:8200\""* ]]
-    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) are in the group to be created"*"group=app-sre-vault-oidc-secondary"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"http://127.0.0.1:8202\""* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 2 user(s) are in the group to be created"*"group=app-sre-vault-oidc"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"http://127.0.0.1:8200\""* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 2 user(s) are in the group to be created"*"group=app-interface-vault-oidc"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"http://127.0.0.1:8200\""* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 2 user(s) are in the group to be created"*"group=app-sre-vault-oidc-secondary"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"http://127.0.0.1:8202\""* ]]
 
     run vault-manager
     [ "$status" -eq 0 ]
@@ -39,7 +39,7 @@ load ../helpers
     [[ "${output}" == *"name"*"app-sre-vault-oidc"* ]]
     [[ "${output}" == *"type"*"internal"* ]]
     [[ "${output}" == *"policies"*"[vault-oidc-app-sre-policy]"* ]]
-    [[ "${output}" == *"member_entity_ids"*"[$entity_id]"* ]]
+    [[ "${output}" == *"member_entity_ids"*"$entity_id"* ]]
     [[ "${output}" == *"metadata"*"map[app-sre-vault-admin:app-sre vault administrator permission]"* ]]
 
     # run same tests against secondary instance
@@ -61,7 +61,7 @@ load ../helpers
     [[ "${output}" == *"name"*"app-sre-vault-oidc-secondary"* ]]
     [[ "${output}" == *"type"*"internal"* ]]
     [[ "${output}" == *"policies"*"[vault-oidc-app-sre-policy]"* ]]
-    [[ "${output}" == *"member_entity_ids"*"[$entity_id]"* ]]
+    [[ "${output}" == *"member_entity_ids"*"$entity_id"* ]]
     [[ "${output}" == *"metadata"*"map[app-sre-vault-admin:app-sre vault administrator permission]"* ]]
 
     # test that updating a policy will display the number of users affected by the change
@@ -73,8 +73,8 @@ load ../helpers
     run vault-manager -dry-run
     [ "$status" -eq 0 ]
 
-    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) in group: 'app-sre-vault-oidc' will have policy: 'vault-oidc-app-sre-policy' updated"*"action=updated"*"group=app-sre-vault-oidc"*"instance=\"http://127.0.0.1:8200\""*"policy=vault-oidc-app-sre-policy"* ]]
-    [[ "${output}" == *"[Dry Run] [Vault Identity] 1 user(s) in group: 'app-interface-vault-oidc' will have policy: 'vault-oidc-app-sre-policy' updated"*"action=updated"*"group=app-interface-vault-oidc"*"instance=\"http://127.0.0.1:8200\""*"policy=vault-oidc-app-sre-policy"* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 2 user(s) in group: 'app-sre-vault-oidc' will have policy: 'vault-oidc-app-sre-policy' updated"*"action=updated"*"group=app-sre-vault-oidc"*"instance=\"http://127.0.0.1:8200\""*"policy=vault-oidc-app-sre-policy"* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 2 user(s) in group: 'app-interface-vault-oidc' will have policy: 'vault-oidc-app-sre-policy' updated"*"action=updated"*"group=app-interface-vault-oidc"*"instance=\"http://127.0.0.1:8200\""*"policy=vault-oidc-app-sre-policy"* ]]
 
     # cleanup afterwards
     run vault-manager
