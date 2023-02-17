@@ -21,6 +21,9 @@
     }
     settings {
       config {
+        ... on VaultAuthConfigKubernetes_v1 {
+          kubernetes_host
+        }
         ... on VaultAuthConfigGithub_v1 {
           organization
           base_url
