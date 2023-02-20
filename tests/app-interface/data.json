@@ -2884,6 +2884,10 @@
                         "early_exit": {
                             "type": "boolean"
                         },
+                        "check_only_affected_shards": {
+                            "type": "boolean",
+                            "description": "defaults to false"
+                        },
                         "shardSpecOverride": {
                             "type": "array",
                             "items": {
@@ -3097,6 +3101,7 @@
                     "description": "the strategy to use for sharding",
                     "enum": [
                         "per-aws-account",
+                        "per-cloudflare-zone",
                         "static"
                     ]
                 },
@@ -3503,6 +3508,23 @@
                     "type": "array",
                     "items": {
                         "type": "string"
+                    }
+                },
+                "managedResourceNames": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "resource": {
+                                "type": "string"
+                            },
+                            "resourceNames": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
                     }
                 },
                 "authentication": {
@@ -5474,6 +5496,10 @@
                 "enhanced_monitoring": {
                     "type": "boolean"
                 },
+                "grafana_datasource": {
+                    "type": "boolean",
+                    "description": "is rds instance used as a grafana datasource"
+                },
                 "replica_source": {
                     "type": "string"
                 },
@@ -5553,6 +5579,24 @@
                 },
                 "idle_timeout": {
                     "type": "integer"
+                },
+                "enable_http2": {
+                    "description": "indicates whether HTTP/2 is enabled",
+                    "type": "boolean"
+                },
+                "ingress_cidr_blocks": {
+                    "description": "ingress cidr blocks to allow for an alb",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ip_address_type": {
+                    "type": "string",
+                    "enum": [
+                        "ipv4",
+                        "dualstack"
+                    ]
                 },
                 "targets": {
                     "type": "array",
@@ -6111,6 +6155,10 @@
                         },
                         "enhanced_monitoring": {
                             "type": "boolean"
+                        },
+                        "grafana_datasource": {
+                            "type": "boolean",
+                            "description": "is rds instance used as a grafana datasource"
                         },
                         "replica_source": {
                             "type": "string"
@@ -6730,6 +6778,24 @@
                         "idle_timeout": {
                             "type": "integer"
                         },
+                        "enable_http2": {
+                            "description": "indicates whether HTTP/2 is enabled",
+                            "type": "boolean"
+                        },
+                        "ingress_cidr_blocks": {
+                            "description": "ingress cidr blocks to allow for an alb",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "ip_address_type": {
+                            "type": "string",
+                            "enum": [
+                                "ipv4",
+                                "dualstack"
+                            ]
+                        },
                         "targets": {
                             "type": "array",
                             "items": {
@@ -6838,6 +6904,7 @@
                         "identifier",
                         "vpc",
                         "certificate_arn",
+                        "ingress_cidr_blocks",
                         "targets",
                         "rules"
                     ]
@@ -7338,6 +7405,136 @@
                 "terraformStateAccount"
             ]
         },
+        "/cloudflare/dns-record-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/cloudflare/dns-record-1.yml"
+                    ]
+                },
+                "identifier": {
+                    "$ref": "/common-1.json#/definitions/longIdentifier"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "A",
+                        "CNAME",
+                        "TXT",
+                        "NS",
+                        "MX",
+                        "DS",
+                        "DNSKEY"
+                    ]
+                },
+                "ttl": {
+                    "type": "integer"
+                },
+                "value": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "algorithm": {
+                            "$ref": "/common-1.json#/definitions/dsDNSRecordAlgro"
+                        },
+                        "key_tag": {
+                            "$ref": "/common-1.json#/definitions/dsDNSRecordKeyTag"
+                        },
+                        "flags": {
+                            "$ref": "/common-1.json#/definitions/dsDNSRecordKeyTag"
+                        },
+                        "protocol": {
+                            "type": "integer"
+                        },
+                        "public_key": {
+                            "type": "string"
+                        },
+                        "digest_type": {
+                            "type": "integer"
+                        },
+                        "digest": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "proxied": {
+                    "type": "boolean"
+                },
+                "priority": {
+                    "$ref": "/common-1.json#/definitions/DNSRecordPriority"
+                }
+            },
+            "required": [
+                "name",
+                "type",
+                "ttl"
+            ]
+        },
+        "/cloudflare/dns-zone-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/cloudflare/dns-zone-1.yml"
+                    ]
+                },
+                "labels": {
+                    "$ref": "/common-1.json#/definitions/labels"
+                },
+                "identifier": {
+                    "$ref": "/common-1.json#/definitions/longIdentifier"
+                },
+                "zone": {
+                    "type": "string"
+                },
+                "plan": {
+                    "type": "string",
+                    "enum": [
+                        "free",
+                        "enterprise"
+                    ]
+                },
+                "type": {
+                    "enum": [
+                        "full",
+                        "partial"
+                    ]
+                },
+                "account": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/cloudflare/account-1.yml"
+                },
+                "records": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "items": {
+                        "$ref": "/cloudflare/dns-record-1.yml"
+                    }
+                },
+                "delete": {
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "$schema",
+                "zone"
+            ]
+        },
         "/cloudflare/terraform-resource-1.yml": {
             "$schema": "/metaschema-1.json",
             "version": "1.0",
@@ -7432,25 +7629,7 @@
                 "records": {
                     "type": "array",
                     "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                            "name": {
-                                "type": "string"
-                            },
-                            "type": {
-                                "type": "string"
-                            },
-                            "ttl": {
-                                "type": "integer"
-                            },
-                            "value": {
-                                "type": "string"
-                            },
-                            "proxied": {
-                                "type": "boolean"
-                            }
-                        }
+                        "$ref": "/cloudflare/dns-record-1.yml"
                     }
                 },
                 "workers": {
@@ -7640,31 +7819,7 @@
                         "records": {
                             "type": "array",
                             "items": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "type": {
-                                        "type": "string"
-                                    },
-                                    "ttl": {
-                                        "type": "integer"
-                                    },
-                                    "value": {
-                                        "type": "string"
-                                    },
-                                    "proxied": {
-                                        "type": "boolean"
-                                    }
-                                },
-                                "required": [
-                                    "name",
-                                    "type",
-                                    "ttl",
-                                    "value"
-                                ]
+                                "$ref": "/cloudflare/dns-record-1.yml"
                             }
                         },
                         "workers": {
@@ -8568,8 +8723,7 @@
                     "format": "uri"
                 },
                 "automationUserEmail": {
-                    "type": "string",
-                    "format": "email"
+                    "$ref": "/common-1.json#/definitions/vaultSecret"
                 },
                 "automationToken": {
                     "$ref": "/common-1.json#/definitions/vaultSecret"
@@ -9001,6 +9155,55 @@
                             "keep_hours"
                         ]
                     }
+                },
+                "workerFleets": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "account": {
+                                "$ref": "/aws/tenant_accounts-1.yml#/properties/account"
+                            },
+                            "identifier": {
+                                "$ref": "/common-1.json#/definitions/longIdentifier",
+                                "description": "ASG used for this Jenkins cloud, need to match an ASG identifier."
+                            },
+                            "namespace": {
+                                "$ref": "/common-1.json#/definitions/crossref",
+                                "$schemaRef": "/openshift/namespace-1.yml"
+                            },
+                            "credentialsId": {
+                                "type": "string",
+                                "description": "Jenkins credential name of ssh private key to be used for logging in to the remote host."
+                            },
+                            "fsRoot": {
+                                "type": "string"
+                            },
+                            "labelString": {
+                                "type": "string"
+                            },
+                            "numExecutors": {
+                                "type": "integer"
+                            },
+                            "idleMinutes": {
+                                "type": "integer"
+                            },
+                            "minSpareSize": {
+                                "type": "integer"
+                            },
+                            "noDelayProvision": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "account",
+                            "identifier",
+                            "namespace",
+                            "credentialsId",
+                            "labelString"
+                        ]
+                    }
                 }
             },
             "required": [
@@ -9356,6 +9559,48 @@
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/dependencies/quay-org-1.yml"
                 },
+                "mirrorFilters": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "description": "Name of the repository to filter.",
+                                "type": "string"
+                            },
+                            "tags": {
+                                "description": "This limits which tags to mirror to the ones in the list.\nThey will take preference over the ones excluded.\nRegular expressions are supported.\n",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "tagsExclude": {
+                                "description": "Tags to exclude. Regular expression are supported.\n",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ],
+                        "oneOf": [
+                            {
+                                "required": [
+                                    "tags"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "tagsExclude"
+                                ]
+                            }
+                        ]
+                    }
+                },
                 "managedTeams": {
                     "type": "array",
                     "items": {
@@ -9537,6 +9782,155 @@
                 "name",
                 "description",
                 "instance"
+            ]
+        },
+        "/dependencies/skupper-network-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/dependencies/skupper-network-1.yml"
+                    ]
+                },
+                "identifier": {
+                    "$ref": "/common-1.json#/definitions/identifier"
+                },
+                "siteConfigDefaults": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "clusterLocal": {
+                            "description": "Set up Skupper to only accept connections from within the local cluster. default=false\n",
+                            "type": "boolean"
+                        },
+                        "console": {
+                            "description": "Enable Skupper console. default=true\n",
+                            "type": "boolean"
+                        },
+                        "consoleAuthentication": {
+                            "description": "Skupper console authentication method. default=openshift\n",
+                            "type": "string",
+                            "enum": [
+                                "openshift"
+                            ]
+                        },
+                        "consoleIngress": {
+                            "description": "Determines if/how console is exposed outside cluster. default=route\n",
+                            "type": "string",
+                            "enum": [
+                                "route",
+                                "loadbalancer",
+                                "none"
+                            ]
+                        },
+                        "controllerCpuLimit": {
+                            "description": "CPU limit for service-controller pods. default=500m\n",
+                            "type": "string"
+                        },
+                        "controllerCpu": {
+                            "description": "CPU request for service-controller pods. default=200m\n",
+                            "type": "string"
+                        },
+                        "controllerMemoryLimit": {
+                            "description": "Memory limit for controller pods. default=128Mi\n",
+                            "type": "string"
+                        },
+                        "controllerMemory": {
+                            "description": "Memory request for controller pods. default=128Mi\n",
+                            "type": "string"
+                        },
+                        "controllerPodAntiaffinity": {
+                            "description": "Pod antiaffinity label matches to control placement of controller pods. default='skupper.io/component=controller'\n",
+                            "type": "string"
+                        },
+                        "controllerServiceAnnotations": {
+                            "description": "Annotations to add to Skupper controller service. default='managed-by=qontract-reconcile'\n",
+                            "type": "string"
+                        },
+                        "edge": {
+                            "description": "Set up an edge Skupper site. default=true for internal clusters\n",
+                            "type": "boolean"
+                        },
+                        "ingress": {
+                            "description": "Skupper ingress specific type. default=route\n",
+                            "type": "string",
+                            "enum": [
+                                "route",
+                                "loadbalancer",
+                                "ingress",
+                                "none"
+                            ]
+                        },
+                        "routerConsole": {
+                            "description": "Set up a Dispatch Router console (not recommended). default=false\n",
+                            "type": "boolean"
+                        },
+                        "routerCpuLimit": {
+                            "description": "CPU limit for router pods. default=500m\n",
+                            "type": "string"
+                        },
+                        "routerCpu": {
+                            "description": "CPU request for router pods. default=200m\n",
+                            "type": "string"
+                        },
+                        "routerLogging": {
+                            "description": "Logging settings for router (e.g. trace,debug,info,notice,warning,error). default=error\n",
+                            "type": "string",
+                            "enum": [
+                                "trace",
+                                "debug",
+                                "info",
+                                "notice",
+                                "warning",
+                                "error"
+                            ]
+                        },
+                        "routerMemoryLimit": {
+                            "description": "Memory limit for router pods. default=156Mi\n",
+                            "type": "string"
+                        },
+                        "routerMemory": {
+                            "description": "Memory request for router pods. default=156Mi\n",
+                            "type": "string"
+                        },
+                        "routerPodAntiaffinity": {
+                            "description": "Pod antiaffinity label matches to control placement of router pods. defaukt='skupper.io/component=router'\n",
+                            "type": "string"
+                        },
+                        "routerServiceAnnotations": {
+                            "description": "Annotations to add to Skupper router service. default=unset\n",
+                            "type": "string"
+                        },
+                        "routers": {
+                            "description": "Number of router replicas to start. default=3\n",
+                            "type": "integer"
+                        },
+                        "serviceController": {
+                            "description": "Run the service controller. default=true\n",
+                            "type": "boolean"
+                        },
+                        "serviceSync": {
+                            "description": "Determine if the service controller participates in service synchronization. default=true\n",
+                            "type": "boolean"
+                        },
+                        "skupperSiteController": {
+                            "description": "Skupper image and version\n",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "skupperSiteController"
+                    ]
+                }
+            },
+            "required": [
+                "$schema",
+                "identifier",
+                "siteConfigDefaults"
             ]
         },
         "/dependencies/slack-workspace-1.yml": {
@@ -10894,7 +11288,8 @@
                                     "ocm-groups",
                                     "ocm-machine-pools",
                                     "ocm-upgrade-scheduler",
-                                    "slack-usergroups"
+                                    "slack-usergroups",
+                                    "skupper-network"
                                 ]
                             }
                         },
@@ -11325,6 +11720,9 @@
                 "port": {
                     "type": "integer"
                 },
+                "remotePort": {
+                    "type": "integer"
+                },
                 "identity": {
                     "$ref": "/common-1.json#/definitions/vaultSecret"
                 }
@@ -11635,6 +12033,139 @@
                     "items": {
                         "$ref": "/common-1.json#/definitions/crossref",
                         "$schemaRef": "/openshift/shared-resources-1.yml"
+                    }
+                },
+                "skupperSite": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "network": {
+                            "$ref": "/common-1.json#/definitions/crossref",
+                            "$schemaRef": "/dependencies/skupper-network-1.yml"
+                        },
+                        "delete": {
+                            "type": "boolean"
+                        },
+                        "config": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "clusterLocal": {
+                                    "description": "Set up Skupper to only accept connections from within the local cluster. default=false\n",
+                                    "type": "boolean"
+                                },
+                                "console": {
+                                    "description": "Enable Skupper console. default=true\n",
+                                    "type": "boolean"
+                                },
+                                "consoleAuthentication": {
+                                    "description": "Skupper console authentication method. default=openshift\n",
+                                    "type": "string",
+                                    "enum": [
+                                        "openshift"
+                                    ]
+                                },
+                                "consoleIngress": {
+                                    "description": "Determines if/how console is exposed outside cluster. default=route\n",
+                                    "type": "string",
+                                    "enum": [
+                                        "route",
+                                        "loadbalancer",
+                                        "none"
+                                    ]
+                                },
+                                "controllerCpuLimit": {
+                                    "description": "CPU limit for service-controller pods. default=500m\n",
+                                    "type": "string"
+                                },
+                                "controllerCpu": {
+                                    "description": "CPU request for service-controller pods. default=500m\n",
+                                    "type": "string"
+                                },
+                                "controllerMemoryLimit": {
+                                    "description": "Memory limit for controller pods. default=128Mi\n",
+                                    "type": "string"
+                                },
+                                "controllerMemory": {
+                                    "description": "Memory request for controller pods. default=128Mi\n",
+                                    "type": "string"
+                                },
+                                "controllerPodAntiaffinity": {
+                                    "description": "Pod antiaffinity label matches to control placement of controller pods. default='skupper.io/component=controller'\n",
+                                    "type": "string"
+                                },
+                                "controllerServiceAnnotations": {
+                                    "description": "Annotations to add to Skupper controller service. default=unset\n",
+                                    "type": "string"
+                                },
+                                "edge": {
+                                    "description": "Set up an edge Skupper site. default=true for internal clusters\n",
+                                    "type": "boolean"
+                                },
+                                "ingress": {
+                                    "description": "Skupper ingress specific type. default=route\n",
+                                    "type": "string",
+                                    "enum": [
+                                        "route",
+                                        "loadbalancer",
+                                        "ingress",
+                                        "none"
+                                    ]
+                                },
+                                "routerConsole": {
+                                    "description": "Set up a Dispatch Router console (not recommended). default=false\n",
+                                    "type": "boolean"
+                                },
+                                "routerCpuLimit": {
+                                    "description": "CPU limit for router pods. default=500m\n",
+                                    "type": "string"
+                                },
+                                "routerCpu": {
+                                    "description": "CPU request for router pods. default=500m\n",
+                                    "type": "string"
+                                },
+                                "routerLogging": {
+                                    "description": "Logging settings for router (e.g. trace,debug,info,notice,warning,error). default=error\n",
+                                    "type": "string",
+                                    "enum": [
+                                        "trace",
+                                        "debug",
+                                        "info",
+                                        "notice",
+                                        "warning",
+                                        "error"
+                                    ]
+                                },
+                                "routerMemoryLimit": {
+                                    "description": "Memory limit for router pods. default=156Mi\n",
+                                    "type": "string"
+                                },
+                                "routerMemory": {
+                                    "description": "Memory request for router pods. default=156Mi\n",
+                                    "type": "string"
+                                },
+                                "routerPodAntiaffinity": {
+                                    "description": "Pod antiaffinity label matches to control placement of router pods. defaukt='skupper.io/component=router'\n",
+                                    "type": "string"
+                                },
+                                "routerServiceAnnotations": {
+                                    "description": "Annotations to add to Skupper router service. default=unset\n",
+                                    "type": "string"
+                                },
+                                "routers": {
+                                    "description": "Number of router replicas to start. default=3\n",
+                                    "type": "integer"
+                                },
+                                "serviceController": {
+                                    "description": "Run the service controller. default=true\n",
+                                    "type": "boolean"
+                                },
+                                "serviceSync": {
+                                    "description": "Determine if the service controller participates in service synchronization. default=true\n",
+                                    "type": "boolean"
+                                }
+                            }
+                        }
                     }
                 },
                 "openshiftResources": {
@@ -12898,7 +13429,8 @@
                     "enum": [
                         "approle",
                         "github",
-                        "oidc"
+                        "oidc",
+                        "kubernetes"
                     ]
                 },
                 "instance": {
@@ -12915,6 +13447,22 @@
                         "config": {
                             "type": "object",
                             "oneOf": [
+                                {
+                                    "properties": {
+                                        "_type": {
+                                            "type": "string",
+                                            "enum": [
+                                                "kubernetes"
+                                            ]
+                                        },
+                                        "kubernetes_host": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "kubernetes_host"
+                                    ]
+                                },
                                 {
                                     "properties": {
                                         "_type": {
@@ -13562,6 +14110,86 @@
                                 "token_num_uses",
                                 "user_claim"
                             ]
+                        },
+                        {
+                            "properties": {
+                                "_type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "kubernetes"
+                                    ]
+                                },
+                                "alias_name_source": {
+                                    "type": "string"
+                                },
+                                "audience": {
+                                    "type": "string"
+                                },
+                                "bound_service_account_names": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "bound_service_account_namespaces": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "token_ttl": {
+                                    "type": "string",
+                                    "pattern": "^\\d+$"
+                                },
+                                "token_max_ttl": {
+                                    "type": "string",
+                                    "pattern": "^\\d+$"
+                                },
+                                "token_explicit_max_ttl": {
+                                    "type": "string",
+                                    "pattern": "^\\d+$"
+                                },
+                                "token_type": {
+                                    "type": "string"
+                                },
+                                "token_period": {
+                                    "type": "string",
+                                    "pattern": "^\\d+$"
+                                },
+                                "token_policies": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "token_bound_cidrs": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "token_no_default_policy": {
+                                    "type": "boolean"
+                                },
+                                "token_num_uses": {
+                                    "type": "string",
+                                    "pattern": "^\\d+$"
+                                }
+                            },
+                            "required": [
+                                "alias_name_source",
+                                "bound_service_account_names",
+                                "bound_service_account_namespaces",
+                                "token_ttl",
+                                "token_max_ttl",
+                                "token_explicit_max_ttl",
+                                "token_type",
+                                "token_period",
+                                "token_policies",
+                                "token_bound_cidrs",
+                                "token_no_default_policy",
+                                "token_num_uses"
+                            ]
                         }
                     ],
                     "required": [
@@ -13762,6 +14390,26 @@
                     "type": "number",
                     "minimum": 90,
                     "exclusiveMaximum": 100
+                },
+                "dsDNSRecordAlgro": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 255
+                },
+                "dsDNSRecordKeyTag": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 65535
+                },
+                "dsDNSKEYRecordFlags": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 65535
+                },
+                "DNSRecordPriority": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 65535
                 },
                 "crossref": {
                     "type": "object",
@@ -14416,7 +15064,8 @@
                     "field": "_type",
                     "fieldMap": {
                         "github": "VaultAuthConfigGithub_v1",
-                        "oidc": "VaultAuthConfigOidc_v1"
+                        "oidc": "VaultAuthConfigOidc_v1",
+                        "kubernetes": "VaultAuthConfigKubernetes_v1"
                     }
                 },
                 "fields": [
@@ -14489,6 +15138,22 @@
                     },
                     {
                         "name": "default_role",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "VaultAuthConfigKubernetes_v1",
+                "interface": "VaultAuthConfig_v1",
+                "fields": [
+                    {
+                        "name": "_type",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "kubernetes_host",
                         "type": "string",
                         "isRequired": true
                     }
@@ -14577,7 +15242,8 @@
                     "field": "_type",
                     "fieldMap": {
                         "approle": "VaultApproleOptions_v1",
-                        "oidc": "VaultRoleOidcOptions_v1"
+                        "oidc": "VaultRoleOidcOptions_v1",
+                        "kubernetes": "VaultRoleKubernetesOptions_v1"
                     }
                 },
                 "fields": [
@@ -14803,6 +15469,85 @@
                 ]
             },
             {
+                "name": "VaultRoleKubernetesOptions_v1",
+                "interface": "VaultRoleOptions_v1",
+                "fields": [
+                    {
+                        "name": "_type",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "alias_name_source",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "audience",
+                        "type": "string"
+                    },
+                    {
+                        "name": "bound_service_account_names",
+                        "type": "string",
+                        "isList": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "bound_service_account_namespaces",
+                        "type": "string",
+                        "isList": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "token_ttl",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "token_max_ttl",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "token_explicit_max_ttl",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "token_type",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "token_period",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "token_policies",
+                        "type": "string",
+                        "isList": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "token_bound_cidrs",
+                        "type": "string",
+                        "isList": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "token_no_default_policy",
+                        "type": "boolean",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "token_num_uses",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
                 "name": "VaultRole_v1",
                 "fields": [
                     {
@@ -14995,6 +15740,10 @@
                         "type": "int"
                     },
                     {
+                        "name": "remotePort",
+                        "type": "int"
+                    },
+                    {
                         "name": "identity",
                         "type": "VaultSecret_v1",
                         "isRequired": true
@@ -15117,6 +15866,11 @@
                         "type": "QuayOrg_v1"
                     },
                     {
+                        "name": "mirrorFilters",
+                        "type": "QuayOrgMirrorFilter_v1",
+                        "isList": true
+                    },
+                    {
                         "name": "managedRepos",
                         "type": "boolean",
                         "isRequired": true
@@ -15143,6 +15897,26 @@
                     {
                         "name": "pushCredentials",
                         "type": "VaultSecret_v1"
+                    }
+                ]
+            },
+            {
+                "name": "QuayOrgMirrorFilter_v1",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "tags",
+                        "type": "string",
+                        "isList": true
+                    },
+                    {
+                        "name": "tagsExclude",
+                        "type": "string",
+                        "isList": true
                     }
                 ]
             },
@@ -15192,6 +15966,56 @@
                         "name": "keep_hours",
                         "type": "int",
                         "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "JenkinsWorkerFleets_v1",
+                "fields": [
+                    {
+                        "name": "account",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "namespace",
+                        "type": "Namespace_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "credentialsId",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "fsRoot",
+                        "type": "string"
+                    },
+                    {
+                        "name": "labelString",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "numExecutors",
+                        "type": "int"
+                    },
+                    {
+                        "name": "idleMinutes",
+                        "type": "int"
+                    },
+                    {
+                        "name": "minSpareSize",
+                        "type": "int"
+                    },
+                    {
+                        "name": "noDelayProvision",
+                        "type": "boolean"
                     }
                 ]
             },
@@ -15254,6 +16078,11 @@
                     {
                         "name": "buildsCleanupRules",
                         "type": "JenkinsInstanceBuildsCleanupRules_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "workerFleets",
+                        "type": "JenkinsWorkerFleets_v1",
                         "isList": true
                     }
                 ]
@@ -19004,6 +19833,10 @@
                         "type": "boolean"
                     },
                     {
+                        "name": "grafana_datasource",
+                        "type": "boolean"
+                    },
+                    {
                         "name": "replica_source",
                         "type": "string"
                     },
@@ -19811,6 +20644,20 @@
                         "type": "int"
                     },
                     {
+                        "name": "enable_http2",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "ingress_cidr_blocks",
+                        "type": "string",
+                        "isRequired": true,
+                        "isList": true
+                    },
+                    {
+                        "name": "ip_address_type",
+                        "type": "string"
+                    },
+                    {
                         "name": "targets",
                         "type": "NamespaceTerraformResourceALBTargets_v1",
                         "isRequired": true,
@@ -20270,7 +21117,7 @@
                 ]
             },
             {
-                "name": "NamespaceManagedResourceNames_v1",
+                "name": "ManagedResourceNames_v1",
                 "fields": [
                     {
                         "name": "resource",
@@ -20447,7 +21294,7 @@
                     },
                     {
                         "name": "managedResourceNames",
-                        "type": "NamespaceManagedResourceNames_v1",
+                        "type": "ManagedResourceNames_v1",
                         "isList": true
                     },
                     {
@@ -20484,6 +21331,10 @@
                     {
                         "name": "kafkaCluster",
                         "type": "KafkaCluster_v1"
+                    },
+                    {
+                        "name": "skupperSite",
+                        "type": "NamespaceSkupperSiteConfig_v1"
                     }
                 ]
             },
@@ -21322,6 +22173,11 @@
                         "name": "managedResourceTypes",
                         "type": "string",
                         "isRequired": true,
+                        "isList": true
+                    },
+                    {
+                        "name": "managedResourceNames",
+                        "type": "ManagedResourceNames_v1",
                         "isList": true
                     },
                     {
@@ -23070,6 +23926,10 @@
                         "type": "boolean"
                     },
                     {
+                        "name": "check_only_affected_shards",
+                        "type": "boolean"
+                    },
+                    {
                         "name": "shardSpecOverride",
                         "type": "IntegrationSpecShardSpecOverride_v1",
                         "isList": true,
@@ -24123,6 +24983,12 @@
                         "datafileSchema": "/dependencies/dns-zone-1.yml"
                     },
                     {
+                        "name": "cloudflare_dns_zone_v1",
+                        "type": "CloudflareDnsZone_v1",
+                        "isList": true,
+                        "datafileSchema": "/cloudflare/dns-zone-1.yml"
+                    },
+                    {
                         "name": "slack_workspaces_v1",
                         "type": "SlackWorkspace_v1",
                         "isList": true,
@@ -24200,6 +25066,12 @@
                         "type": "PgpReencryptSettings_v1",
                         "isList": true,
                         "datafileSchema": "/app-sre/pgp-reencrypt-settings-1.yml"
+                    },
+                    {
+                        "name": "skupper_network_v1",
+                        "type": "SkupperNetwork_v1",
+                        "isList": true,
+                        "datafileSchema": "/dependencies/skupper-network-1.yml"
                     }
                 ]
             },
@@ -24233,7 +25105,7 @@
                     },
                     {
                         "name": "automationUserEmail",
-                        "type": "string",
+                        "type": "VaultSecret_v1",
                         "isRequired": true
                     },
                     {
@@ -24769,6 +25641,141 @@
                         "name": "records",
                         "type": "DnsRecord_v1",
                         "isList": true
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareDnsRecordDataSettings_v1",
+                "fields": [
+                    {
+                        "name": "algorithm",
+                        "type": "int"
+                    },
+                    {
+                        "name": "key_tag",
+                        "type": "int"
+                    },
+                    {
+                        "name": "flags",
+                        "type": "int"
+                    },
+                    {
+                        "name": "protocol",
+                        "type": "int"
+                    },
+                    {
+                        "name": "public_key",
+                        "type": "string"
+                    },
+                    {
+                        "name": "digest_type",
+                        "type": "int"
+                    },
+                    {
+                        "name": "digest",
+                        "type": "string"
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareDnsRecord_v1",
+                "datafile": "/cloudflare/dns-record-1.yml",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "type",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "ttl",
+                        "type": "int",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "value",
+                        "type": "string"
+                    },
+                    {
+                        "name": "data",
+                        "type": "CloudflareDnsRecordDataSettings_v1"
+                    },
+                    {
+                        "name": "proxied",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "priority",
+                        "type": "int"
+                    }
+                ]
+            },
+            {
+                "name": "CloudflareDnsZone_v1",
+                "datafile": "/cloudflare/dns-zone-1.yml",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "account",
+                        "type": "CloudflareAccount_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "zone",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "type",
+                        "type": "string"
+                    },
+                    {
+                        "name": "plan",
+                        "type": "string"
+                    },
+                    {
+                        "name": "records",
+                        "type": "CloudflareDnsRecord_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "delete",
+                        "type": "boolean"
                     }
                 ]
             },
@@ -25631,6 +26638,260 @@
                         "isList": true
                     }
                 ]
+            },
+            {
+                "name": "SkupperNetwork_v1",
+                "datafile": "/dependencies/skupper-network-1.yml",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "identifier",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
+                    },
+                    {
+                        "name": "siteConfigDefaults",
+                        "type": "SkupperSiteConfigDefaults_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "namespaces",
+                        "type": "Namespace_v1",
+                        "isRequired": true,
+                        "isList": true,
+                        "synthetic": {
+                            "schema": "/openshift/namespace-1.yml",
+                            "subAttr": "skupperSite.network"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "SkupperSiteConfigDefaults_v1",
+                "fields": [
+                    {
+                        "name": "clusterLocal",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "console",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "consoleAuthentication",
+                        "type": "string"
+                    },
+                    {
+                        "name": "consoleIngress",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerCpuLimit",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerCpu",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerMemoryLimit",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerMemory",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerPodAntiaffinity",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerServiceAnnotations",
+                        "type": "string"
+                    },
+                    {
+                        "name": "edge",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "ingress",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerConsole",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "routerCpuLimit",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerCpu",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerMemoryLimit",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerMemory",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerLogging",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerPodAntiaffinity",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerServiceAnnotations",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routers",
+                        "type": "int"
+                    },
+                    {
+                        "name": "serviceController",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "serviceSync",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "skupperSiteController",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "SkupperSiteConfig_v1",
+                "fields": [
+                    {
+                        "name": "clusterLocal",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "console",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "consoleAuthentication",
+                        "type": "string"
+                    },
+                    {
+                        "name": "consoleIngress",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerCpuLimit",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerCpu",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerMemoryLimit",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerMemory",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerPodAntiaffinity",
+                        "type": "string"
+                    },
+                    {
+                        "name": "controllerServiceAnnotations",
+                        "type": "string"
+                    },
+                    {
+                        "name": "edge",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "ingress",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerConsole",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "routerCpuLimit",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerCpu",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerMemoryLimit",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerMemory",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerLogging",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerPodAntiaffinity",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routerServiceAnnotations",
+                        "type": "string"
+                    },
+                    {
+                        "name": "routers",
+                        "type": "int"
+                    },
+                    {
+                        "name": "serviceController",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "serviceSync",
+                        "type": "boolean"
+                    }
+                ]
+            },
+            {
+                "name": "NamespaceSkupperSiteConfig_v1",
+                "fields": [
+                    {
+                        "name": "network",
+                        "type": "SkupperNetwork_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "delete",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "config",
+                        "type": "SkupperSiteConfig_v1"
+                    }
+                ]
             }
         ]
     },
@@ -25690,6 +26951,121 @@
             "service": "github-org-team",
             "org": "app-sre",
             "team": "vault-app-sre"
+        },
+        "/teams/app-sre/roles/app-interface-vault-oidc.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-interface-vault-oidc",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-sre-vault-oidc-secondary",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/secondary/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/roles/app-sre-vault-oidc.yml": {
+            "$schema": "/access/role-1.yml",
+            "labels": {},
+            "name": "app-sre-vault-oidc",
+            "permissions": [],
+            "oidc_permissions": [
+                {
+                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
+                }
+            ]
+        },
+        "/teams/app-sre/users/tester.yml": {
+            "$schema": "/access/user-1.yml",
+            "labels": {},
+            "name": "The Tester",
+            "org_username": "tester",
+            "github_username": "tester0",
+            "quay_username": "rh_ee_tester",
+            "roles": [
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
+                }
+            ],
+            "public_gpg_key": "nada"
+        },
+        "/teams/app-sre/users/tester2.yml": {
+            "$schema": "/access/user-1.yml",
+            "labels": {},
+            "name": "The Second Tester",
+            "org_username": "tester2",
+            "github_username": "tester2",
+            "quay_username": "rh_ee_tester2",
+            "roles": [
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
+                },
+                {
+                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
+                }
+            ],
+            "public_gpg_key": "nada"
+        },
+        "/services/vault/config/audit-backends/master/file-audit.yml": {
+            "$schema": "/vault-config/audit-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "file/",
+            "type": "file",
+            "instance": {
+                "$ref": "/services/vault/config/instances/master.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "file",
+                "file_path": "/var/log/vault/vault_audit.log",
+                "format": "json",
+                "log_raw": "false",
+                "hmac_accessor": "true",
+                "mode": "0600",
+                "prefix": ""
+            }
+        },
+        "/services/vault/config/audit-backends/secondary/file-audit.yml": {
+            "$schema": "/vault-config/audit-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "_path": "file/",
+            "type": "file",
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "description": "",
+            "options": {
+                "_type": "file",
+                "file_path": "/var/log/vault/vault_audit.log",
+                "format": "json",
+                "log_raw": "false",
+                "hmac_accessor": "true",
+                "mode": "0600",
+                "prefix": ""
+            }
         },
         "/services/vault/config/auth-backends/master/approle.yml": {
             "$schema": "/vault-config/auth-1.yml",
@@ -25758,6 +27134,24 @@
                         "path": "secret/oidc",
                         "field": "client-secret"
                     }
+                }
+            }
+        },
+        "/services/vault/config/auth-backends/master/kubernetes.yml": {
+            "$schema": "/vault-config/auth-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "instance": {
+                "$ref": "/services/vault/config/instances/master.yml"
+            },
+            "_path": "kubernetes-appsres03ue1/",
+            "type": "kubernetes",
+            "description": "kubernetes auth - appsres03ue1",
+            "settings": {
+                "config": {
+                    "_type": "kubernetes",
+                    "kubernetes_host": "https://api.appsres03ue1.5nvu.p1.openshiftapps.com:6443"
                 }
             }
         },
@@ -26075,6 +27469,39 @@
                 "user_claim": "email"
             }
         },
+        "/services/vault/config/roles/master/kubernetes/default.yml": {
+            "$schema": "/vault-config/role-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "name": "kube-default",
+            "type": "kubernetes",
+            "mount": "kubernetes-appsres03ue1/",
+            "instance": {
+                "$ref": "/services/vault/config/instances/master.yml"
+            },
+            "options": {
+                "_type": "kubernetes",
+                "alias_name_source": "serviceaccount_name",
+                "bound_service_account_names": [
+                    "vault"
+                ],
+                "bound_service_account_namespaces": [
+                    "vault-prod"
+                ],
+                "token_ttl": "1800",
+                "token_max_ttl": "3600",
+                "token_explicit_max_ttl": "0",
+                "token_type": "default",
+                "token_period": "0",
+                "token_policies": [
+                    "default"
+                ],
+                "token_bound_cidrs": [],
+                "token_no_default_policy": false,
+                "token_num_uses": "0"
+            }
+        },
         "/services/vault/config/roles/secondary/approles/vault-manager.yml": {
             "$schema": "/vault-config/role-1.yml",
             "labels": {
@@ -26282,121 +27709,6 @@
                 "_type": "kv",
                 "version": "1"
             }
-        },
-        "/services/vault/config/audit-backends/master/file-audit.yml": {
-            "$schema": "/vault-config/audit-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "_path": "file/",
-            "type": "file",
-            "instance": {
-                "$ref": "/services/vault/config/instances/master.yml"
-            },
-            "description": "",
-            "options": {
-                "_type": "file",
-                "file_path": "/var/log/vault/vault_audit.log",
-                "format": "json",
-                "log_raw": "false",
-                "hmac_accessor": "true",
-                "mode": "0600",
-                "prefix": ""
-            }
-        },
-        "/services/vault/config/audit-backends/secondary/file-audit.yml": {
-            "$schema": "/vault-config/audit-1.yml",
-            "labels": {
-                "service": "vault.local"
-            },
-            "_path": "file/",
-            "type": "file",
-            "instance": {
-                "$ref": "/services/vault/config/instances/secondary.yml"
-            },
-            "description": "",
-            "options": {
-                "_type": "file",
-                "file_path": "/var/log/vault/vault_audit.log",
-                "format": "json",
-                "log_raw": "false",
-                "hmac_accessor": "true",
-                "mode": "0600",
-                "prefix": ""
-            }
-        },
-        "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml": {
-            "$schema": "/access/role-1.yml",
-            "labels": {},
-            "name": "app-sre-vault-oidc-secondary",
-            "permissions": [],
-            "oidc_permissions": [
-                {
-                    "$ref": "/dependencies/vault/permissions/oidc/secondary/app-sre-vault-admin.yml"
-                }
-            ]
-        },
-        "/teams/app-sre/roles/app-sre-vault-oidc.yml": {
-            "$schema": "/access/role-1.yml",
-            "labels": {},
-            "name": "app-sre-vault-oidc",
-            "permissions": [],
-            "oidc_permissions": [
-                {
-                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
-                }
-            ]
-        },
-        "/teams/app-sre/roles/app-interface-vault-oidc.yml": {
-            "$schema": "/access/role-1.yml",
-            "labels": {},
-            "name": "app-interface-vault-oidc",
-            "permissions": [],
-            "oidc_permissions": [
-                {
-                    "$ref": "/dependencies/vault/permissions/oidc/master/app-sre-vault-admin.yml"
-                }
-            ]
-        },
-        "/teams/app-sre/users/tester.yml": {
-            "$schema": "/access/user-1.yml",
-            "labels": {},
-            "name": "The Tester",
-            "org_username": "tester",
-            "github_username": "tester0",
-            "quay_username": "rh_ee_tester",
-            "roles": [
-                {
-                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
-                },
-                {
-                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
-                },
-                {
-                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
-                }
-            ],
-            "public_gpg_key": "nada"
-        },
-        "/teams/app-sre/users/tester2.yml": {
-            "$schema": "/access/user-1.yml",
-            "labels": {},
-            "name": "The Second Tester",
-            "org_username": "tester2",
-            "github_username": "tester2",
-            "quay_username": "rh_ee_tester2",
-            "roles": [
-                {
-                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc.yml"
-                },
-                {
-                    "$ref": "/teams/app-sre/roles/app-interface-vault-oidc.yml"
-                },
-                {
-                    "$ref": "/teams/app-sre/roles/app-sre-vault-oidc-secondary.yml"
-                }
-            ],
-            "public_gpg_key": "nada"
         }
     },
     "resources": {}

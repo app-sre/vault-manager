@@ -1,0 +1,16 @@
+---
+$schema: /vault-config/auth-1.yml
+
+labels:
+  service: vault.local
+
+instance:
+  $ref: /services/vault/config/instances/master.yml
+
+_path: "kubernetes-appsres03ue1/"
+type: "kubernetes"
+description: "kubernetes auth - appsres03ue1"
+settings:
+  config:
+    _type: "kubernetes"
+    kubernetes_host: "https://api.appsres03ue1.5nvu.p1.openshiftapps.com:6443"
