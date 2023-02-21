@@ -1,8 +1,10 @@
 package vault
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -10,6 +12,7 @@ import (
 
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/hashicorp/vault/api"
+	"github.com/hashicorp/vault/api/auth/kubernetes"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,6 +23,7 @@ type Instance struct {
 
 type auth struct {
 	Provider     string `yaml:"provider"`
+	KubeRoleName string `yaml:"kubeRoleName"`
 	SecretEngine string `yaml:"secretEngine"`
 	RoleID       secret `yaml:"roleID"`
 	SecretID     secret `yaml:"secretID"`
@@ -41,6 +45,7 @@ type VaultSecret struct {
 }
 
 type AuthBundle struct {
+	KubeRoleName string
 	SecretEngine string
 	VaultSecrets []*VaultSecret
 }
@@ -69,11 +74,12 @@ func GetInstances(entriesBytes []byte, threadPoolSize int) []string {
 		log.WithError(err).Fatal("[Vault Instance] failed to decode instance configuration")
 	}
 
-	instanceCreds, err := processInstances(instances)
+	kubeSATokenPath, _ := os.LookupEnv("KUBE_SA_TOKEN_PATH")
+	instanceCreds, err := processInstances(instances, kubeSATokenPath)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Instance] failed to retrieve access credentials")
 	}
-	initClients(instanceCreds, threadPoolSize)
+	initClients(instanceCreds, kubeSATokenPath, threadPoolSize)
 
 	// return list of addresses that clients were initialized for
 	addresses := []string{}
@@ -84,51 +90,55 @@ func GetInstances(entriesBytes []byte, threadPoolSize int) []string {
 }
 
 // generates map of instance addresses to access credentials stored in master vault
-func processInstances(instances []Instance) (map[string]AuthBundle, error) {
+func processInstances(instances []Instance, kubeSATokenPath string) (map[string]AuthBundle, error) {
 	instanceCreds := make(map[string]AuthBundle)
 	for _, i := range instances {
-		bundle := AuthBundle{
-			SecretEngine: i.Auth.SecretEngine,
-		}
-		switch strings.ToLower(i.Auth.Provider) {
-		case APPROLE_AUTH:
-			// ensure required values exist
-			if i.Auth.RoleID.Field == "" || i.Auth.RoleID.Path == "" ||
-				i.Auth.SecretID.Field == "" || i.Auth.SecretID.Path == "" {
-				return nil, errors.New("A required approle authentication attribute is missing")
+		bundle := AuthBundle{}
+		// conditions only met within deployments
+		if len(kubeSATokenPath) > 0 && len(i.Auth.KubeRoleName) > 0 {
+			bundle.KubeRoleName = i.Auth.KubeRoleName
+		} else {
+			bundle.SecretEngine = i.Auth.SecretEngine
+			switch strings.ToLower(i.Auth.Provider) {
+			case APPROLE_AUTH:
+				// ensure required values exist
+				if i.Auth.RoleID.Field == "" || i.Auth.RoleID.Path == "" ||
+					i.Auth.SecretID.Field == "" || i.Auth.SecretID.Path == "" {
+					return nil, errors.New("A required approle authentication attribute is missing")
+				}
+				bundle.VaultSecrets = []*VaultSecret{
+					{
+						Name:    ROLE_ID,
+						Type:    APPROLE_AUTH,
+						Path:    i.Auth.RoleID.Path,
+						Field:   i.Auth.RoleID.Field,
+						Version: i.Auth.RoleID.Version,
+					},
+					{
+						Name:    SECRET_ID,
+						Type:    APPROLE_AUTH,
+						Path:    i.Auth.SecretID.Path,
+						Field:   i.Auth.SecretID.Field,
+						Version: i.Auth.SecretID.Version,
+					},
+				}
+			case TOKEN_AUTH:
+				if i.Auth.Token.Field == "" || i.Auth.Token.Path == "" {
+					return nil, errors.New("A required token authentication attribute is missing")
+				}
+				bundle.VaultSecrets = []*VaultSecret{
+					{
+						Name:    TOKEN,
+						Type:    TOKEN_AUTH,
+						Path:    i.Auth.Token.Path,
+						Field:   i.Auth.Token.Field,
+						Version: i.Auth.Token.Version,
+					},
+				}
+			default:
+				return nil, errors.New(fmt.Sprintf(
+					"Unable to process `auth` attribute of instance definition with address %s", i.Address))
 			}
-			bundle.VaultSecrets = []*VaultSecret{
-				{
-					Name:    ROLE_ID,
-					Type:    APPROLE_AUTH,
-					Path:    i.Auth.RoleID.Path,
-					Field:   i.Auth.RoleID.Field,
-					Version: i.Auth.RoleID.Version,
-				},
-				{
-					Name:    SECRET_ID,
-					Type:    APPROLE_AUTH,
-					Path:    i.Auth.SecretID.Path,
-					Field:   i.Auth.SecretID.Field,
-					Version: i.Auth.SecretID.Version,
-				},
-			}
-		case TOKEN_AUTH:
-			if i.Auth.Token.Field == "" || i.Auth.Token.Path == "" {
-				return nil, errors.New("A required token authentication attribute is missing")
-			}
-			bundle.VaultSecrets = []*VaultSecret{
-				{
-					Name:    TOKEN,
-					Type:    TOKEN_AUTH,
-					Path:    i.Auth.Token.Path,
-					Field:   i.Auth.Token.Field,
-					Version: i.Auth.Token.Version,
-				},
-			}
-		default:
-			return nil, errors.New(fmt.Sprintf(
-				"Unable to process `auth` attribute of instance definition with address %s", i.Address))
 		}
 		instanceCreds[i.Address] = bundle
 	}
@@ -137,9 +147,9 @@ func processInstances(instances []Instance) (map[string]AuthBundle, error) {
 
 // Creates global map of all vault clients defined in a-i
 // This allows reconciliation of multiple vault instances
-func initClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
+func initClients(instanceCreds map[string]AuthBundle, kubeSATokenPath string, threadPoolSize int) {
 	vaultClients = make(map[string]*api.Client)
-	masterAddress := configureMaster()
+	masterAddress := configureMaster(instanceCreds, kubeSATokenPath)
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 	var mutex = &sync.Mutex{}
 	// read access credentials for other vault instances and configure clients
@@ -154,9 +164,9 @@ func initClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
 }
 
 // configureMaster initializes vault client for the master instance
-// This is the only client configured using environment variables
+// This is the only client that can be configured using environment variables
 // env vars: VAULT_ADDR, VAULT_AUTHTYPE, VAULT_ROLE_ID, VAULT_SECRET_ID, VAULT_TOKEN
-func configureMaster() string {
+func configureMaster(instanceCreds map[string]AuthBundle, kubeSATokenPath string) string {
 	masterVaultCFG := api.DefaultConfig()
 	masterVaultCFG.Address = mustGetenv("VAULT_ADDR")
 
@@ -165,27 +175,47 @@ func configureMaster() string {
 		log.WithError(err).Fatal("failed to initialize master Vault client")
 	}
 
-	var clientToken string
-	switch authType := defaultGetenv("VAULT_AUTHTYPE", "approle"); strings.ToLower(authType) {
-	case APPROLE_AUTH:
-		roleID := mustGetenv("VAULT_ROLE_ID")
-		secretID := mustGetenv("VAULT_SECRET_ID")
-
-		secret, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
-			"role_id":   roleID,
-			"secret_id": secretID,
-		})
+	masterAuthBundle := instanceCreds[masterVaultCFG.Address]
+	if len(masterAuthBundle.KubeRoleName) > 0 {
+		kubeAuth, err := kubernetes.NewKubernetesAuth(
+			masterAuthBundle.KubeRoleName,
+			kubernetes.WithServiceAccountTokenPath(kubeSATokenPath),
+		)
 		if err != nil {
-			log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
+			log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with Kube SA token")
 		}
-		clientToken = secret.Auth.ClientToken
-	case TOKEN_AUTH:
-		clientToken = mustGetenv("VAULT_TOKEN")
-	default:
-		log.WithField("authType", authType).Fatal("[Vault Client] unsupported auth type")
+
+		authInfo, err := client.Auth().Login(context.TODO(), kubeAuth)
+		if err != nil {
+			log.WithError(err).Fatal("[Vault Client] unable to log in with Kubernetes auth")
+		}
+		if authInfo == nil {
+			log.Fatal("[Vault Client] no auth info was returned after kube login")
+
+		}
+	} else {
+		var clientToken string
+		switch authType := defaultGetenv("VAULT_AUTHTYPE", "approle"); strings.ToLower(authType) {
+		case APPROLE_AUTH:
+			roleID := mustGetenv("VAULT_ROLE_ID")
+			secretID := mustGetenv("VAULT_SECRET_ID")
+
+			secret, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
+				"role_id":   roleID,
+				"secret_id": secretID,
+			})
+			if err != nil {
+				log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
+			}
+			clientToken = secret.Auth.ClientToken
+		case TOKEN_AUTH:
+			clientToken = mustGetenv("VAULT_TOKEN")
+		default:
+			log.WithField("authType", authType).Fatal("[Vault Client] unsupported auth type")
+		}
+		client.SetToken(clientToken)
 	}
 
-	client.SetToken(clientToken)
 	vaultClients[masterVaultCFG.Address] = client
 	return masterVaultCFG.Address
 }
