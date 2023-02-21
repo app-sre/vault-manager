@@ -114,6 +114,20 @@
                 user_claim
                 verbose_oidc_logging
             }
+            ... on VaultRoleKubernetesOptions_v1 {
+                alias_name_source
+                bound_service_account_names
+                bound_service_account_namespaces
+                token_ttl
+                token_max_ttl
+                token_explicit_max_ttl
+                token_type
+                token_period
+                token_policies
+                token_bound_cidrs
+                token_num_uses
+                token_no_default_policy
+            }
         }
     }
 }
