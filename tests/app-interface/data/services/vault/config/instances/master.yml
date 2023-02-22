@@ -10,6 +10,7 @@ description: "Primary FedRamp Vault instance"
 address: "http://127.0.0.1:8200"
 auth:
   provider: "token"
+  kubeRoleName: "vault-manager"
   secretEngine: "kv_v2"
   token:
     path: "secret/master"

@@ -181,6 +181,7 @@
       provider
       secretEngine
       ... on VaultInstanceAuthApprole_v1 {
+        kubeRoleName
         roleID {
           path
           field
@@ -193,6 +194,7 @@
         }
       }
       ... on VaultInstanceAuthToken_v1 {
+        kubeRoleName
         token {
           path
           field
