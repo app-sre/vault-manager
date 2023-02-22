@@ -13651,6 +13651,9 @@
                 "provider": {
                     "type": "string"
                 },
+                "kubeRoleName": {
+                    "type": "string"
+                },
                 "secretEngine": {
                     "type": "string",
                     "enum": [
@@ -19073,7 +19076,7 @@
                     },
                     {
                         "name": "records",
-                        "type": "CloudflareZoneRecord_v1",
+                        "type": "CloudflareDnsRecord_v1",
                         "isList": true
                     },
                     {
@@ -19097,35 +19100,6 @@
                     },
                     {
                         "name": "smart_routing",
-                        "type": "boolean"
-                    }
-                ]
-            },
-            {
-                "name": "CloudflareZoneRecord_v1",
-                "fields": [
-                    {
-                        "name": "name",
-                        "type": "string",
-                        "isRequired": true
-                    },
-                    {
-                        "name": "type",
-                        "type": "string",
-                        "isRequired": true
-                    },
-                    {
-                        "name": "ttl",
-                        "type": "int",
-                        "isRequired": true
-                    },
-                    {
-                        "name": "value",
-                        "type": "string",
-                        "isRequired": true
-                    },
-                    {
-                        "name": "proxied",
                         "type": "boolean"
                     }
                 ]
@@ -22916,6 +22890,10 @@
                         "name": "secretEngine",
                         "type": "string",
                         "isRequired": true
+                    },
+                    {
+                        "name": "kubeRoleName",
+                        "type": "string"
                     }
                 ]
             },
@@ -22942,6 +22920,10 @@
                         "name": "secretID",
                         "type": "VaultSecret_v1",
                         "isRequired": true
+                    },
+                    {
+                        "name": "kubeRoleName",
+                        "type": "string"
                     }
                 ]
             },
@@ -22963,6 +22945,10 @@
                         "name": "token",
                         "type": "VaultSecret_v1",
                         "isRequired": true
+                    },
+                    {
+                        "name": "kubeRoleName",
+                        "type": "string"
                     }
                 ]
             },
@@ -25679,23 +25665,11 @@
             },
             {
                 "name": "CloudflareDnsRecord_v1",
-                "datafile": "/cloudflare/dns-record-1.yml",
                 "fields": [
-                    {
-                        "name": "schema",
-                        "type": "string",
-                        "isRequired": true
-                    },
-                    {
-                        "name": "path",
-                        "type": "string",
-                        "isRequired": true
-                    },
                     {
                         "name": "identifier",
                         "type": "string",
-                        "isRequired": true,
-                        "isUnique": true
+                        "isRequired": true
                     },
                     {
                         "name": "name",
@@ -27225,23 +27199,6 @@
                 }
             }
         },
-        "/services/vault/config/instances/master.yml": {
-            "$schema": "/vault-config/instance-1.yml",
-            "labels": {
-                "service": "vault.fedramp.devshift.net"
-            },
-            "name": "app-sre-master-vault",
-            "description": "Primary FedRamp Vault instance",
-            "address": "http://127.0.0.1:8200",
-            "auth": {
-                "provider": "token",
-                "secretEngine": "kv_v2",
-                "token": {
-                    "path": "secret/master",
-                    "field": "rootToken"
-                }
-            }
-        },
         "/services/vault/config/instances/secondary.yml": {
             "$schema": "/vault-config/instance-1.yml",
             "labels": {
@@ -27256,6 +27213,24 @@
                 "token": {
                     "path": "secret/secondary",
                     "field": "root"
+                }
+            }
+        },
+        "/services/vault/config/instances/master.yml": {
+            "$schema": "/vault-config/instance-1.yml",
+            "labels": {
+                "service": "vault.fedramp.devshift.net"
+            },
+            "name": "app-sre-master-vault",
+            "description": "Primary FedRamp Vault instance",
+            "address": "http://127.0.0.1:8200",
+            "auth": {
+                "provider": "token",
+                "kubeRoleName": "vault-manager",
+                "secretEngine": "kv_v2",
+                "token": {
+                    "path": "secret/master",
+                    "field": "rootToken"
                 }
             }
         },
