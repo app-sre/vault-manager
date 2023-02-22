@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"gopkg.in/yaml.v2"
 
@@ -218,7 +219,9 @@ func configureKubeAuthClient(client *api.Client, bundle AuthBundle, kubeSATokenP
 	if err != nil {
 		return err
 	}
-	authInfo, err := client.Auth().Login(context.TODO(), kubeAuth)
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	authInfo, err := client.Auth().Login(ctxTimeout, kubeAuth)
 	if err != nil {
 		return err
 	}
