@@ -212,9 +212,11 @@ func configureMaster(instanceCreds map[string]AuthBundle, kubeSATokenPath string
 }
 
 func configureKubeAuthClient(client *api.Client, bundle AuthBundle, kubeSATokenPath string) error {
+	mount := mustGetenv("KUBE_AUTH_MOUNT")
 	kubeAuth, err := kubernetes.NewKubernetesAuth(
 		bundle.KubeRoleName,
 		kubernetes.WithServiceAccountTokenPath(kubeSATokenPath),
+		kubernetes.WithMountPath(mount),
 	)
 	if err != nil {
 		return err
