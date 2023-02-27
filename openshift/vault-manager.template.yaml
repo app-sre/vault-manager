@@ -221,7 +221,7 @@ parameters:
 - name: RECONCILE_SLEEP_TIME
   value: '15m'
 - name: KUBE_SA_TOKEN_PATH
-  value: ''
+  value: '/var/run/secrets/kubernetes.io/serviceaccount/token'
 - name: KUBE_AUTH_MOUNT
   value: ''
 - name: DRY_RUN
