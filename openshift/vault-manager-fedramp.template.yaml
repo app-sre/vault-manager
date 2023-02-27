@@ -101,7 +101,7 @@ objects:
           command: ["/bin/sh"]
           args: 
           - "-c"
-          - "/vault-manager -dry-run=${DRY_RUN} -run-once=${RUN_ONCE} -thread-pool-size=${THREAD_POOL_SIZE}"
+          - "/vault-manager -dry-run=${DRY_RUN} -run-once=${RUN_ONCE} -kube-auth=${KUBE_AUTH} -thread-pool-size=${THREAD_POOL_SIZE}"
           env:
           - name: LOG_FILE_LOCATION
             value: ${LOG_FILE_LOCATION}
@@ -218,6 +218,9 @@ parameters:
   value: '/var/run/secrets/kubernetes.io/serviceaccount/token'
 - name: KUBE_AUTH_MOUNT
   value: ''
+- name: KUBE_AUTH
+  description: attempts to utilize kube auth on instances that support it
+  value: 'false'
 - name: DRY_RUN
   description: runs vault-manager in dry-run mode when true
   value: 'false'
