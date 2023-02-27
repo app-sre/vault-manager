@@ -117,6 +117,8 @@ objects:
             value: ${RECONCILE_SLEEP_TIME}
           - name: KUBE_SA_TOKEN_PATH
             value: ${KUBE_SA_TOKEN_PATH}
+          - name: KUBE_AUTH_MOUNT
+            value: ${KUBE_AUTH_MOUNT}
           - name: METRICS_SERVER_PORT
             value: ${METRICS_SERVER_PORT}
           - name: GRAPHQL_SERVER
@@ -219,6 +221,8 @@ parameters:
 - name: RECONCILE_SLEEP_TIME
   value: '15m'
 - name: KUBE_SA_TOKEN_PATH
+  value: ''
+- name: KUBE_AUTH_MOUNT
   value: ''
 - name: DRY_RUN
   description: runs vault-manager in dry-run mode when true
