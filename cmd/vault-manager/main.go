@@ -76,11 +76,13 @@ func main() {
 
 	var dryRun bool
 	var runOnce bool
+	var kubeAuth bool
 	var threadPoolSize int
 	flag.BoolVar(&dryRun, "dry-run", false, "If true, will only print planned actions")
 	flag.IntVar(&threadPoolSize, "thread-pool-size", 10, "Some operations are running in parallel"+
 		" to achieve the best performance, so -thread-pool-size determine how many threads can be utilized, default is 10")
 	flag.BoolVar(&runOnce, "run-once", true, "If true, program will skip loop and exit after first reconcile attempt")
+	flag.BoolVar(&kubeAuth, "kube-auth", false, "If true, will attempt to utilize kubernetes authentication where applicable")
 	flag.Parse()
 
 	var sleepDuration time.Duration
@@ -116,13 +118,7 @@ func main() {
 		}
 
 		// initialize vault clients and gather list of instance addresses for reconciliation
-		instanceAddresses := initInstances(cfg, threadPoolSize)
-
-		// remove disabled toplevels
-		if disabled, _ := os.LookupEnv("DISABLE_IDENTITY"); disabled == "true" {
-			delete(cfg, "vault_entities")
-			delete(cfg, "vault_groups")
-		}
+		instanceAddresses := initInstances(cfg, kubeAuth, threadPoolSize)
 
 		topLevelConfigs := []TopLevelConfig{}
 
@@ -218,7 +214,7 @@ func getConfig() (config, error) {
 // gathers instances referenced across all applicable file definitions and initializes the clients
 // clients are set as private global witihn client.go
 // return is list of strings containing addresses of vault instances
-func initInstances(cfg config, threadPoolSize int) []string {
+func initInstances(cfg config, kubeAuth bool, threadPoolSize int) []string {
 	const INSTANCE_KEY = "vault_instances"
 	dataBytes, err := yaml.Marshal(cfg[INSTANCE_KEY])
 	if err != nil {
@@ -226,7 +222,7 @@ func initInstances(cfg config, threadPoolSize int) []string {
 	}
 	// do not include `vault_instances` in standard top-level reconcile loop
 	delete(cfg, INSTANCE_KEY)
-	return vault.GetInstances(dataBytes, threadPoolSize)
+	return vault.GetInstances(dataBytes, kubeAuth, threadPoolSize)
 }
 
 func resolveConfigPriority(s string) int {

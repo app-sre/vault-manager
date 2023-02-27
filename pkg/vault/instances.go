@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -69,19 +68,17 @@ var vaultClients map[string]*api.Client
 
 // Utilized to initialize vault instance clients for use by other toplevel integrations
 // returns list of instance addresses being included in reconcile
-func GetInstances(entriesBytes []byte, threadPoolSize int) []string {
+func GetInstances(entriesBytes []byte, kubeAuth bool, threadPoolSize int) []string {
 	var instances []Instance
 	if err := yaml.Unmarshal(entriesBytes, &instances); err != nil {
 		log.WithError(err).Fatal("[Vault Instance] failed to decode instance configuration")
 	}
 
-	// KUBE_SA_TOKEN_PATH is path on pod to kubernetes service account token
-	kubeSATokenPath, _ := os.LookupEnv("KUBE_SA_TOKEN_PATH")
-	instanceCreds, err := processInstances(instances, kubeSATokenPath)
+	instanceCreds, err := processInstances(instances, kubeAuth)
 	if err != nil {
 		log.WithError(err).Fatal("[Vault Instance] failed to retrieve access credentials")
 	}
-	initClients(instanceCreds, kubeSATokenPath, threadPoolSize)
+	initClients(instanceCreds, threadPoolSize)
 
 	// return list of addresses that clients were initialized for
 	addresses := []string{}
@@ -92,12 +89,12 @@ func GetInstances(entriesBytes []byte, threadPoolSize int) []string {
 }
 
 // generates map of instance addresses to access credentials stored in master vault
-func processInstances(instances []Instance, kubeSATokenPath string) (map[string]AuthBundle, error) {
+func processInstances(instances []Instance, kubeAuth bool) (map[string]AuthBundle, error) {
 	instanceCreds := make(map[string]AuthBundle)
 	for _, i := range instances {
 		bundle := AuthBundle{}
 		// conditions should only be met within cluster deployments
-		if len(kubeSATokenPath) > 0 && len(i.Auth.KubeRoleName) > 0 {
+		if kubeAuth && len(i.Auth.KubeRoleName) > 0 {
 			bundle.KubeRoleName = i.Auth.KubeRoleName
 		} else {
 			bundle.SecretEngine = i.Auth.SecretEngine
@@ -149,9 +146,9 @@ func processInstances(instances []Instance, kubeSATokenPath string) (map[string]
 
 // Creates global map of all vault clients defined in a-i
 // This allows reconciliation of multiple vault instances
-func initClients(instanceCreds map[string]AuthBundle, kubeSATokenPath string, threadPoolSize int) {
+func initClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
 	vaultClients = make(map[string]*api.Client) // THIS IS THE GLOBAL
-	masterAddress := configureMaster(instanceCreds, kubeSATokenPath)
+	masterAddress := configureMaster(instanceCreds)
 	bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 	var mutex = &sync.Mutex{}
 	// read access credentials for other vault instances and configure clients
@@ -159,7 +156,7 @@ func initClients(instanceCreds map[string]AuthBundle, kubeSATokenPath string, th
 		// client already configured separately for master
 		if addr != masterAddress {
 			bwg.Add(1)
-			go createClient(addr, masterAddress, kubeSATokenPath, bundle, &bwg, mutex)
+			go createClient(addr, masterAddress, bundle, &bwg, mutex)
 		}
 	}
 	bwg.Wait()
@@ -168,7 +165,7 @@ func initClients(instanceCreds map[string]AuthBundle, kubeSATokenPath string, th
 // configureMaster initializes vault client for the master instance
 // This is the only client that can be configured using environment variables
 // env vars: VAULT_ADDR, VAULT_AUTHTYPE, VAULT_ROLE_ID, VAULT_SECRET_ID, VAULT_TOKEN
-func configureMaster(instanceCreds map[string]AuthBundle, kubeSATokenPath string) string {
+func configureMaster(instanceCreds map[string]AuthBundle) string {
 	masterVaultCFG := api.DefaultConfig()
 	masterVaultCFG.Address = mustGetenv("VAULT_ADDR")
 
@@ -180,7 +177,7 @@ func configureMaster(instanceCreds map[string]AuthBundle, kubeSATokenPath string
 	masterAuthBundle := instanceCreds[masterVaultCFG.Address]
 	// indicates kube auth should be utilized
 	if len(masterAuthBundle.KubeRoleName) > 0 {
-		err := configureKubeAuthClient(client, masterAuthBundle, kubeSATokenPath)
+		err := configureKubeAuthClient(client, masterAuthBundle)
 		if err != nil {
 			log.WithError(err).Fatal("[Vault Client] failed to configure master client using kube auth")
 		}
@@ -211,10 +208,13 @@ func configureMaster(instanceCreds map[string]AuthBundle, kubeSATokenPath string
 	return masterVaultCFG.Address
 }
 
-func configureKubeAuthClient(client *api.Client, bundle AuthBundle, kubeSATokenPath string) error {
+func configureKubeAuthClient(client *api.Client, bundle AuthBundle) error {
+	mount := mustGetenv("KUBE_AUTH_MOUNT")
+	kubeSATokenPath := mustGetenv("KUBE_SA_TOKEN_PATH")
 	kubeAuth, err := kubernetes.NewKubernetesAuth(
 		bundle.KubeRoleName,
 		kubernetes.WithServiceAccountTokenPath(kubeSATokenPath),
+		kubernetes.WithMountPath(mount),
 	)
 	if err != nil {
 		return err
@@ -235,7 +235,6 @@ func configureKubeAuthClient(client *api.Client, bundle AuthBundle, kubeSATokenP
 // initializes one vault client
 func createClient(addr string,
 	masterAddress string,
-	kubeSATokenPath string,
 	bundle AuthBundle,
 	bwg *utils.BoundedWaitGroup,
 	mutex *sync.Mutex) {
@@ -254,7 +253,7 @@ func createClient(addr string,
 
 	// indicates kube auth should be utilized
 	if len(bundle.KubeRoleName) > 0 {
-		err := configureKubeAuthClient(client, bundle, kubeSATokenPath)
+		err := configureKubeAuthClient(client, bundle)
 		if err != nil {
 			log.WithError(err)
 			fmt.Println(fmt.Sprintf("[Vault Client] failed to login to %s with kube sa token", addr))
