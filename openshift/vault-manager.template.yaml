@@ -248,9 +248,6 @@ parameters:
 - name: VAULT_ADDR
   description: vault endpoint URL
   value: ''
-- name: DISABLE_IDENTITY
-  description: disables entity and group toplevels when set
-  value: ''
 - name: BUSYBOX_IMAGE
   value: quay.io/app-sre/ubi8-ubi-minimal
 - name: BUSYBOX_IMAGE_TAG

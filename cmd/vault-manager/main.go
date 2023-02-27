@@ -120,12 +120,6 @@ func main() {
 		// initialize vault clients and gather list of instance addresses for reconciliation
 		instanceAddresses := initInstances(cfg, kubeAuth, threadPoolSize)
 
-		// remove disabled toplevels
-		if disabled, _ := os.LookupEnv("DISABLE_IDENTITY"); disabled == "true" {
-			delete(cfg, "vault_entities")
-			delete(cfg, "vault_groups")
-		}
-
 		topLevelConfigs := []TopLevelConfig{}
 
 		for key := range cfg {
