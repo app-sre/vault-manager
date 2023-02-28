@@ -181,6 +181,8 @@ objects:
           volumeMounts:
           - name: logs
             mountPath: /fluentd/log
+          - name: vault-manager-token
+            mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         - name: fluentd
           image: ${FLUENTD_IMAGE}:${FLUENTD_IMAGE_TAG}
           imagePullPolicy: ${FLUENTD_IMAGE_PULL_POLICY}
@@ -217,6 +219,12 @@ objects:
           emptyDir: {}
         - name: fluentd-config
           emptyDir: {}
+        - name: vault-manager-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                expirationSeconds: 1800
+                path: token
 parameters:
 - name: IMAGE
   value: quay.io/app-sre/vault-manager
