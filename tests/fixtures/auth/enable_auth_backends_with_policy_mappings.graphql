@@ -38,6 +38,8 @@
             config {
                 ... on VaultAuthConfigKubernetes_v1 {
                   kubernetes_host
+                  kubernetes_ca_cert
+                  disable_local_ca_jwt
                 }
                 ... on VaultAuthConfigGithub_v1 {
                     organization
