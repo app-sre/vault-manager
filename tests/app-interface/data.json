@@ -661,6 +661,13 @@
                         "$schemaRef": "/dependencies/sendgrid-account-1.yml"
                     }
                 },
+                "cloudflare_access": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "/common-1.json#/definitions/crossref",
+                        "$schemaRef": "/cloudflare/account-role-1.yml"
+                    }
+                },
                 "self_service": {
                     "type": "array",
                     "items": {
@@ -774,6 +781,10 @@
                 "aws_username": {
                     "type": "string",
                     "pattern": "^[a-zA-Z_]+$"
+                },
+                "cloudflare_user": {
+                    "type": "string",
+                    "format": "email"
                 },
                 "roles": {
                     "type": "array",
@@ -1117,6 +1128,13 @@
                         "mailDomain": {
                             "type": "string"
                         }
+                    }
+                },
+                "cloudflareEmailDomainAllowList": {
+                    "type": "array",
+                    "description": "Email domain allow list restricts user with specific email domain to get access to Cloudflare systems",
+                    "items": {
+                        "type": "string"
                     }
                 }
             },
@@ -5678,6 +5696,12 @@
                 "openshift_ingress_load_balancer_arn": {
                     "type": "string"
                 },
+                "insights_callback_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "pre_signup_lambda_github_release_url": {
                     "type": "string"
                 },
@@ -7190,6 +7214,12 @@
                         "openshift_ingress_load_balancer_arn": {
                             "type": "string"
                         },
+                        "insights_callback_urls": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "certificate_arn": {
                             "type": "string"
                         },
@@ -7403,6 +7433,43 @@
                 "apiCredentials",
                 "accountOwners",
                 "terraformStateAccount"
+            ]
+        },
+        "/cloudflare/account-role-1.yml": {
+            "$schema": "/metaschema-1.json",
+            "version": "1.0",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "enum": [
+                        "/cloudflare/account-role-1.yml"
+                    ]
+                },
+                "account": {
+                    "$ref": "/common-1.json#/definitions/crossref",
+                    "$schemaRef": "/cloudflare/account-1.yml"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "$schema",
+                "account",
+                "name",
+                "description",
+                "roles"
             ]
         },
         "/cloudflare/dns-record-1.yml": {
@@ -11289,7 +11356,8 @@
                                     "ocm-machine-pools",
                                     "ocm-upgrade-scheduler",
                                     "slack-usergroups",
-                                    "skupper-network"
+                                    "skupper-network",
+                                    "glitchtip-project-dsn"
                                 ]
                             }
                         },
@@ -13457,6 +13525,12 @@
                                         },
                                         "kubernetes_host": {
                                             "type": "string"
+                                        },
+                                        "kubernetes_ca_cert": {
+                                            "type": "string"
+                                        },
+                                        "disable_local_ca_jwt": {
+                                            "type": "boolean"
                                         }
                                     },
                                     "required": [
@@ -14659,6 +14733,11 @@
                         "name": "glitchtip",
                         "type": "GlitchtipSettings_v1",
                         "isRequired": false
+                    },
+                    {
+                        "name": "cloudflareEmailDomainAllowList",
+                        "type": "string",
+                        "isList": true
                     }
                 ]
             },
@@ -15159,6 +15238,14 @@
                         "name": "kubernetes_host",
                         "type": "string",
                         "isRequired": true
+                    },
+                    {
+                        "name": "kubernetes_ca_cert",
+                        "type": "string"
+                    },
+                    {
+                        "name": "disable_local_ca_jwt",
+                        "type": "boolean"
                     }
                 ]
             },
@@ -18377,6 +18464,51 @@
                 ]
             },
             {
+                "name": "CloudflareAccountRole_v1",
+                "fields": [
+                    {
+                        "name": "schema",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "path",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "account",
+                        "type": "CloudflareAccount_v1",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "roles",
+                        "type": "string",
+                        "isRequired": true,
+                        "isList": true
+                    },
+                    {
+                        "name": "access_roles",
+                        "type": "Role_v1",
+                        "isList": true,
+                        "synthetic": {
+                            "schema": "/access/role-1.yml",
+                            "subAttr": "cloudflare_access"
+                        }
+                    }
+                ]
+            },
+            {
                 "name": "AWSGroup_v1",
                 "fields": [
                     {
@@ -20789,6 +20921,12 @@
                     {
                         "name": "openshift_ingress_load_balancer_arn",
                         "type": "string",
+                        "isRequired": false
+                    },
+                    {
+                        "name": "insights_callback_urls",
+                        "type": "string",
+                        "isList": true,
                         "isRequired": false
                     },
                     {
@@ -23606,6 +23744,10 @@
                         "type": "string"
                     },
                     {
+                        "name": "cloudflare_user",
+                        "type": "string"
+                    },
+                    {
                         "name": "public_gpg_key",
                         "type": "string"
                     },
@@ -23825,6 +23967,11 @@
                     {
                         "name": "self_service",
                         "type": "SelfServiceConfig_v1",
+                        "isList": true
+                    },
+                    {
+                        "name": "cloudflare_access",
+                        "type": "CloudflareAccountRole_v1",
                         "isList": true
                     },
                     {
@@ -25058,6 +25205,12 @@
                         "type": "SkupperNetwork_v1",
                         "isList": true,
                         "datafileSchema": "/dependencies/skupper-network-1.yml"
+                    },
+                    {
+                        "name": "cloudflare_account_role_v1",
+                        "type": "CloudflareAccountRole_v1",
+                        "isList": true,
+                        "datafileSchema": "/cloudflare/account-role-1.yml"
                     }
                 ]
             },

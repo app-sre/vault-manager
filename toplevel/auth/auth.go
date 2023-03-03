@@ -114,6 +114,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	for _, e := range entries {
 		instancesToDesired[e.Instance.Address] = append(instancesToDesired[e.Instance.Address], e)
 	}
+	updateOptionalKubeDefaults(instancesToDesired[address])
 
 	// Get the existing auth backends
 	existingAuthMounts, err := vault.ListAuthBackends(address)
@@ -259,6 +260,28 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 
 	return nil
+}
+
+// updateOptionalKubeDefaults maps omitted optional attributes from desired to default values in existing
+// this circumvents defining every attribute within kube auth mount definitions
+func updateOptionalKubeDefaults(desired []entry) {
+	defaults := map[string]interface{}{
+		"disable_local_ca_jwt": false,
+		"kubernetes_ca_cert":   "",
+	}
+	for _, auth := range desired {
+		if strings.ToLower(auth.Type) == "kubernetes" {
+			for _, cfg := range auth.Settings {
+				for k, v := range defaults {
+					// denotes that attr was not included in definition and graphql assigned nil
+					// proceed with assigning default value that api would assign if attribute was omitted
+					if cfg[k] == nil {
+						cfg[k] = v
+					}
+				}
+			}
+		}
+	}
 }
 
 func enableAuth(instanceAddr string, toBeWritten []vault.Item, dryRun bool) error {
