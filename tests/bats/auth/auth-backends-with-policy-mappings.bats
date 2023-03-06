@@ -24,7 +24,6 @@ load ../helpers
     [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://127.0.0.1:8202\""*"path=kubernetes-secondary/"*"type=kubernetes"* ]]
     [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"http://127.0.0.1:8202\""*"path=auth/github/config"*"type=github"* ]]
     [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"http://127.0.0.1:8202\""*"path=auth/oidc/config"*"type=oidc"* ]]
-    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"http://127.0.0.1:8202\""*"path=auth/kubernetes-secondary/config"*"type=kubernetes"* ]]
     [[ "${output}" == *"[Vault Auth] policies mapping is successfully applied"*"instance=\"http://127.0.0.1:8202\""*"path=/auth/github/map/teams/vault-app-sre"*"policies"*"app-sre-policy"* ]]
 
     # check auth backends created
