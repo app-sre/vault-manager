@@ -112,6 +112,7 @@ container_alive "http://127.0.0.1:8202" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT
 # populate oidc client secret in secondary
 export VAULT_ADDR=http://127.0.0.1:8202
 vault kv put secret/oidc client-secret=my-special-client-secret
+vault kv put secret/kubernetes cert=very-valid-cert
 export VAULT_ADDR=http://127.0.0.1:8200
 
 # run test suite
