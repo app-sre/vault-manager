@@ -7,10 +7,10 @@ labels:
 instance:
   $ref: /services/vault/config/instances/master.yml
 
-_path: "kubernetes-appsres03ue1/"
+_path: "kubernetes-main/"
 type: "kubernetes"
-description: "kubernetes auth - appsres03ue1"
+description: "kubernetes auth - main"
 settings:
   config:
     _type: "kubernetes"
-    kubernetes_host: "https://api.appsres03ue1.5nvu.p1.openshiftapps.com:6443"
+    kubernetes_host: "https://kubernetes-main.com:6443"

@@ -313,7 +313,12 @@ func configureAuthMounts(instanceAddr string, entries []entry, dryRun bool) erro
 	for _, e := range entries {
 		if e.Settings != nil {
 			if e.Type == "oidc" {
-				err := getOidcClientSecret(instanceAddr, e.Settings)
+				err := setOidcClientSecret(instanceAddr, e.Settings)
+				if err != nil {
+					return err
+				}
+			} else if e.Type == "kubernetes" {
+				err := setKubeCaCert(instanceAddr, e.Settings)
 				if err != nil {
 					return err
 				}
@@ -407,7 +412,7 @@ func policyMappingsAsItems(xs []policyMapping) (items []vault.Item) {
 }
 
 // retrieves client secret at vault location specified in oidc auth definition
-func getOidcClientSecret(instanceAddr string, settings map[string]map[string]interface{}) error {
+func setOidcClientSecret(instanceAddr string, settings map[string]map[string]interface{}) error {
 	// logic to check existence of keys before referencing is unnecessary due to schema validation
 	cfg := settings["config"]
 	engineVersion := cfg[vault.OIDC_CLIENT_SECRET_KV_VER].(string)
@@ -420,5 +425,33 @@ func getOidcClientSecret(instanceAddr string, settings map[string]map[string]int
 			"[Vault Auth] failed to retrieve `oidc_client_secret` for %s", instanceAddr))
 	}
 	cfg[vault.OIDC_CLIENT_SECRET] = secret
+	delete(cfg, vault.OIDC_CLIENT_SECRET_KV_VER) // only used to obtain secret. do not include in reconcile
+	return nil
+}
+
+// retrieves client secret from vault location specified in kubernetes auth definition
+// and overwrites kubernetes_ca_cert within desired object's settings
+func setKubeCaCert(instanceAddr string, settings map[string]map[string]interface{}) error {
+	cfg := settings["config"]
+	// ca cert is optional within kube auth config
+	// if omitted from definition, proceeding assertion will fail
+	location, ok := cfg[vault.KUBERNETES_CA_CERT].(map[interface{}]interface{})
+	if !ok {
+		return nil
+	}
+	engineVersion, exists := cfg[vault.KUBERNETES_CA_CERT_KV_VER].(string)
+	// default to v2 when not specified
+	if !exists {
+		engineVersion = vault.KV_V2
+	}
+	path := location["path"].(string)
+	field := location["field"].(string)
+	cert, err := vault.GetVaultSecretField(instanceAddr, path, field, engineVersion)
+	if err != nil {
+		return errors.New(fmt.Sprintf(
+			"[Vault Auth] failed to retrieve `kubernetes_ca_cert` for %s", instanceAddr))
+	}
+	cfg[vault.KUBERNETES_CA_CERT] = cert
+	delete(cfg, vault.KUBERNETES_CA_CERT_KV_VER) // only used to obtain secret. do not include in reconcile
 	return nil
 }
