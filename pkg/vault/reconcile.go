@@ -20,6 +20,8 @@ type Item interface {
 const (
 	OIDC_CLIENT_SECRET        = "oidc_client_secret"
 	OIDC_CLIENT_SECRET_KV_VER = "oidc_client_secret_kv_version"
+	KUBERNETES_CA_CERT        = "kubernetes_ca_cert"
+	KUBERNETES_CA_CERT_KV_VER = "kubernetes_ca_cert_kv_version"
 )
 
 // DiffItems is a pure function that determines what changes need to be made to
@@ -184,7 +186,7 @@ func DataInSecret(instanceAddr string, data map[string]interface{}, path string,
 				return false, err
 			}
 			v = int64(dur.Seconds())
-		} else if k == OIDC_CLIENT_SECRET || k == OIDC_CLIENT_SECRET_KV_VER { // not returned from ReadSecret()
+		} else if k == OIDC_CLIENT_SECRET { // not returned from ReadSecret()
 			continue
 		}
 

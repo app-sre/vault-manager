@@ -1,0 +1,21 @@
+---
+$schema: /vault-config/auth-1.yml
+
+labels:
+  service: vault.local
+
+instance:
+  $ref: /services/vault/config/instances/secondary.yml
+
+_path: "kubernetes-secondary/"
+type: "kubernetes"
+description: "kubernetes auth - secondary"
+settings:
+  config:
+    _type: "kubernetes"
+    kubernetes_host: "https://kuberenetes.com:6080"
+    disable_local_ca_jwt: true
+    kubernetes_ca_cert_kv_version: "kv_v2"
+    kubernetes_ca_cert:
+      path: "secret/kubernetes"
+      field: "cert"

@@ -6,7 +6,7 @@ labels:
 
 name: "kube-default"
 type: "kubernetes"
-mount: "kubernetes-appsres03ue1/"
+mount: "kubernetes-main/"
 instance:
   $ref: /services/vault/config/instances/master.yml
 options:

@@ -4625,6 +4625,7 @@
                             "type": "string",
                             "enum": [
                                 "lowest-price",
+                                "price-capacity-optimized",
                                 "capacity-optimized",
                                 "capacity-optimized-prioritized"
                             ]
@@ -4633,6 +4634,9 @@
                             "type": "integer"
                         },
                         "on_demand_percentage_above_base_capacity": {
+                            "type": "integer"
+                        },
+                        "spot_instance_pools": {
                             "type": "integer"
                         }
                     }
@@ -8254,6 +8258,46 @@
                             "type": "integer"
                         }
                     }
+                },
+                "geolocation_routing_policy": {
+                    "type": "object",
+                    "oneOf": [
+                        {
+                            "properties": {
+                                "continent": {
+                                    "type": "string",
+                                    "enum": [
+                                        "AF",
+                                        "AN",
+                                        "AS",
+                                        "EU",
+                                        "OC",
+                                        "NA",
+                                        "SA"
+                                    ]
+                                },
+                                "subdivision": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "continent"
+                            ]
+                        },
+                        {
+                            "properties": {
+                                "country": {
+                                    "type": "string"
+                                },
+                                "subdivision": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "country"
+                            ]
+                        }
+                    ]
                 },
                 "set_identifier": {
                     "type": "string"
@@ -13527,7 +13571,14 @@
                                             "type": "string"
                                         },
                                         "kubernetes_ca_cert": {
-                                            "type": "string"
+                                            "$ref": "/common-1.json#/definitions/vaultSecret"
+                                        },
+                                        "kubernetes_ca_cert_kv_version": {
+                                            "type": "string",
+                                            "enum": [
+                                                "kv_v1",
+                                                "kv_v2"
+                                            ]
                                         },
                                         "disable_local_ca_jwt": {
                                             "type": "boolean"
@@ -15241,6 +15292,10 @@
                     },
                     {
                         "name": "kubernetes_ca_cert",
+                        "type": "VaultSecret_v1"
+                    },
+                    {
+                        "name": "kubernetes_ca_cert_kv_version",
                         "type": "string"
                     },
                     {
@@ -25658,6 +25713,23 @@
                 ]
             },
             {
+                "name": "DnsRecordGeolocationRoutingPolicy_v1",
+                "fields": [
+                    {
+                        "name": "continent",
+                        "type": "string"
+                    },
+                    {
+                        "name": "country",
+                        "type": "string"
+                    },
+                    {
+                        "name": "subdivision",
+                        "type": "string"
+                    }
+                ]
+            },
+            {
                 "name": "DnsRecordAlias_v1",
                 "fields": [
                     {
@@ -25701,6 +25773,10 @@
                     {
                         "name": "weighted_routing_policy",
                         "type": "DnsRecordWeightedRoutingPolicy_v1"
+                    },
+                    {
+                        "name": "geolocation_routing_policy",
+                        "type": "DnsRecordGeolocationRoutingPolicy_v1"
                     },
                     {
                         "name": "set_identifier",
@@ -27272,13 +27348,13 @@
             "instance": {
                 "$ref": "/services/vault/config/instances/master.yml"
             },
-            "_path": "kubernetes-appsres03ue1/",
+            "_path": "kubernetes-main/",
             "type": "kubernetes",
-            "description": "kubernetes auth - appsres03ue1",
+            "description": "kubernetes auth - main",
             "settings": {
                 "config": {
                     "_type": "kubernetes",
-                    "kubernetes_host": "https://api.appsres03ue1.5nvu.p1.openshiftapps.com:6443"
+                    "kubernetes_host": "https://kubernetes-main.com:6443"
                 }
             }
         },
@@ -27348,6 +27424,30 @@
                     "oidc_client_secret": {
                         "path": "secret/oidc",
                         "field": "client-secret"
+                    }
+                }
+            }
+        },
+        "/services/vault/config/auth-backends/secondary/kubernetes.yml": {
+            "$schema": "/vault-config/auth-1.yml",
+            "labels": {
+                "service": "vault.local"
+            },
+            "instance": {
+                "$ref": "/services/vault/config/instances/secondary.yml"
+            },
+            "_path": "kubernetes-secondary/",
+            "type": "kubernetes",
+            "description": "kubernetes auth - secondary",
+            "settings": {
+                "config": {
+                    "_type": "kubernetes",
+                    "kubernetes_host": "https://kuberenetes.com:6080",
+                    "disable_local_ca_jwt": true,
+                    "kubernetes_ca_cert_kv_version": "kv_v2",
+                    "kubernetes_ca_cert": {
+                        "path": "secret/kubernetes",
+                        "field": "cert"
                     }
                 }
             }
@@ -27604,7 +27704,7 @@
             },
             "name": "kube-default",
             "type": "kubernetes",
-            "mount": "kubernetes-appsres03ue1/",
+            "mount": "kubernetes-main/",
             "instance": {
                 "$ref": "/services/vault/config/instances/master.yml"
             },
