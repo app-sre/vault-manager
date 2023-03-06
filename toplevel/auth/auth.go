@@ -412,6 +412,7 @@ func policyMappingsAsItems(xs []policyMapping) (items []vault.Item) {
 }
 
 // retrieves client secret at vault location specified in oidc auth definition
+// and overwrites oidc_client_secret within desired object's settings
 func setOidcClientSecret(instanceAddr string, settings map[string]map[string]interface{}) error {
 	// logic to check existence of keys before referencing is unnecessary due to schema validation
 	cfg := settings["config"]
