@@ -252,18 +252,19 @@ func unmarshallOptionObjects(roles []entry) error {
 // this circumvents defining every attribute within desired oidc roles
 func addOptionalOidcDefaults(instance string, roles []entry) {
 	defaults := map[string]interface{}{
-		"bound_audiences":      []string{},
-		"bound_claims":         nil,
-		"bound_claims_type":    "string",
-		"bound_subject":        "",
-		"claim_mappings":       nil,
-		"clock_skew_leeway":    0,
-		"expiration_leeway":    0,
-		"groups_claim":         "",
-		"max_age":              0,
-		"not_before_leeway":    0,
-		"oidc_scopes":          []string{},
-		"verbose_oidc_logging": false,
+		"bound_audiences":         []string{},
+		"bound_claims":            nil,
+		"bound_claims_type":       "string",
+		"bound_subject":           "",
+		"claim_mappings":          nil,
+		"clock_skew_leeway":       0,
+		"expiration_leeway":       0,
+		"groups_claim":            "",
+		"max_age":                 0,
+		"not_before_leeway":       0,
+		"oidc_scopes":             []string{},
+		"user_claim_json_pointer": false,
+		"verbose_oidc_logging":    false,
 	}
 	for _, role := range roles {
 		if strings.ToLower(role.Type) == "oidc" {
