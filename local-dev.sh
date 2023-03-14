@@ -107,6 +107,7 @@ audit_perms $VAULT_NAME
 vault kv put secret/master rootToken=root
 vault kv put secret/secondary root=root
 vault kv put secret/oidc client-secret=my-special-client-secret
+vault kv put secret/kubernetes cert=very-valid-cert
 
 # spin up secondary vault server
 docker run -d --name=$VAULT_NAME_SECONDARY \
