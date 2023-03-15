@@ -5,7 +5,7 @@ RUN make gobuild
 FROM quay.io/centos/centos:7
 ENV PACKAGES="jq git docker unzip wget"
 ENV BATS_VERSION="v0.4.0"
-ENV VAULT_VERSION="1.5.4"
+ENV VAULT_VERSION="1.9.10"
 
 RUN yum install -y epel-release && \
     yum install -y $PACKAGES && \
