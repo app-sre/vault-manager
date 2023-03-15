@@ -107,7 +107,7 @@ docker run -d --name=$VAULT_NAME_SECONDARY \
   -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8202' \
   -p 8202:8202 \
   -v /tmp/:/var/log/vault/:Z \
-  $VAULT_IMAGE:$VAULT_IMAGE_TAG
+  $VAULT_IMAGE:$VAULT_SECONDARY_IMAGE_TAG
 container_alive "http://127.0.0.1:8202" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME_SECONDARY
 
 # populate oidc client secret in secondary
