@@ -265,14 +265,21 @@ func addOptionalOidcDefaults(instance string, roles []entry) {
 	if err != nil {
 		log.WithField("instance", instance).Info(
 			"[Vault Role] unable to retrieve instance version")
+		return
 	}
 	current, err := version.NewVersion(ver)
 	if err != nil {
 		log.WithField("instance", instance).Info(
 			"[Vault Role] unable to process instance version")
+		return
 	}
-	threshold, err := version.NewVersion("1.11.0")
-	if current.GreaterThan(threshold) {
+	threshold, _ := version.NewVersion("1.11.0")
+	if err != nil {
+		log.WithField("instance", instance).Info(
+			"[Vault Role] unable to process instance version")
+		return
+	}
+	if current.GreaterThanOrEqual(threshold) {
 		defaults["user_claim_json_pointer"] = false
 	}
 
