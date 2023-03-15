@@ -273,7 +273,7 @@ func addOptionalOidcDefaults(instance string, roles []entry) {
 			"[Vault Role] unable to process instance version")
 		return
 	}
-	threshold, _ := version.NewVersion("1.11.0")
+	threshold, err := version.NewVersion("1.11.0")
 	if err != nil {
 		log.WithField("instance", instance).Info(
 			"[Vault Role] unable to process instance version")
