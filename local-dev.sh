@@ -107,6 +107,7 @@ audit_perms $VAULT_NAME
 vault kv put secret/master rootToken=root
 vault kv put secret/secondary root=root
 vault kv put secret/oidc client-secret=my-special-client-secret
+vault kv put secret/kubernetes cert=very-valid-cert
 
 # spin up secondary vault server
 docker run -d --name=$VAULT_NAME_SECONDARY \
@@ -115,7 +116,7 @@ docker run -d --name=$VAULT_NAME_SECONDARY \
   -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
   -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8202' \
   -p 8202:8202 \
-  $VAULT_IMAGE:$VAULT_IMAGE_TAG
+  $VAULT_IMAGE:$VAULT_SECONDARY_IMAGE_TAG
 container_alive "http://127.0.0.1:8202" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME_SECONDARY
 
 audit_perms $VAULT_NAME_SECONDARY

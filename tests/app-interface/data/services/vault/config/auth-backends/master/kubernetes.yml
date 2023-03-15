@@ -14,3 +14,7 @@ settings:
   config:
     _type: "kubernetes"
     kubernetes_host: "https://kubernetes-main.com:6443"
+    kubernetes_ca_cert_kv_version: "kv_v2"
+    kubernetes_ca_cert:
+      path: "secret/kubernetes"
+      field: "cert"

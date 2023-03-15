@@ -1136,6 +1136,38 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "state": {
+                    "type": "object",
+                    "description": "app-interface state settings",
+                    "oneOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "provider": {
+                                    "type": "string",
+                                    "enum": [
+                                        "s3"
+                                    ]
+                                },
+                                "bucket": {
+                                    "type": "string"
+                                },
+                                "region": {
+                                    "type": "string"
+                                },
+                                "credentials": {
+                                    "$ref": "/common-1.json#/definitions/vaultSecret"
+                                }
+                            },
+                            "required": [
+                                "provider",
+                                "bucket",
+                                "region",
+                                "credentials"
+                            ]
+                        }
+                    ]
                 }
             },
             "required": [
@@ -3695,9 +3727,41 @@
                 "name": {
                     "type": "string"
                 },
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "static",
+                        "dynamic"
+                    ]
+                },
                 "namespace": {
                     "$ref": "/common-1.json#/definitions/crossref",
                     "$schemaRef": "/openshift/namespace-1.yml"
+                },
+                "namespaceSelector": {
+                    "jsonPathSelectors": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "include": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 1
+                            },
+                            "exclude": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 1
+                            }
+                        },
+                        "required": [
+                            "include"
+                        ]
+                    }
                 },
                 "ref": {
                     "type": "string",
@@ -3811,8 +3875,19 @@
                 }
             },
             "required": [
-                "namespace",
                 "ref"
+            ],
+            "oneOf": [
+                {
+                    "required": [
+                        "namespace"
+                    ]
+                },
+                {
+                    "required": [
+                        "namespaceSelector"
+                    ]
+                }
             ]
         },
         "/app-sre/schedule-1.yml": {
@@ -7592,7 +7667,7 @@
                 },
                 "records": {
                     "type": "array",
-                    "maxItems": 1000,
+                    "maxItems": 1500,
                     "items": {
                         "$ref": "/cloudflare/dns-record-1.yml"
                     }
@@ -9303,7 +9378,13 @@
                             "minSpareSize": {
                                 "type": "integer"
                             },
+                            "maxTotalUses": {
+                                "type": "integer"
+                            },
                             "noDelayProvision": {
+                                "type": "boolean"
+                            },
+                            "alwaysReconnect": {
                                 "type": "boolean"
                             }
                         },
@@ -11130,6 +11211,9 @@
                                     "manageSecurityGroups": {
                                         "type": "boolean"
                                     },
+                                    "manageRoute53Associations": {
+                                        "type": "boolean"
+                                    },
                                     "cidrBlock": {
                                         "type": "string"
                                     },
@@ -11238,6 +11322,9 @@
                                                 "type": "boolean"
                                             },
                                             "manageSecurityGroups": {
+                                                "type": "boolean"
+                                            },
+                                            "manageRoute53Associations": {
                                                 "type": "boolean"
                                             },
                                             "cidrBlock": {
@@ -12376,6 +12463,10 @@
                 "description": {
                     "type": "string"
                 },
+                "orgId": {
+                    "type": "string",
+                    "description": "The internal OCM organization ID that can be found via\nocm whoami | jq .organization.id\n"
+                },
                 "url": {
                     "type": "string",
                     "format": "uri"
@@ -12640,6 +12731,7 @@
                 "labels",
                 "name",
                 "url",
+                "orgId",
                 "description",
                 "accessTokenClientId",
                 "accessTokenUrl",
@@ -14789,6 +14881,55 @@
                         "name": "cloudflareEmailDomainAllowList",
                         "type": "string",
                         "isList": true
+                    },
+                    {
+                        "name": "state",
+                        "type": "AppInterfaceStateConfiguration_v1",
+                        "isInterface": true
+                    }
+                ]
+            },
+            {
+                "name": "AppInterfaceStateConfiguration_v1",
+                "isInterface": true,
+                "interfaceResolve": {
+                    "strategy": "fieldMap",
+                    "field": "provider",
+                    "fieldMap": {
+                        "s3": "AppInterfaceStateConfigurationS3_v1"
+                    }
+                },
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "AppInterfaceStateConfigurationS3_v1",
+                "interface": "AppInterfaceStateConfiguration_v1",
+                "fields": [
+                    {
+                        "name": "provider",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "bucket",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "region",
+                        "type": "string",
+                        "isRequired": true
+                    },
+                    {
+                        "name": "credentials",
+                        "type": "VaultSecret_v1",
+                        "isRequired": true
                     }
                 ]
             },
@@ -16159,7 +16300,15 @@
                         "type": "int"
                     },
                     {
+                        "name": "maxTotalUses",
+                        "type": "int"
+                    },
+                    {
                         "name": "noDelayProvision",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "alwaysReconnect",
                         "type": "boolean"
                     }
                 ]
@@ -17497,6 +17646,10 @@
                         "type": "boolean"
                     },
                     {
+                        "name": "manageRoute53Associations",
+                        "type": "boolean"
+                    },
+                    {
                         "name": "cidrBlock",
                         "type": "string"
                     },
@@ -18001,6 +18154,12 @@
                     {
                         "name": "description",
                         "type": "string"
+                    },
+                    {
+                        "name": "orgId",
+                        "type": "string",
+                        "isRequired": true,
+                        "isUnique": true
                     },
                     {
                         "name": "url",
@@ -22559,9 +22718,17 @@
                         "isContextUnique": true
                     },
                     {
+                        "name": "provider",
+                        "type": "string"
+                    },
+                    {
                         "name": "namespace",
                         "type": "Namespace_v1",
-                        "isRequired": true,
+                        "isContextUnique": true
+                    },
+                    {
+                        "name": "namespaceSelector",
+                        "type": "SaasResourceTemplateTargetNamespaceSelector_v1",
                         "isContextUnique": true
                     },
                     {
@@ -22612,6 +22779,33 @@
                     {
                         "name": "schema",
                         "type": "string",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "SaasResourceTemplateTargetNamespaceSelector_v1",
+                "fields": [
+                    {
+                        "name": "jsonPathSelectors",
+                        "type": "JsonPathSelectors_v1",
+                        "isRequired": true
+                    }
+                ]
+            },
+            {
+                "name": "JsonPathSelectors_v1",
+                "fields": [
+                    {
+                        "name": "include",
+                        "type": "string",
+                        "isList": true,
+                        "isRequired": true
+                    },
+                    {
+                        "name": "exclude",
+                        "type": "string",
+                        "isList": true,
                         "isRequired": true
                     }
                 ]
@@ -27354,7 +27548,12 @@
             "settings": {
                 "config": {
                     "_type": "kubernetes",
-                    "kubernetes_host": "https://kubernetes-main.com:6443"
+                    "kubernetes_host": "https://kubernetes-main.com:6443",
+                    "kubernetes_ca_cert_kv_version": "kv_v2",
+                    "kubernetes_ca_cert": {
+                        "path": "secret/kubernetes",
+                        "field": "cert"
+                    }
                 }
             }
         },

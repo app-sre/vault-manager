@@ -162,10 +162,6 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 
 	addOptionalOidcDefaults(address, instancesToDesiredRoles[address])
-	err = pruneUnsupported(address, instancesToDesiredRoles[address])
-	if err != nil {
-		return err
-	}
 
 	err = unmarshallOptionObjects(instancesToDesiredRoles[address])
 	if err != nil {
@@ -265,6 +261,28 @@ func addOptionalOidcDefaults(instance string, roles []entry) {
 		"oidc_scopes":          []string{},
 		"verbose_oidc_logging": false,
 	}
+	ver, err := vault.GetVaultVersion(instance)
+	if err != nil {
+		log.WithField("instance", instance).Info(
+			"[Vault Role] unable to retrieve instance version")
+		return
+	}
+	current, err := version.NewVersion(ver)
+	if err != nil {
+		log.WithField("instance", instance).Info(
+			"[Vault Role] unable to process instance version")
+		return
+	}
+	threshold, err := version.NewVersion("1.11.0")
+	if err != nil {
+		log.WithField("instance", instance).Info(
+			"[Vault Role] unable to process instance version")
+		return
+	}
+	if current.GreaterThanOrEqual(threshold) {
+		defaults["user_claim_json_pointer"] = false
+	}
+
 	for _, role := range roles {
 		if strings.ToLower(role.Type) == "oidc" {
 			for k, v := range defaults {
@@ -276,26 +294,4 @@ func addOptionalOidcDefaults(instance string, roles []entry) {
 			}
 		}
 	}
-}
-
-// remove attributes not supported in commercial but in fedramp variant
-func pruneUnsupported(instance string, roles []entry) error {
-	ver, err := vault.GetVaultVersion(instance)
-	if err != nil {
-		return err
-	}
-	current, err := version.NewVersion(ver)
-	if err != nil {
-		return err
-	}
-	// https://github.com/hashicorp/vault/blob/main/CHANGELOG.md#170
-	threshold, err := version.NewVersion("1.7.0")
-	if current.LessThan(threshold) {
-		for _, role := range roles {
-			if strings.ToLower(role.Type) == "oidc" {
-				delete(role.Options, "max_age")
-			}
-		}
-	}
-	return nil
 }
