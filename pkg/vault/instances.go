@@ -193,7 +193,7 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 	if len(masterAuthBundle.KubeRoleName) > 0 {
 		err := configureKubeAuthClient(client, masterAuthBundle)
 		if err != nil {
-			log.WithError(err).Fatal("[Vault Client] failed to configure master client using kube auth")
+			log.WithError(err).Fatal("[Vault Client] failed to configure master client using Kubernetes authentication")
 		}
 	} else {
 		var clientToken string
@@ -225,7 +225,7 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 		case TOKEN_AUTH:
 			clientToken = mustGetenv("VAULT_TOKEN")
 		default:
-			log.WithField("authType", authType).Fatal("[Vault Client] unsupported auth type")
+			log.WithField("authType", authType).Fatal("[Vault Client] unsupported authentication type")
 		}
 		client.SetToken(clientToken)
 	}
@@ -259,19 +259,14 @@ func configureKubeAuthClient(client *api.Client, bundle AuthBundle) error {
 
 // goroutine support function for initClients()
 // initializes one vault client
-func createClient(addr string,
-	masterAddress string,
-	bundle AuthBundle,
-	bwg *utils.BoundedWaitGroup,
-	mutex *sync.Mutex) {
-
+func createClient(addr string, masterAddress string, bundle AuthBundle, bwg *utils.BoundedWaitGroup, mutex *sync.Mutex) {
 	defer bwg.Done()
 
 	config := api.DefaultConfig()
 	config.Address = addr
 	client, err := api.NewClient(config)
 	if err != nil {
-		log.WithError(err).Errorf("[Vault Client] failed to initialize Vault client for %s", addr)
+		log.WithError(err).Errorf("[Vault Client] failed to initialize Vault client for `%s`", addr)
 		log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
 		return // skip entire reconcilation for this instance
 	}
@@ -280,7 +275,7 @@ func createClient(addr string,
 	if len(bundle.KubeRoleName) > 0 {
 		err := configureKubeAuthClient(client, bundle)
 		if err != nil {
-			log.WithError(err).Errorf("[Vault Client] failed to login to %s with kube sa token", addr)
+			log.WithError(err).Errorf("[Vault Client] failed to login to `%s` with Kubernetes credentials", addr)
 			log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
 			return // skip entire reconcilation for this instance
 		}
@@ -290,7 +285,7 @@ func createClient(addr string,
 			// masterAddress hard-coded because all "child" vault access credentials must be pulled from master
 			processedCred, err := GetVaultSecretField(masterAddress, cred.Path, cred.Field, bundle.SecretEngine)
 			if err != nil {
-				log.WithError(err).Fatal()
+				log.WithError(err).Fatal("[Vault Client] unable to retrieve credentials from master Vault")
 			}
 			accessCreds[cred.Name] = processedCred
 		}
@@ -318,7 +313,7 @@ func createClient(addr string,
 				return nil
 			})
 			if err != nil {
-				log.WithError(err).Errorf("[Vault Client] failed to login to %s with AppRole credentials", addr)
+				log.WithError(err).Errorf("[Vault Client] failed to login to `%s` with AppRole credentials", addr)
 				log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
 				return // Skip entire reconciliation for this instance.
 			}
@@ -331,7 +326,7 @@ func createClient(addr string,
 	// test client
 	_, err = client.Sys().ListAuth()
 	if err != nil {
-		log.WithError(err).Errorf("[Vault Client] failed to login to %s", addr)
+		log.WithError(err).Errorf("[Vault Client] failed to login to `%s`", addr)
 		log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
 		return
 	}
