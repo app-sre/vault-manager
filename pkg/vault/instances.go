@@ -61,10 +61,26 @@ const (
 	KV_V2        = "kv_v2"
 )
 
+const (
+	// How many times attempt to retry when failing
+	// to retrieve a valid client token.
+	defaultTokenRetryAttempts = 5
+
+	// How long to sleep in between each retry attempt.
+	defaultTokenRetrySleep = 250 * time.Millisecond
+)
+
 // global that maps instance addresses to configured vault clients
 // initialization process is triggered by call to GetInstances()
 // GetInstances() is called a single time within main
 var vaultClients map[string]*api.Client
+
+// errClientTokenInvalid indicates a presence of an invalid client token.
+//
+// There might have been an empty authentication information response
+// sent back from a remote Vault server that does not contain a valid
+// client token.
+var errClientTokenInvalid = errors.New("client token is not valid")
 
 // Utilized to initialize vault instance clients for use by other toplevel integrations
 // returns list of instance addresses being included in reconcile
@@ -188,19 +204,26 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 			roleID := mustGetenv("VAULT_ROLE_ID")
 			secretID := mustGetenv("VAULT_SECRET_ID")
 
-			secret, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
-				"role_id":   roleID,
-				"secret_id": secretID,
+			err := utils.Retry(defaultTokenRetryAttempts, defaultTokenRetrySleep, func() error {
+				secret, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
+					"role_id":   roleID,
+					"secret_id": secretID,
+				})
+				if err != nil {
+					return utils.RetryStop(err)
+				}
+				// Writing to the AppRole mount endpoint to "login" to obtain a new
+				// token might return an empty response without necessarily failing.
+				if secret.Auth == nil || secret.Auth.ClientToken == "" {
+					log.Warn("[Vault Client] received empty authentication information. Retrying...")
+					return errClientTokenInvalid
+				}
+				clientToken = secret.Auth.ClientToken
+				return nil
 			})
 			if err != nil {
 				log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
 			}
-			// Writing to the AppRole mount endpoint to "login" to obtain a new
-			// token might return an empty response without necessarily failing.
-			if secret.Auth == nil || secret.Auth.ClientToken == "" {
-				log.Fatal("[Vault Client] failed to retrieve valid client token: empty response")
-			}
-			clientToken = secret.Auth.ClientToken
 		case TOKEN_AUTH:
 			clientToken = mustGetenv("VAULT_TOKEN")
 		default:
@@ -250,9 +273,8 @@ func createClient(addr string,
 	config.Address = addr
 	client, err := api.NewClient(config)
 	if err != nil {
-		log.WithError(err)
-		fmt.Println(fmt.Sprintf("Failed to initialize Vault client for %s", addr))
-		fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
+		log.WithError(err).Errorf("[Vault Client] failed to initialize Vault client for %s", addr)
+		log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr)
 		return // skip entire reconcilation for this instance
 	}
 
@@ -260,9 +282,8 @@ func createClient(addr string,
 	if len(bundle.KubeRoleName) > 0 {
 		err := configureKubeAuthClient(client, bundle)
 		if err != nil {
-			log.WithError(err)
-			fmt.Println(fmt.Sprintf("[Vault Client] failed to login to %s with kube sa token", addr))
-			fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
+			log.WithError(err).Errorf("[Vault Client] failed to login to %s with kube sa token", addr)
+			log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr)
 			return // skip entire reconcilation for this instance
 		}
 	} else {
@@ -278,38 +299,42 @@ func createClient(addr string,
 
 		// at minimum, one element will exist in secrets regardless of type
 		// type is same across all VaultSecrets associated with a particular instance address
-		var token string
+		var clientToken string
 		switch bundle.VaultSecrets[0].Type {
 		case APPROLE_AUTH:
-			t, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
-				"role_id":   accessCreds[ROLE_ID],
-				"secret_id": accessCreds[SECRET_ID],
+			err := utils.Retry(defaultTokenRetryAttempts, defaultTokenRetrySleep, func() error {
+				secret, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
+					"role_id":   accessCreds[ROLE_ID],
+					"secret_id": accessCreds[SECRET_ID],
+				})
+				if err != nil {
+					return utils.RetryStop(err)
+				}
+				// Writing to the AppRole mount endpoint to "login" to obtain a new
+				// token might return an empty response without necessarily failing.
+				if secret.Auth == nil || secret.Auth.ClientToken == "" {
+					log.Warn("[Vault Client] received empty authentication information. Retrying...")
+					return errClientTokenInvalid
+				}
+				clientToken = secret.Auth.ClientToken
+				return nil
 			})
 			if err != nil {
-				log.WithError(err)
-				fmt.Println(fmt.Sprintf("[Vault Client] failed to login to %s with AppRole credentials", addr))
-				fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
-				return // skip entire reconcilation for this instance
+				log.WithError(err).Errorf("[Vault Client] failed to login to %s with AppRole credentials", addr)
+				log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr)
+				return // Skip entire reconciliation for this instance.
 			}
-			// Writing to the AppRole mount endpoint to "login" to obtain a new
-			// token might return an empty response without necessarily failing.
-			if t.Auth == nil || t.Auth.ClientToken == "" {
-				fmt.Println("[Vault Client] failed to retrieve valid client token: empty response")
-				return
-			}
-			token = t.Auth.ClientToken
 		case TOKEN_AUTH:
-			token = accessCreds[TOKEN]
+			clientToken = accessCreds[TOKEN]
 		}
-		client.SetToken(token)
+		client.SetToken(clientToken)
 	}
 
 	// test client
 	_, err = client.Sys().ListAuth()
 	if err != nil {
-		log.WithError(err)
-		fmt.Println(fmt.Sprintf("[Vault Client] failed to login to %s", addr))
-		fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
+		log.WithError(err).Errorf("[Vault Client] failed to login to %s", addr)
+		log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr)
 		return
 	}
 
