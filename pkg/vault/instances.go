@@ -195,6 +195,11 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 			if err != nil {
 				log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
 			}
+			// Writing to the AppRole mount endpoint to "login" to obtain a new
+			// token might return an empty response without necessarily failing.
+			if secret.Auth == nil || secret.Auth.ClientToken == "" {
+				log.Fatal("[Vault Client] failed to retrieve valid client token: empty response")
+			}
 			clientToken = secret.Auth.ClientToken
 		case TOKEN_AUTH:
 			clientToken = mustGetenv("VAULT_TOKEN")
@@ -285,6 +290,12 @@ func createClient(addr string,
 				fmt.Println(fmt.Sprintf("[Vault Client] failed to login to %s with AppRole credentials", addr))
 				fmt.Println(fmt.Sprintf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr))
 				return // skip entire reconcilation for this instance
+			}
+			// Writing to the AppRole mount endpoint to "login" to obtain a new
+			// token might return an empty response without necessarily failing.
+			if t.Auth == nil || t.Auth.ClientToken == "" {
+				fmt.Println("[Vault Client] failed to retrieve valid client token: empty response")
+				return
 			}
 			token = t.Auth.ClientToken
 		case TOKEN_AUTH:
