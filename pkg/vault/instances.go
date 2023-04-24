@@ -185,7 +185,7 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 
 	client, err := api.NewClient(masterVaultCFG)
 	if err != nil {
-		log.WithError(err).Fatal("failed to initialize master Vault client")
+		log.WithError(err).Fatal("[Vault Client] failed to initialize master Vault client")
 	}
 
 	masterAuthBundle := instanceCreds[masterVaultCFG.Address]
