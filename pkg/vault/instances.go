@@ -117,9 +117,8 @@ func processInstances(instances []Instance, kubeAuth bool) (map[string]AuthBundl
 			switch strings.ToLower(i.Auth.Provider) {
 			case APPROLE_AUTH:
 				// ensure required values exist
-				if i.Auth.RoleID.Field == "" || i.Auth.RoleID.Path == "" ||
-					i.Auth.SecretID.Field == "" || i.Auth.SecretID.Path == "" {
-					return nil, errors.New("A required approle authentication attribute is missing")
+				if i.Auth.RoleID.Field == "" || i.Auth.RoleID.Path == "" || i.Auth.SecretID.Field == "" || i.Auth.SecretID.Path == "" {
+					return nil, errors.New("required AppRole authentication attribute is missing")
 				}
 				bundle.VaultSecrets = []*VaultSecret{
 					{
@@ -139,7 +138,7 @@ func processInstances(instances []Instance, kubeAuth bool) (map[string]AuthBundl
 				}
 			case TOKEN_AUTH:
 				if i.Auth.Token.Field == "" || i.Auth.Token.Path == "" {
-					return nil, errors.New("A required token authentication attribute is missing")
+					return nil, errors.New("required Token authentication attribute is missing")
 				}
 				bundle.VaultSecrets = []*VaultSecret{
 					{
@@ -151,8 +150,7 @@ func processInstances(instances []Instance, kubeAuth bool) (map[string]AuthBundl
 					},
 				}
 			default:
-				return nil, errors.New(fmt.Sprintf(
-					"Unable to process `auth` attribute of instance definition with address %s", i.Address))
+				return nil, fmt.Errorf("unable to process `auth` attribute of instance definition with address `%s`", i.Address)
 			}
 		}
 		instanceCreds[i.Address] = bundle
@@ -274,7 +272,7 @@ func createClient(addr string,
 	client, err := api.NewClient(config)
 	if err != nil {
 		log.WithError(err).Errorf("[Vault Client] failed to initialize Vault client for %s", addr)
-		log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr)
+		log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
 		return // skip entire reconcilation for this instance
 	}
 
@@ -283,7 +281,7 @@ func createClient(addr string,
 		err := configureKubeAuthClient(client, bundle)
 		if err != nil {
 			log.WithError(err).Errorf("[Vault Client] failed to login to %s with kube sa token", addr)
-			log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr)
+			log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
 			return // skip entire reconcilation for this instance
 		}
 	} else {
@@ -321,7 +319,7 @@ func createClient(addr string,
 			})
 			if err != nil {
 				log.WithError(err).Errorf("[Vault Client] failed to login to %s with AppRole credentials", addr)
-				log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr)
+				log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
 				return // Skip entire reconciliation for this instance.
 			}
 		case TOKEN_AUTH:
@@ -334,7 +332,7 @@ func createClient(addr string,
 	_, err = client.Sys().ListAuth()
 	if err != nil {
 		log.WithError(err).Errorf("[Vault Client] failed to login to %s", addr)
-		log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s\n", addr)
+		log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
 		return
 	}
 
