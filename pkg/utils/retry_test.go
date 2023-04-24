@@ -15,42 +15,66 @@ func TestRetry(t *testing.T) {
 		description string
 		attempts    int
 		sleep       time.Duration
-		given       func() error
+		given       func(*int) func() error
 		expected    error
 	}{
 		{
-			"callback returns no error",
-			2,
+			"callback function returns no error",
+			1,
 			1 * time.Millisecond,
-			func() error {
-				return nil
+			func(c *int) func() error {
+				return func() error {
+					*c++
+					return nil
+				}
 			},
 			nil,
 		},
 		{
-			"callback returns an error",
-			2,
+			"callback function returns an error",
+			1,
 			1 * time.Millisecond,
-			func() error {
-				return errors.New("test")
+			func(c *int) func() error {
+				return func() error {
+					*c++
+					return errors.New("test")
+				}
 			},
 			errors.New("test"),
 		},
 		{
-			"callback returns no error using a custom error",
-			2,
+			"callback function returns an error to be retried five times",
+			5,
 			1 * time.Millisecond,
-			func() error {
-				return RetryStop(nil)
+			func(c *int) func() error {
+				return func() error {
+					*c++
+					return errors.New("test")
+				}
+			},
+			errors.New("test"),
+		},
+		{
+			"callback function returns no error using a custom error",
+			1,
+			1 * time.Millisecond,
+			func(c *int) func() error {
+				return func() error {
+					*c++
+					return RetryStop(nil)
+				}
 			},
 			nil,
 		},
 		{
-			"callback requests to stop retrying with a custom error",
-			2,
+			"callback function requests to stop retrying with a custom error",
+			1,
 			1 * time.Millisecond,
-			func() error {
-				return RetryStop(errors.New("test-retry-stop"))
+			func(c *int) func() error {
+				return func() error {
+					*c++
+					return RetryStop(errors.New("test-retry-stop"))
+				}
 			},
 			errors.New("test-retry-stop"),
 		},
@@ -61,9 +85,11 @@ func TestRetry(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			actual := Retry(tc.attempts, tc.sleep, tc.given)
+			var attempts int
+			actual := Retry(tc.attempts, tc.sleep, tc.given(&attempts))
 
 			assert.Equal(t, tc.expected, actual)
+			assert.Equal(t, tc.attempts, attempts)
 		})
 	}
 }

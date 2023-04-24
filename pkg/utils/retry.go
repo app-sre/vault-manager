@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -14,7 +13,7 @@ type retryError struct {
 
 // Retry attempts to execute the given callback function a certain number of times,
 // with a delay between each attempt using a simple exponential backoff algorithm
-// with a jitter.
+// that uses a slight jitter to ensure that retries aren't clustered.
 //
 // If the callback function returns an error, Retry will sleep for a certain duration
 // before attempting to call the callback function again.
@@ -28,7 +27,6 @@ func Retry(attempts int, sleep time.Duration, callbackFunc func() error) error {
 	if err := callbackFunc(); err != nil {
 		log.WithField("attempts", attempts).Debug("Retrying attempt")
 		if s, ok := err.(retryError); ok {
-			fmt.Println("XXX")
 			return s.error
 		}
 		if attempts--; attempts > 0 {

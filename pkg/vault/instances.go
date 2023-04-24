@@ -268,7 +268,7 @@ func createClient(addr string, masterAddress string, bundle AuthBundle, bwg *uti
 	if err != nil {
 		log.WithError(err).Errorf("[Vault Client] failed to initialize Vault client for `%s`", addr)
 		log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
-		return // skip entire reconcilation for this instance
+		return // Skip entire reconciliation for this instance.
 	}
 
 	// indicates kube auth should be utilized
@@ -277,7 +277,7 @@ func createClient(addr string, masterAddress string, bundle AuthBundle, bwg *uti
 		if err != nil {
 			log.WithError(err).Errorf("[Vault Client] failed to login to `%s` with Kubernetes credentials", addr)
 			log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
-			return // skip entire reconcilation for this instance
+			return // Skip entire reconciliation for this instance.
 		}
 	} else {
 		accessCreds := make(map[string]string)
