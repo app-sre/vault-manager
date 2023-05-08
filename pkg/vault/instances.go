@@ -221,7 +221,8 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 func configureKubeAuthClient(ctx context.Context, client *api.Client, bundle AuthBundle) error {
 	mount := mustGetenv("KUBE_AUTH_MOUNT")
 	kubeSATokenPath := mustGetenv("KUBE_SA_TOKEN_PATH")
-	kubeAuth, err := kubernetes.NewKubernetesAuth(
+
+	auth, err := kubernetes.NewKubernetesAuth(
 		bundle.KubeRoleName,
 		kubernetes.WithServiceAccountTokenPath(kubeSATokenPath),
 		kubernetes.WithMountPath(mount),
@@ -230,13 +231,10 @@ func configureKubeAuthClient(ctx context.Context, client *api.Client, bundle Aut
 		return err
 	}
 
-	authInfo, err := client.Auth().Login(ctx, kubeAuth)
-	if err != nil {
+	if err := login(ctx, client, auth); err != nil {
 		return err
 	}
-	if authInfo == nil {
-		return errors.New("[Vault Client] no auth info was returned after kube login")
-	}
+
 	return nil
 }
 
@@ -249,7 +247,15 @@ func configureAppRoleAuthClient(ctx context.Context, client *api.Client, roleID,
 		return err
 	}
 
-	err = utils.Retry(defaultTokenRetryAttempts, defaultTokenRetrySleep, func() error {
+	if err := login(ctx, client, auth); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func login(ctx context.Context, client *api.Client, auth api.AuthMethod) error {
+	err := utils.Retry(defaultTokenRetryAttempts, defaultTokenRetrySleep, func() error {
 		_, err := client.Auth().Login(ctx, auth)
 		if err != nil {
 			const clientTokenError = `client token not set`
