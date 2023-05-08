@@ -12,6 +12,7 @@ import (
 
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/hashicorp/vault/api"
+	"github.com/hashicorp/vault/api/auth/approle"
 	"github.com/hashicorp/vault/api/auth/kubernetes"
 	log "github.com/sirupsen/logrus"
 )
@@ -74,13 +75,6 @@ const (
 // initialization process is triggered by call to GetInstances()
 // GetInstances() is called a single time within main
 var vaultClients map[string]*api.Client
-
-// errClientTokenInvalid indicates a presence of an invalid client token.
-//
-// There might have been an empty authentication information response
-// sent back from a remote Vault server that does not contain a valid
-// client token.
-var errClientTokenInvalid = errors.New("client token is not valid")
 
 // Utilized to initialize vault instance clients for use by other toplevel integrations
 // returns list of instance addresses being included in reconcile
@@ -196,38 +190,22 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 			log.WithError(err).Fatal("[Vault Client] failed to configure master client using Kubernetes authentication")
 		}
 	} else {
-		var clientToken string
-		switch authType := defaultGetenv("VAULT_AUTHTYPE", "approle"); strings.ToLower(authType) {
+		authType := defaultGetenv("VAULT_AUTHTYPE", "approle")
+		switch strings.ToLower(authType) {
 		case APPROLE_AUTH:
 			roleID := mustGetenv("VAULT_ROLE_ID")
 			secretID := mustGetenv("VAULT_SECRET_ID")
 
-			err := utils.Retry(defaultTokenRetryAttempts, defaultTokenRetrySleep, func() error {
-				secret, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
-					"role_id":   roleID,
-					"secret_id": secretID,
-				})
-				if err != nil {
-					return utils.RetryStop(err)
-				}
-				// Writing to the AppRole mount endpoint to "login" to obtain a new
-				// token might return an empty response without necessarily failing.
-				if secret.Auth == nil || secret.Auth.ClientToken == "" {
-					log.Warn("[Vault Client] received empty authentication information. Retrying...")
-					return errClientTokenInvalid
-				}
-				clientToken = secret.Auth.ClientToken
-				return nil
-			})
+			err := configureAppRoleAuthClient(client, roleID, secretID)
 			if err != nil {
 				log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
 			}
 		case TOKEN_AUTH:
-			clientToken = mustGetenv("VAULT_TOKEN")
+			clientToken := mustGetenv("VAULT_TOKEN")
+			client.SetToken(clientToken)
 		default:
 			log.WithField("authType", authType).Fatal("[Vault Client] unsupported authentication type")
 		}
-		client.SetToken(clientToken)
 	}
 
 	vaultClients[masterVaultCFG.Address] = client
@@ -254,6 +232,40 @@ func configureKubeAuthClient(client *api.Client, bundle AuthBundle) error {
 	if authInfo == nil {
 		return errors.New("[Vault Client] no auth info was returned after kube login")
 	}
+	return nil
+}
+
+func configureAppRoleAuthClient(client *api.Client, roleID, secretID string) error {
+	auth, err := approle.NewAppRoleAuth(
+		roleID,
+		&approle.SecretID{FromString: secretID},
+	)
+	if err != nil {
+		return err
+	}
+
+	err = utils.Retry(defaultTokenRetryAttempts, defaultTokenRetrySleep, func() error {
+		_, err := client.Auth().Login(context.TODO(), auth)
+		if err != nil {
+			const clientTokenError = `client token not set`
+			// The high-level client API also issues a write to the AppRole
+			// mount endpoint to "login" to obtain a new token. The request
+			// might return an empty response without necessarily failing.
+			// As such, the high-level API checks for the presence of the
+			// client token and returns an error if there is none. We then
+			// attempt to retry the login attempt.
+			if strings.Contains(err.Error(), clientTokenError) {
+				log.Warn("[Vault Client] received empty authentication information. Retrying...")
+				return err
+			}
+			return utils.RetryStop(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -292,35 +304,17 @@ func createClient(addr string, masterAddress string, bundle AuthBundle, bwg *uti
 
 		// at minimum, one element will exist in secrets regardless of type
 		// type is same across all VaultSecrets associated with a particular instance address
-		var clientToken string
 		switch bundle.VaultSecrets[0].Type {
 		case APPROLE_AUTH:
-			err := utils.Retry(defaultTokenRetryAttempts, defaultTokenRetrySleep, func() error {
-				secret, err := client.Logical().Write("auth/approle/login", map[string]interface{}{
-					"role_id":   accessCreds[ROLE_ID],
-					"secret_id": accessCreds[SECRET_ID],
-				})
-				if err != nil {
-					return utils.RetryStop(err)
-				}
-				// Writing to the AppRole mount endpoint to "login" to obtain a new
-				// token might return an empty response without necessarily failing.
-				if secret.Auth == nil || secret.Auth.ClientToken == "" {
-					log.Warn("[Vault Client] received empty authentication information. Retrying...")
-					return errClientTokenInvalid
-				}
-				clientToken = secret.Auth.ClientToken
-				return nil
-			})
+			err := configureAppRoleAuthClient(client, accessCreds[ROLE_ID], accessCreds[SECRET_ID])
 			if err != nil {
 				log.WithError(err).Errorf("[Vault Client] failed to login to `%s` with AppRole credentials", addr)
 				log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
 				return // Skip entire reconciliation for this instance.
 			}
 		case TOKEN_AUTH:
-			clientToken = accessCreds[TOKEN]
+			client.SetToken(accessCreds[TOKEN])
 		}
-		client.SetToken(clientToken)
 	}
 
 	// test client
