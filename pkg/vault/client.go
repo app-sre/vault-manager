@@ -19,16 +19,13 @@ func GetVaultSecretField(instanceAddr, path, field, engineVersion string) (strin
 		return "", err
 	}
 	if secret == nil {
-		return "", errors.New(fmt.Sprintf(
-			"[Vault Client] Failed to retrieve secret from %s instance at path %s", instanceAddr, path))
+		return "", fmt.Errorf("failed to retrieve secret from `%s` instance at path `%s`", instanceAddr, path)
 	}
 	if _, exists := secret[field]; !exists {
-		return "", errors.New(fmt.Sprintf(
-			"[Vault Client] Field `%s` does not exist at path: `%s` within %s", field, path, instanceAddr))
+		return "", fmt.Errorf("field `%s` does not exist at path `%s` within `%s`", field, path, instanceAddr)
 	}
 	if _, ok := secret[field].(string); !ok {
-		return "", errors.New(fmt.Sprintf(
-			"[Vault Client] Field `%s` cannot be converted to string", field))
+		return "", fmt.Errorf("field `%s` cannot be converted to string", field)
 	}
 	return secret[field].(string), nil
 }
