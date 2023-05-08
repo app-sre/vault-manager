@@ -63,6 +63,9 @@ const (
 )
 
 const (
+	// How long before a client login attempt to Vault is timed out.
+	defaultClientLoginTimeout = 5 * time.Second
+
 	// How many times attempt to retry when failing
 	// to retrieve a valid client token.
 	defaultTokenRetryAttempts = 5
@@ -182,10 +185,13 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 		log.WithError(err).Fatal("[Vault Client] failed to initialize master Vault client")
 	}
 
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), defaultClientLoginTimeout)
+	defer cancel()
+
 	masterAuthBundle := instanceCreds[masterVaultCFG.Address]
 	// indicates kube auth should be utilized
 	if len(masterAuthBundle.KubeRoleName) > 0 {
-		err := configureKubeAuthClient(client, masterAuthBundle)
+		err := configureKubeAuthClient(ctxTimeout, client, masterAuthBundle)
 		if err != nil {
 			log.WithError(err).Fatal("[Vault Client] failed to configure master client using Kubernetes authentication")
 		}
@@ -196,7 +202,7 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 			roleID := mustGetenv("VAULT_ROLE_ID")
 			secretID := mustGetenv("VAULT_SECRET_ID")
 
-			err := configureAppRoleAuthClient(client, roleID, secretID)
+			err := configureAppRoleAuthClient(ctxTimeout, client, roleID, secretID)
 			if err != nil {
 				log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
 			}
@@ -212,7 +218,7 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 	return masterVaultCFG.Address
 }
 
-func configureKubeAuthClient(client *api.Client, bundle AuthBundle) error {
+func configureKubeAuthClient(ctx context.Context, client *api.Client, bundle AuthBundle) error {
 	mount := mustGetenv("KUBE_AUTH_MOUNT")
 	kubeSATokenPath := mustGetenv("KUBE_SA_TOKEN_PATH")
 	kubeAuth, err := kubernetes.NewKubernetesAuth(
@@ -223,9 +229,8 @@ func configureKubeAuthClient(client *api.Client, bundle AuthBundle) error {
 	if err != nil {
 		return err
 	}
-	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	authInfo, err := client.Auth().Login(ctxTimeout, kubeAuth)
+
+	authInfo, err := client.Auth().Login(ctx, kubeAuth)
 	if err != nil {
 		return err
 	}
@@ -235,7 +240,7 @@ func configureKubeAuthClient(client *api.Client, bundle AuthBundle) error {
 	return nil
 }
 
-func configureAppRoleAuthClient(client *api.Client, roleID, secretID string) error {
+func configureAppRoleAuthClient(ctx context.Context, client *api.Client, roleID, secretID string) error {
 	auth, err := approle.NewAppRoleAuth(
 		roleID,
 		&approle.SecretID{FromString: secretID},
@@ -245,7 +250,7 @@ func configureAppRoleAuthClient(client *api.Client, roleID, secretID string) err
 	}
 
 	err = utils.Retry(defaultTokenRetryAttempts, defaultTokenRetrySleep, func() error {
-		_, err := client.Auth().Login(context.TODO(), auth)
+		_, err := client.Auth().Login(ctx, auth)
 		if err != nil {
 			const clientTokenError = `client token not set`
 			// The high-level client API also issues a write to the AppRole
@@ -283,9 +288,12 @@ func createClient(addr string, masterAddress string, bundle AuthBundle, bwg *uti
 		return // Skip entire reconciliation for this instance.
 	}
 
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), defaultClientLoginTimeout)
+	defer cancel()
+
 	// indicates kube auth should be utilized
 	if len(bundle.KubeRoleName) > 0 {
-		err := configureKubeAuthClient(client, bundle)
+		err := configureKubeAuthClient(ctxTimeout, client, bundle)
 		if err != nil {
 			log.WithError(err).Errorf("[Vault Client] failed to login to `%s` with Kubernetes credentials", addr)
 			log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
@@ -306,7 +314,7 @@ func createClient(addr string, masterAddress string, bundle AuthBundle, bwg *uti
 		// type is same across all VaultSecrets associated with a particular instance address
 		switch bundle.VaultSecrets[0].Type {
 		case APPROLE_AUTH:
-			err := configureAppRoleAuthClient(client, accessCreds[ROLE_ID], accessCreds[SECRET_ID])
+			err := configureAppRoleAuthClient(ctxTimeout, client, accessCreds[ROLE_ID], accessCreds[SECRET_ID])
 			if err != nil {
 				log.WithError(err).Errorf("[Vault Client] failed to login to `%s` with AppRole credentials", addr)
 				log.Warnf("SKIPPING ALL RECONCILIATION FOR: %s", addr)
