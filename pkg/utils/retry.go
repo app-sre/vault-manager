@@ -1,7 +1,10 @@
 package utils
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"errors"
+	"fmt"
+	"math/big"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -10,6 +13,14 @@ import (
 type retryError struct {
 	error
 }
+
+const (
+	// The factor by which to helve the jitter value.
+	jitterHelveFactor = 2
+
+	// The factor by which to increase the sleep time.
+	sleepStepFactor = 2
+)
 
 // Retry attempts to execute the given callback function a certain number of times,
 // with a delay between each attempt using a simple exponential backoff algorithm
@@ -24,19 +35,22 @@ type retryError struct {
 // If the maximum number of attempts is reached and the callback function still fails,
 // it returns the last error returned by the callback function.
 func Retry(attempts int, sleep time.Duration, callbackFunc func() error) error {
+	var e retryError
+
 	if err := callbackFunc(); err != nil {
 		log.WithField("attempts", attempts).Debug("Retrying attempt")
-		if s, ok := err.(retryError); ok {
-			return s.error
+		if errors.As(err, &e) {
+			return e.error
 		}
 		if attempts--; attempts > 0 {
-			sleep = sleep + jitter(sleep)/2
+			sleep += jitter(sleep) / jitterHelveFactor
 			log.WithField("sleep", sleep).Debug("Sleeping before retrying")
 			time.Sleep(sleep)
-			return Retry(attempts, 2*sleep, callbackFunc)
+			return Retry(attempts, sleepStepFactor*sleep, callbackFunc)
 		}
 		return err
 	}
+
 	return nil
 }
 
@@ -51,5 +65,10 @@ func RetryStop(err error) error {
 // introduce randomness into the duration that a retry loop sleeps between
 // retry attempts.
 func jitter(t time.Duration) time.Duration {
-	return time.Duration(rand.Int63n(int64(t)))
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(t)))
+	if err != nil {
+		// Hopefully, this would never happen.
+		panic(fmt.Sprintf("unable to read random bytes: %s", err.Error()))
+	}
+	return time.Duration(n.Int64())
 }
