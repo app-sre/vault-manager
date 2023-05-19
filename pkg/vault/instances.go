@@ -231,11 +231,7 @@ func configureKubeAuthClient(ctx context.Context, client *api.Client, bundle Aut
 		return err
 	}
 
-	if err := login(ctx, client, auth); err != nil {
-		return err
-	}
-
-	return nil
+	return login(ctx, client, auth)
 }
 
 func configureAppRoleAuthClient(ctx context.Context, client *api.Client, roleID, secretID string) error {
@@ -247,11 +243,7 @@ func configureAppRoleAuthClient(ctx context.Context, client *api.Client, roleID,
 		return err
 	}
 
-	if err := login(ctx, client, auth); err != nil {
-		return err
-	}
-
-	return nil
+	return login(ctx, client, auth)
 }
 
 func login(ctx context.Context, client *api.Client, auth api.AuthMethod) error {
