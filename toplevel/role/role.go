@@ -25,6 +25,8 @@ type entry struct {
 	Description string                 `yaml:"description"`
 }
 
+const toplevelName = "vault_roles"
+
 var _ vault.Item = entry{}
 
 func (e entry) Key() string {
@@ -94,7 +96,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("vault_roles", config{})
+	toplevel.RegisterConfiguration(toplevelName, config{})
 }
 
 // TODO(dwelch): refactor this into multiple functions
@@ -171,9 +173,15 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return err
 	}
 
+	desiredItems := asItems(instancesToDesiredRoles[address])
+	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
+	if validateUniquenessError != nil {
+		log.Fatalln(validateUniquenessError)
+	}
+
 	// Diff the desired configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ :=
-		vault.DiffItems(asItems(instancesToDesiredRoles[address]), asItems(existingRoles))
+		vault.DiffItems(desiredItems, asItems(existingRoles))
 
 	if dryRun == true {
 		for _, w := range entriesToBeWritten {

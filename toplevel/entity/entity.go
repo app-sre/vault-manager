@@ -16,6 +16,8 @@ import (
 
 type config struct{}
 
+const toplevelName = "vault_entities"
+
 var _ toplevel.Configuration = config{}
 
 type user struct {
@@ -183,7 +185,7 @@ func (ea entityAlias) Delete() error {
 }
 
 func init() {
-	toplevel.RegisterConfiguration("vault_entities", config{})
+	toplevel.RegisterConfiguration(toplevelName, config{})
 }
 
 func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPoolSize int) error {
@@ -195,6 +197,12 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 	desired := getDesired(address, entries)
 	populateAliasType(desired)
+
+	desiredItems := entriesAsItems(desired)
+	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
+	if validateUniquenessError != nil {
+		log.Fatalln(validateUniquenessError)
+	}
 
 	// Process data on existing entities/aliases
 	existingEntities, err := createBaseExistingEntities(address)
@@ -221,7 +229,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 	// determine entity changes
 	entitiesToBeWritten, entitiesToBeDeleted, entitiesToBeUpdated :=
-		vault.DiffItems(entriesAsItems(desired), entriesAsItems(existingEntities))
+		vault.DiffItems(desiredItems, entriesAsItems(existingEntities))
 	// determine entity alias changes
 	aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated :=
 		determineAliasActions(desired, existingEntities, entitiesToBeDeleted)

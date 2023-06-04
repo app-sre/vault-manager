@@ -19,6 +19,8 @@ type entry struct {
 	Options     map[string]string `yaml:"options"`
 }
 
+const toplevelName = "vault_audit_backends"
+
 var _ vault.Item = entry{}
 
 func (e entry) Key() string {
@@ -58,7 +60,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("vault_audit_backends", config{})
+	toplevel.RegisterConfiguration(toplevelName, config{})
 }
 
 // Apply ensures that an instance of Vault's Audit Devices are configured
@@ -71,6 +73,12 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	instancesToDesiredAudits := make(map[string][]entry)
 	for _, e := range entries {
 		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
+	}
+
+	desiredItems := asItems(instancesToDesiredAudits[address])
+	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
+	if validateUniquenessError != nil {
+		log.Fatalln(validateUniquenessError)
 	}
 
 	// perform reconcile operations for specific instance
@@ -91,7 +99,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 	// Diff the local configuration with the Vault instance.
 	toBeWritten, toBeDeleted, _ :=
-		vault.DiffItems(asItems(instancesToDesiredAudits[address]), asItems(existingAduits))
+		vault.DiffItems(desiredItems, asItems(existingAduits))
 
 	if dryRun == true {
 		for _, w := range toBeWritten {
