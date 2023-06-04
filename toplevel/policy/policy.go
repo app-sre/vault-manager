@@ -14,10 +14,12 @@ import (
 
 type config struct{}
 
+const toplevelName = "vault_policies"
+
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("vault_policies", config{})
+	toplevel.RegisterConfiguration(toplevelName, config{})
 }
 
 type entry struct {
@@ -105,9 +107,17 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}
 	}
 
+	desired := instancesToDesiredPolicies[address]
+	desiredItems := asItems((desired))
+
+	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
+	if validateUniquenessError != nil {
+		log.Fatalln(validateUniquenessError)
+	}
+
 	// Diff the local configuration with the Vault instance.
 	toBeWritten, toBeDeleted, _ :=
-		vault.DiffItems(asItems(instancesToDesiredPolicies[address]), asItems(existingPolicies))
+		vault.DiffItems(desiredItems, asItems(existingPolicies))
 
 	if dryRun == true {
 		for _, w := range toBeWritten {
