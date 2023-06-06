@@ -198,7 +198,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	desired := getDesired(address, entries)
 	populateAliasType(desired)
 
-	desiredItems := entriesAsItems(desired)
+	desiredItems := asItems(desired)
 	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
 	if validateUniquenessError != nil {
 		log.Fatalln(validateUniquenessError)
@@ -229,7 +229,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 	// determine entity changes
 	entitiesToBeWritten, entitiesToBeDeleted, entitiesToBeUpdated :=
-		vault.DiffItems(desiredItems, entriesAsItems(existingEntities))
+		vault.DiffItems(desiredItems, asItems(existingEntities))
 	// determine entity alias changes
 	aliasesToBeWritten, aliasesToBeDeleted, aliasesToBeUpdated :=
 		determineAliasActions(desired, existingEntities, entitiesToBeDeleted)
@@ -634,7 +634,7 @@ func unmarshallMetadatas(entries []entity) error {
 	return nil
 }
 
-func entriesAsItems(entries []entity) []vault.Item {
+func asItems(entries []entity) []vault.Item {
 	items := make([]vault.Item, 0)
 	for _, entry := range entries {
 		items = append(items, entry)
