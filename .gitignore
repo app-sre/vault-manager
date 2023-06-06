@@ -17,3 +17,6 @@ vault-manager
 tests/app-interface/graphql-schemas/*
 tests/app-interface/schemas/*
 tests/app-interface/resources/*
+
+# VS code related files
+*.vscode/*
