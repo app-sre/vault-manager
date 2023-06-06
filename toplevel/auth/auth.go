@@ -118,7 +118,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 	updateOptionalKubeDefaults(instancesToDesired[address])
 
-	desiredItems := entriesAsItems(instancesToDesired[address])
+	desiredItems := asItems(instancesToDesired[address])
 	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
 	if validateUniquenessError != nil {
 		log.Fatalln(validateUniquenessError)
@@ -146,7 +146,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 	// perform auth reconcile
 	toBeWritten, toBeDeleted, _ :=
-		vault.DiffItems(desiredItems, entriesAsItems(existingBackends))
+		vault.DiffItems(desiredItems, asItems(existingBackends))
 	err = enableAuth(address, toBeWritten, dryRun)
 	if err != nil {
 		return err
@@ -392,7 +392,7 @@ func writePolicyMapping(instanceAddr string, path string, data map[string]interf
 	return nil
 }
 
-func entriesAsItems(xs []entry) (items []vault.Item) {
+func asItems(xs []entry) (items []vault.Item) {
 	items = make([]vault.Item, 0)
 	for _, x := range xs {
 		items = append(items, x)
