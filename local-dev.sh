@@ -6,6 +6,13 @@ source .env
 
 CONTAINER_HEALTH_TIMEOUT_DEFAULT=60
 
+makedata () {
+  cd tests/app-interface
+  export CONTAINER_ENGINE=docker
+  make data
+  cd ../../
+}
+
 cleanup () {
   echo "cleaning"
   if docker ps -a --format "table {{.Names}}" | grep -qw $KEYCLOAK_CLI_NAME; then
@@ -57,6 +64,8 @@ audit_perms() {
 }
 
 cleanup
+
+makedata
 
 # spin up keycloak server
 docker run -d --name=$KEYCLOAK_NAME \
