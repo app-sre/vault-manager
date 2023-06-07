@@ -33,6 +33,8 @@ type policyMapping struct {
 	Description string                   `yaml:"description"`
 }
 
+const toplevelName = "vault_auth_backends"
+
 var _ vault.Item = entry{}
 
 var _ vault.Item = policyMapping{}
@@ -98,7 +100,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("vault_auth_backends", config{})
+	toplevel.RegisterConfiguration(toplevelName, config{})
 }
 
 // Apply ensures that an instance of Vault's authentication backends are
@@ -115,6 +117,12 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		instancesToDesired[e.Instance.Address] = append(instancesToDesired[e.Instance.Address], e)
 	}
 	updateOptionalKubeDefaults(instancesToDesired[address])
+
+	desiredItems := asItems(instancesToDesired[address])
+	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
+	if validateUniquenessError != nil {
+		log.Fatalln(validateUniquenessError)
+	}
 
 	// Get the existing auth backends
 	existingAuthMounts, err := vault.ListAuthBackends(address)
@@ -138,7 +146,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 	// perform auth reconcile
 	toBeWritten, toBeDeleted, _ :=
-		vault.DiffItems(entriesAsItems(instancesToDesired[address]), entriesAsItems(existingBackends))
+		vault.DiffItems(desiredItems, asItems(existingBackends))
 	err = enableAuth(address, toBeWritten, dryRun)
 	if err != nil {
 		return err
@@ -384,7 +392,7 @@ func writePolicyMapping(instanceAddr string, path string, data map[string]interf
 	return nil
 }
 
-func entriesAsItems(xs []entry) (items []vault.Item) {
+func asItems(xs []entry) (items []vault.Item) {
 	items = make([]vault.Item, 0)
 	for _, x := range xs {
 		items = append(items, x)

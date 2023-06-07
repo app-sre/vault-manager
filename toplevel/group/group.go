@@ -17,6 +17,8 @@ import (
 
 type config struct{}
 
+const toplevelName = "vault_groups"
+
 var _ toplevel.Configuration = config{}
 
 type user struct {
@@ -111,7 +113,7 @@ func (g group) Delete() error {
 var _ vault.Item = group{}
 
 func init() {
-	toplevel.RegisterConfiguration("vault_groups", config{})
+	toplevel.RegisterConfiguration(toplevelName, config{})
 }
 
 func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPoolSize int) error {
@@ -140,7 +142,13 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	sortSlices(desired)
 	sortSlices(existing)
 
-	toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(groupsAsItems(desired), groupsAsItems(existing))
+	desiredItems := asItems(desired)
+	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
+	if validateUniquenessError != nil {
+		log.Fatalln(validateUniquenessError)
+	}
+
+	toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(desiredItems, asItems(existing))
 	if dryRun {
 		dryRunOutput(address, toBeWritten, "written")
 		dryRunOutput(address, toBeDeleted, "deleted")
@@ -457,7 +465,7 @@ func sortSlices(groups []group) {
 	}
 }
 
-func groupsAsItems(groups []group) []vault.Item {
+func asItems(groups []group) []vault.Item {
 	items := []vault.Item{}
 	for _, group := range groups {
 		items = append(items, group)
