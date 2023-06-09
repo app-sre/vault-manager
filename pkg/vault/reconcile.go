@@ -202,9 +202,10 @@ func ValidateUniqueness(desiredItems []Item, toplevel string) error {
 	var uniqueNames = make(map[string]bool)
 	for _, item := range desiredItems {
 		itemName := item.Key()
-		_, exist := uniqueNames[itemName]
+		uniqueItemKey := strings.Join([]string{itemName, item.KeyForType()}, "")
+		_, exist := uniqueNames[uniqueItemKey]
 		if !exist {
-			uniqueNames[itemName] = true
+			uniqueNames[uniqueItemKey] = true
 		} else {
 			return fmt.Errorf("name %s already exist in %s", itemName, toplevel)
 		}
