@@ -143,9 +143,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	sortSlices(existing)
 
 	desiredItems := asItems(desired)
-	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
-	if validateUniquenessError != nil {
-		log.Fatalln(validateUniquenessError)
+	if validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName); validateUniquenessError != nil {
+		return validateUniquenessError
 	}
 
 	toBeWritten, toBeDeleted, toBeUpdated := vault.DiffItems(desiredItems, asItems(existing))

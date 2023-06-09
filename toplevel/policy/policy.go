@@ -65,6 +65,13 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		instancesToDesiredPolicies[e.Instance.Address] = append(instancesToDesiredPolicies[e.Instance.Address], e)
 	}
 
+	desired := instancesToDesiredPolicies[address]
+	desiredItems := asItems((desired))
+
+	if validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName); validateUniquenessError != nil {
+		return validateUniquenessError
+	}
+
 	existingPolicyNames, err := vault.ListVaultPolicies(address)
 	if err != nil {
 		return err
@@ -105,14 +112,6 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		if e != nil {
 			return e
 		}
-	}
-
-	desired := instancesToDesiredPolicies[address]
-	desiredItems := asItems((desired))
-
-	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
-	if validateUniquenessError != nil {
-		log.Fatalln(validateUniquenessError)
 	}
 
 	// Diff the local configuration with the Vault instance.

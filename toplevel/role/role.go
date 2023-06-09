@@ -113,6 +113,11 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		instancesToDesiredRoles[e.Instance.Address] = append(instancesToDesiredRoles[e.Instance.Address], e)
 	}
 
+	desiredRoles := instancesToDesiredRoles[address]
+	if validateUniquenessError := validateRoleUniqueness(desiredRoles, toplevelName); validateUniquenessError != nil {
+		return validateUniquenessError
+	}
+
 	// Get the existing auth backends
 	existingAuths, err := vault.ListAuthBackends(address)
 	if err != nil {
@@ -172,12 +177,6 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 			"instance": address,
 		}).Info("[Vault Role] failed to unmarshall oidc options of desired role")
 		return err
-	}
-
-	desiredRoles := instancesToDesiredRoles[address]
-	validateUniquenessError := validateRoleUniqueness(desiredRoles, toplevelName)
-	if validateUniquenessError != nil {
-		log.Fatalln(validateUniquenessError)
 	}
 
 	// Diff the desired configuration with the Vault instance.
