@@ -145,7 +145,8 @@ func main() {
 				}
 				err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
 				if err != nil {
-					if strings.Contains(err.Error(), "duplication") {
+					// Fail immediately if a duplication if found. Intend for pr_check.
+					if strings.Contains(err.Error(), "already exist") {
 						log.Fatalln(err)
 					}
 					fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
