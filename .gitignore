@@ -5,7 +5,7 @@
 *.so
 *.dylib
 vault-manager
-!cmd/
+!cmd/*
 
 
 # Test binary, build with `go test -c`
