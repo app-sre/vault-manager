@@ -3,6 +3,7 @@
 package role
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -112,6 +113,11 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		instancesToDesiredRoles[e.Instance.Address] = append(instancesToDesiredRoles[e.Instance.Address], e)
 	}
 
+	desiredRoles := instancesToDesiredRoles[address]
+	if validateUniquenessError := validateRoleUniqueness(desiredRoles, toplevelName); validateUniquenessError != nil {
+		return validateUniquenessError
+	}
+
 	// Get the existing auth backends
 	existingAuths, err := vault.ListAuthBackends(address)
 	if err != nil {
@@ -173,15 +179,9 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return err
 	}
 
-	desiredItems := asItems(instancesToDesiredRoles[address])
-	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
-	if validateUniquenessError != nil {
-		log.Fatalln(validateUniquenessError)
-	}
-
 	// Diff the desired configuration with the Vault instance.
 	entriesToBeWritten, entriesToBeDeleted, _ :=
-		vault.DiffItems(desiredItems, asItems(existingRoles))
+		vault.DiffItems(asItems(desiredRoles), asItems(existingRoles))
 
 	if dryRun == true {
 		for _, w := range entriesToBeWritten {
@@ -302,4 +302,18 @@ func addOptionalOidcDefaults(instance string, roles []entry) {
 			}
 		}
 	}
+}
+
+func validateRoleUniqueness(desiredRoles []entry, toplevel string) error {
+	var uniqueNames = make(map[string]bool)
+	for _, role := range desiredRoles {
+		uniqueRoleKey := fmt.Sprintf("%s%s", role.Mount, role.Name)
+		_, exist := uniqueNames[uniqueRoleKey]
+		if !exist {
+			uniqueNames[uniqueRoleKey] = true
+		} else {
+			return fmt.Errorf("name %s already exist in %s", role.Name, toplevel)
+		}
+	}
+	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
@@ -144,6 +145,10 @@ func main() {
 				}
 				err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
 				if err != nil {
+					// Fail immediately if a duplication if found. Intend for pr_check.
+					if strings.Contains(err.Error(), "already exist") {
+						log.Fatalln(err)
+					}
 					fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
 					status = 1
 					break

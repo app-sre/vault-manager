@@ -199,9 +199,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	populateAliasType(desired)
 
 	desiredItems := asItems(desired)
-	validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName)
-	if validateUniquenessError != nil {
-		log.Fatalln(validateUniquenessError)
+	if validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName); validateUniquenessError != nil {
+		return validateUniquenessError
 	}
 
 	// Process data on existing entities/aliases
