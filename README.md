@@ -47,6 +47,37 @@ From root of repo, run `source dev-env`
 
 You can now execute run vault-manager against the local vault instances. Note that after a non `-dry-run`, the resources will be added to the vault instances. To reset, simply rerun `local-dev.sh`
 
+Note: `--net=host` isn't supported for Mac([doc](https://docs.docker.com/network/drivers/host/)). So if you are developing from Mac, remove the flag from local-dev.sh and also remove key-cloak related `docker run` command.
+
+### Example launch.json for VS Code:
+```
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Launch Package",
+        "type": "go",
+        "request": "launch",
+        "mode": "auto",
+        "program": "${workspaceFolder}/cmd/vault-manager/main.go",
+        "args": ["--dry-run"],
+        "env": {
+          "VAULT_ADDR": "http://127.0.0.1:8200",
+          "VAULT_TOKEN": "root",
+          "VAULT_AUTHTYPE": "token",
+          "GRAPHQL_SERVER": "http://localhost:4000/graphql",
+          "GRAPHQL_QUERY_FILE": "/Users/olivia/SourceCode/app-sre/vault-manager/query.graphql"
+        }
+      }
+    ]
+  }
+```
+
+### Testing:
+
+This project use BATS for integration test, using mentioned primary and secondary vault instance. You can debug them by point environment variable `GRAPHQL_QUERY_FILE` to the .graphql under /fixtures.
+
+
 ## Gotchas
 
 ### Approle output_path
