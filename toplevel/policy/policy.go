@@ -3,6 +3,7 @@
 package policy
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
@@ -67,9 +68,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 	desired := instancesToDesiredPolicies[address]
 	desiredItems := asItems((desired))
-
-	if validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName); validateUniquenessError != nil {
-		return validateUniquenessError
+	if unique := vault.UniqueKeys(desiredItems, toplevelName); !unique {
+		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
 	existingPolicyNames, err := vault.ListVaultPolicies(address)

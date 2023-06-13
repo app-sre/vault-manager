@@ -3,6 +3,8 @@
 package audit
 
 import (
+	"fmt"
+
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 
@@ -76,8 +78,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 
 	desiredItems := asItems(instancesToDesiredAudits[address])
-	if validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName); validateUniquenessError != nil {
-		return validateUniquenessError
+	if unique := vault.UniqueKeys(desiredItems, toplevelName); !unique {
+		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
 	// perform reconcile operations for specific instance

@@ -5,6 +5,7 @@
 package secretsengine
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/vault/api"
@@ -24,6 +25,8 @@ type entry struct {
 }
 
 var _ vault.Item = entry{}
+
+const toplevelName = "vault_secret_engines"
 
 func (e entry) Key() string {
 	return e.Path
@@ -74,9 +77,14 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Secrets engine] failed to decode secrets engines configuration")
 	}
+
 	instancesToDesiredEngines := make(map[string][]entry)
 	for _, e := range entries {
 		instancesToDesiredEngines[e.Instance.Address] = append(instancesToDesiredEngines[e.Instance.Address], e)
+	}
+	desiredItems := asItems(instancesToDesiredEngines[address])
+	if unique := vault.UniqueKeys(desiredItems, toplevelName); !unique {
+		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
 	enabledSecretEngines, err := vault.ListSecretsEngines(address)

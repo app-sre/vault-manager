@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
@@ -131,6 +130,8 @@ func main() {
 		// sort configs by priority
 		sort.Sort(ByPriority(topLevelConfigs))
 
+		// used to exit with correct status from run-once execution
+		errCounter := 0
 		// perform reconcile process per instance
 		for _, address := range instanceAddresses {
 			start := time.Now()
@@ -145,12 +146,10 @@ func main() {
 				}
 				err = toplevel.Apply(config.Name, address, dataBytes, dryRun, threadPoolSize)
 				if err != nil {
-					// Fail immediately if a duplication if found. Intend for pr_check.
-					if strings.Contains(err.Error(), "already exist") {
-						log.Fatalln(err)
-					}
-					fmt.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
+					log.Println(err)
+					log.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
 					status = 1
+					errCounter++
 					break
 				}
 			}
@@ -162,7 +161,10 @@ func main() {
 		}
 
 		if runOnce {
-			return
+			if errCounter > 0 {
+				os.Exit(1)
+			}
+			os.Exit(0)
 		} else {
 			time.Sleep(sleepDuration)
 		}

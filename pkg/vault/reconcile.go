@@ -198,17 +198,14 @@ func DataInSecret(instanceAddr string, data map[string]interface{}, path string,
 	return true, nil
 }
 
-func ValidateUniqueness(desiredItems []Item, toplevel string) error {
-	var uniqueNames = make(map[string]bool)
-	for _, item := range desiredItems {
-		itemName := item.Key()
-		uniqueItemKey := strings.Join([]string{itemName, item.KeyForType()}, "")
-		_, exist := uniqueNames[uniqueItemKey]
-		if !exist {
-			uniqueNames[uniqueItemKey] = true
+func UniqueKeys(items []Item, toplevel string) bool {
+	var uniqueKeys = make(map[string]bool)
+	for _, item := range items {
+		if exist := uniqueKeys[item.Key()]; !exist {
+			uniqueKeys[item.Key()] = true
 		} else {
-			return fmt.Errorf("name %s already exist in %s", itemName, toplevel)
+			return false
 		}
 	}
-	return nil
+	return true
 }

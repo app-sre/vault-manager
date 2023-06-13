@@ -119,8 +119,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	updateOptionalKubeDefaults(instancesToDesired[address])
 
 	desiredItems := asItems(instancesToDesired[address])
-	if validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName); validateUniquenessError != nil {
-		return validateUniquenessError
+	if unique := vault.UniqueKeys(desiredItems, toplevelName); !unique {
+		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
 	// Get the existing auth backends

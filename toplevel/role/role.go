@@ -114,8 +114,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 
 	desiredRoles := instancesToDesiredRoles[address]
-	if validateUniquenessError := validateRoleUniqueness(desiredRoles, toplevelName); validateUniquenessError != nil {
-		return validateUniquenessError
+	if unique := uniqueNames(desiredRoles, toplevelName); !unique {
+		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
 	// Get the existing auth backends
@@ -304,16 +304,16 @@ func addOptionalOidcDefaults(instance string, roles []entry) {
 	}
 }
 
-func validateRoleUniqueness(desiredRoles []entry, toplevel string) error {
+// Validates that role names are unique within a particular auth mount
+func uniqueNames(desiredRoles []entry, toplevel string) bool {
 	var uniqueNames = make(map[string]bool)
 	for _, role := range desiredRoles {
 		uniqueRoleKey := fmt.Sprintf("%s%s", role.Mount, role.Name)
-		_, exist := uniqueNames[uniqueRoleKey]
-		if !exist {
+		if _, exist := uniqueNames[uniqueRoleKey]; !exist {
 			uniqueNames[uniqueRoleKey] = true
 		} else {
-			return fmt.Errorf("name %s already exist in %s", role.Name, toplevel)
+			return false
 		}
 	}
-	return nil
+	return true
 }
