@@ -29,4 +29,4 @@ COPY --from=builder /opt/app-root/src/vault-manager /bin/
 
 WORKDIR /tests
 
-CMD ["bash"]
+CMD ["bash", "run-tests.sh"]
