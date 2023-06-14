@@ -66,7 +66,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("vault_secret_engines", config{})
+	toplevel.RegisterConfiguration(toplevelName, config{})
 }
 
 // TODO(dwelch) refactor into multiple functions
