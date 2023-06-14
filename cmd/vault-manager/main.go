@@ -131,7 +131,7 @@ func main() {
 		sort.Sort(ByPriority(topLevelConfigs))
 
 		// used to exit with correct status from run-once execution
-		errCounter := 0
+		erred := false
 		// perform reconcile process per instance
 		for _, address := range instanceAddresses {
 			start := time.Now()
@@ -149,7 +149,7 @@ func main() {
 					log.Println(err)
 					log.Println(fmt.Sprintf("SKIPPING REMAINING RECONCILIATION FOR %s", address))
 					status = 1
-					errCounter++
+					erred = true
 					break
 				}
 			}
@@ -161,7 +161,7 @@ func main() {
 		}
 
 		if runOnce {
-			if errCounter > 0 {
+			if erred {
 				os.Exit(1)
 			}
 			os.Exit(0)
