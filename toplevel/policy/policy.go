@@ -66,9 +66,10 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		instancesToDesiredPolicies[e.Instance.Address] = append(instancesToDesiredPolicies[e.Instance.Address], e)
 	}
 
-	desired := instancesToDesiredPolicies[address]
-	desiredItems := asItems((desired))
-	if unique := vault.UniqueKeys(desiredItems, toplevelName); !unique {
+	if unique := utils.ValidKeys(instancesToDesiredPolicies[address],
+		func(e entry) string {
+			return e.Key()
+		}); !unique {
 		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
@@ -116,7 +117,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 	// Diff the local configuration with the Vault instance.
 	toBeWritten, toBeDeleted, _ :=
-		vault.DiffItems(desiredItems, asItems(existingPolicies))
+		vault.DiffItems(asItems(instancesToDesiredPolicies[address]), asItems(existingPolicies))
 
 	if dryRun == true {
 		for _, w := range toBeWritten {

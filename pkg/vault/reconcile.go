@@ -197,15 +197,3 @@ func DataInSecret(instanceAddr string, data map[string]interface{}, path string,
 	}
 	return true, nil
 }
-
-func UniqueKeys(items []Item, toplevel string) bool {
-	var uniqueKeys = make(map[string]bool)
-	for _, item := range items {
-		if exist := uniqueKeys[item.Key()]; !exist {
-			uniqueKeys[item.Key()] = true
-		} else {
-			return false
-		}
-	}
-	return true
-}

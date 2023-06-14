@@ -131,10 +131,14 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 
 	desired := processDesired(address, users, entityNamesToIds)
-	desiredItems := asItems(desired)
-	if unique := vault.UniqueKeys(desiredItems, toplevelName); !unique {
+	if unique := utils.ValidKeys(desired,
+		func(e group) string {
+			return e.Key()
+		}); !unique {
 		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
+
+	desiredItems := asItems(desired)
 
 	existing, err := getExistingGroups(address, threadPoolSize)
 	if err != nil {

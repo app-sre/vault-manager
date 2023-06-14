@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 )
@@ -82,8 +83,11 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	for _, e := range entries {
 		instancesToDesiredEngines[e.Instance.Address] = append(instancesToDesiredEngines[e.Instance.Address], e)
 	}
-	desiredItems := asItems(instancesToDesiredEngines[address])
-	if unique := vault.UniqueKeys(desiredItems, toplevelName); !unique {
+
+	if unique := utils.ValidKeys(instancesToDesiredEngines[address],
+		func(e entry) string {
+			return e.Key()
+		}); !unique {
 		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 

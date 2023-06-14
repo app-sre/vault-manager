@@ -118,8 +118,10 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 	updateOptionalKubeDefaults(instancesToDesired[address])
 
-	desiredItems := asItems(instancesToDesired[address])
-	if unique := vault.UniqueKeys(desiredItems, toplevelName); !unique {
+	if unique := utils.ValidKeys(instancesToDesired[address],
+		func(e entry) string {
+			return e.Key()
+		}); !unique {
 		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
@@ -145,7 +147,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 	// perform auth reconcile
 	toBeWritten, toBeDeleted, _ :=
-		vault.DiffItems(desiredItems, asItems(existingBackends))
+		vault.DiffItems(asItems(instancesToDesired[address]), asItems(existingBackends))
 	err = enableAuth(address, toBeWritten, dryRun)
 	if err != nil {
 		return err

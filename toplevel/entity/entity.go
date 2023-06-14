@@ -198,10 +198,14 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	desired := getDesired(address, entries)
 	populateAliasType(desired)
 
-	desiredItems := asItems(desired)
-	if unique := vault.UniqueKeys(desiredItems, toplevelName); !unique {
+	if unique := utils.ValidKeys(desired,
+		func(e entity) string {
+			return e.Key()
+		}); !unique {
 		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
+
+	desiredItems := asItems(desired)
 
 	// Process data on existing entities/aliases
 	existingEntities, err := createBaseExistingEntities(address)
