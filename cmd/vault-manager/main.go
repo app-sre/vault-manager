@@ -185,7 +185,6 @@ func getConfig() (config, error) {
 	}
 
 	graphqlUsername := os.Getenv("GRAPHQL_USERNAME")
-
 	graphqlPassword := os.Getenv("GRAPHQL_PASSWORD")
 
 	// create a graphql client
