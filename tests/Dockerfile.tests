@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/go-toolset:1.17 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.18 as builder
 COPY . .
 RUN make gobuild
 
@@ -29,4 +29,4 @@ COPY --from=builder /opt/app-root/src/vault-manager /bin/
 
 WORKDIR /tests
 
-CMD ["bash", "run-tests.sh"]
+CMD ["bash"]
