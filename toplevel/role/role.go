@@ -114,8 +114,11 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 
 	desiredRoles := instancesToDesiredRoles[address]
-	if validateUniquenessError := validateRoleUniqueness(desiredRoles, toplevelName); validateUniquenessError != nil {
-		return validateUniquenessError
+	if unique := utils.ValidKeys(desiredRoles,
+		func(e entry) string {
+			return fmt.Sprintf("%s%s", e.Mount, e.Name)
+		}); !unique {
+		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
 	// Get the existing auth backends
@@ -169,9 +172,9 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}
 	}
 
-	addOptionalOidcDefaults(address, instancesToDesiredRoles[address])
+	addOptionalOidcDefaults(address, desiredRoles)
 
-	err = unmarshallOptionObjects(instancesToDesiredRoles[address])
+	err = unmarshallOptionObjects(desiredRoles)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"instance": address,
@@ -210,7 +213,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}
 	}
 
-	err = populateApproleCreds(address, instancesToDesiredRoles[address], dryRun)
+	err = populateApproleCreds(address, desiredRoles, dryRun)
 	if err != nil {
 		return err
 	}
@@ -302,18 +305,4 @@ func addOptionalOidcDefaults(instance string, roles []entry) {
 			}
 		}
 	}
-}
-
-func validateRoleUniqueness(desiredRoles []entry, toplevel string) error {
-	var uniqueNames = make(map[string]bool)
-	for _, role := range desiredRoles {
-		uniqueRoleKey := fmt.Sprintf("%s%s", role.Mount, role.Name)
-		_, exist := uniqueNames[uniqueRoleKey]
-		if !exist {
-			uniqueNames[uniqueRoleKey] = true
-		} else {
-			return fmt.Errorf("name %s already exist in %s", role.Name, toplevel)
-		}
-	}
-	return nil
 }

@@ -3,6 +3,9 @@
 package audit
 
 import (
+	"fmt"
+
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 
@@ -75,9 +78,11 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		instancesToDesiredAudits[e.Instance.Address] = append(instancesToDesiredAudits[e.Instance.Address], e)
 	}
 
-	desiredItems := asItems(instancesToDesiredAudits[address])
-	if validateUniquenessError := vault.ValidateUniqueness(desiredItems, toplevelName); validateUniquenessError != nil {
-		return validateUniquenessError
+	if unique := utils.ValidKeys(instancesToDesiredAudits[address],
+		func(e entry) string {
+			return e.Key()
+		}); !unique {
+		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
 	// perform reconcile operations for specific instance
@@ -96,9 +101,10 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 			Options:     enabledAudits[k].Options,
 		})
 	}
+
 	// Diff the local configuration with the Vault instance.
 	toBeWritten, toBeDeleted, _ :=
-		vault.DiffItems(desiredItems, asItems(existingAduits))
+		vault.DiffItems(asItems(instancesToDesiredAudits[address]), asItems(existingAduits))
 
 	if dryRun == true {
 		for _, w := range toBeWritten {

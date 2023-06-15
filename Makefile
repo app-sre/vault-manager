@@ -10,7 +10,7 @@ gotest:
 	CGO_ENABLED=0 GOOS=$(GOOS) go test ./...
 
 gobuild: gotest
-	CGO_ENABLED=0 GOOS=$(GOOS) go build -a -installsuffix cgo ./cmd/vault-manager
+	CGO_ENABLED=0 GOOS=$(GOOS) go build -a -buildvcs=false -installsuffix cgo ./cmd/vault-manager
 
 build:
 	@docker build --no-cache -t $(IMAGE_NAME):$(IMAGE_TAG) .

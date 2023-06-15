@@ -5,12 +5,14 @@
 package secretsengine
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
+	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 )
@@ -24,6 +26,8 @@ type entry struct {
 }
 
 var _ vault.Item = entry{}
+
+const toplevelName = "vault_secret_engines"
 
 func (e entry) Key() string {
 	return e.Path
@@ -62,7 +66,7 @@ type config struct{}
 var _ toplevel.Configuration = config{}
 
 func init() {
-	toplevel.RegisterConfiguration("vault_secret_engines", config{})
+	toplevel.RegisterConfiguration(toplevelName, config{})
 }
 
 // TODO(dwelch) refactor into multiple functions
@@ -74,9 +78,17 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Secrets engine] failed to decode secrets engines configuration")
 	}
+
 	instancesToDesiredEngines := make(map[string][]entry)
 	for _, e := range entries {
 		instancesToDesiredEngines[e.Instance.Address] = append(instancesToDesiredEngines[e.Instance.Address], e)
+	}
+
+	if unique := utils.ValidKeys(instancesToDesiredEngines[address],
+		func(e entry) string {
+			return e.Key()
+		}); !unique {
+		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
 	enabledSecretEngines, err := vault.ListSecretsEngines(address)
