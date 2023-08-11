@@ -120,14 +120,16 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return err
 	}
 
-	if unique := utils.ValidKeys(desiredRoles,
-		func(e entry) string {
-			return fmt.Sprintf("%s%s", e.Mount, e.Name)
-		}); !unique {
-		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
-	}
-	if err := validateDesiredRoleMounts(desiredRoles, existingAuths); err != nil {
-		return err
+	if dryRun {
+		if unique := utils.ValidKeys(desiredRoles,
+			func(e entry) string {
+				return fmt.Sprintf("%s%s", e.Mount, e.Name)
+			}); !unique {
+			return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
+		}
+		if err := validateDesiredRoleMounts(desiredRoles, existingAuths); err != nil {
+			return err
+		}
 	}
 
 	// build list of all existing roles
