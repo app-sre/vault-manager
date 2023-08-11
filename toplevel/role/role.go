@@ -12,6 +12,7 @@ import (
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -114,16 +115,18 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 
 	desiredRoles := instancesToDesiredRoles[address]
+	existingAuths, err := vault.ListAuthBackends(address)
+	if err != nil {
+		return err
+	}
+
 	if unique := utils.ValidKeys(desiredRoles,
 		func(e entry) string {
 			return fmt.Sprintf("%s%s", e.Mount, e.Name)
 		}); !unique {
 		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
-
-	// Get the existing auth backends
-	existingAuths, err := vault.ListAuthBackends(address)
-	if err != nil {
+	if err := validateDesiredRoleMounts(desiredRoles, existingAuths); err != nil {
 		return err
 	}
 
@@ -228,6 +231,26 @@ func asItems(xs []entry) (items []vault.Item) {
 	}
 
 	return
+}
+
+// validates existence of 'Mount' specified within each desired role
+// nonexistent mount paths are appended w/ culprit role names and returned in an error message
+func validateDesiredRoleMounts(desiredRoles []entry, existingMounts map[string]*api.AuthMount) error {
+	var errSB strings.Builder
+	for _, role := range desiredRoles {
+		if _, exists := existingMounts[role.Mount]; !exists {
+			errSB.WriteString(
+				fmt.Sprintf("Invalid desired role: %s. Specified auth mount path: %s does not exist.",
+					role.Name,
+					role.Mount,
+				),
+			)
+		}
+	}
+	if errSB.Len() > 0 {
+		return fmt.Errorf(errSB.String())
+	}
+	return nil
 }
 
 // unmarshals select options attributes which are defined within schema as objects
