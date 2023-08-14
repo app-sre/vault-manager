@@ -20,7 +20,8 @@ options:
   token_explicit_max_ttl: "0"
   token_type: "default"
   token_period: "0"
-  token_policies: []
+  token_policies:
+  - $ref: /services/vault/config/policies/master/app-sre-policy.yml
   token_bound_cidrs: []
   token_no_default_policy: false
   token_num_uses: "0"

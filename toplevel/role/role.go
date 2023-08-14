@@ -130,6 +130,10 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
+	if err := formatPolicyRefs(desiredRoles); err != nil {
+		return err
+	}
+
 	// build list of all existing roles
 	existingRoles := []entry{}
 	for authBackend := range existingAuths {
@@ -221,6 +225,57 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return err
 	}
 
+	return nil
+}
+
+// Extracts names of policies referenced within applicable attributes of desired roles
+// and updates attributes to only include the names.
+// This is necessary to support policy file references within schemas.
+func formatPolicyRefs(desiredRoles []entry) error {
+	typeToAttrs := map[string][]string{
+		"approle": {
+			"token_policies",
+			"policies",
+		},
+		"oidc": {
+			"token_policies",
+		},
+		"kubernetes": {
+			"token_policies",
+		},
+	}
+	extracted := []string{}
+	for _, role := range desiredRoles {
+		for _, attr := range typeToAttrs[role.Type] {
+			policies, ok := role.Options[attr].([]interface{})
+			if !ok {
+				return fmt.Errorf("[Vault Role] Failed to convert policy list `%s` within `%s`",
+					attr,
+					role.Name,
+				)
+			}
+			for _, policy := range policies {
+				policyMap, ok := policy.(map[interface{}]interface{})
+				if !ok {
+					return fmt.Errorf("[Vault Role] Failed to convert policy map within `%s` attribute of `%s`",
+						attr,
+						role.Name,
+					)
+				}
+				policyName, ok := policyMap["name"].(string)
+				if !ok {
+					return fmt.Errorf("[Vault Role] Failed to retrieve policy name within `%s` attribute of `%s`",
+						attr,
+						role.Name,
+					)
+				}
+				extracted = append(extracted, policyName)
+			}
+			// overwrite list of policy objs with list of policy names
+			role.Options[attr] = extracted
+			extracted = nil
+		}
+	}
 	return nil
 }
 
