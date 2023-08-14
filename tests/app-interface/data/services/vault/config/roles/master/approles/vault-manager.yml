@@ -6,7 +6,8 @@ labels:
 
 name: "vault_manager"
 type: "approle"
-mount: "approle/"
+mount: 
+  $ref: /services/vault/config/auth-backends/master/approle.yml
 instance:
   $ref: /services/vault/config/instances/master.yml
 output_path: app-interface/vault-manager-approle

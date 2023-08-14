@@ -6,7 +6,8 @@ labels:
 
 name: "kube-default"
 type: "kubernetes"
-mount: "kubernetes-main/"
+mount: 
+  $ref: /services/vault/config/auth-backends/master/kubernetes.yml
 instance:
   $ref: /services/vault/config/instances/master.yml
 options:
