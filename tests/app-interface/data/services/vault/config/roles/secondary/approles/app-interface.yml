@@ -6,7 +6,8 @@ labels:
 
 name: "app-interface"
 type: "approle"
-mount: "approle/"
+mount: 
+  $ref: /services/vault/config/auth-backends/secondary/approle.yml
 instance:
   $ref: /services/vault/config/instances/secondary.yml
 output_path: app-interface/app-interface-approle

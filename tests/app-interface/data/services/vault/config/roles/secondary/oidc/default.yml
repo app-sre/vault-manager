@@ -6,7 +6,8 @@ labels:
 
 name: "default"
 type: "oidc"
-mount: "oidc/"
+mount: 
+  $ref: /services/vault/config/auth-backends/secondary/oidc.yml
 instance:
   $ref: /services/vault/config/instances/secondary.yml
 options:
