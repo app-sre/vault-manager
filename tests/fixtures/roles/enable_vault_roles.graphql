@@ -77,7 +77,9 @@
     vault_roles: vault_roles_v1 {
         name
         type
-        mount
+        mount {
+          _path
+        }
         instance {
             address
         }
