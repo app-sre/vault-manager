@@ -28890,7 +28890,7 @@
         "/services/vault/config/instances/secondary.yml": {
             "$schema": "/vault-config/instance-1.yml",
             "labels": {
-                "service": "vault.fedramp.devshift.net"
+                "service": "vault.local"
             },
             "name": "app-sre-secondary-vault",
             "description": "Secondary FedRamp Vault instance",
@@ -28907,7 +28907,7 @@
         "/services/vault/config/instances/master.yml": {
             "$schema": "/vault-config/instance-1.yml",
             "labels": {
-                "service": "vault.fedramp.devshift.net"
+                "service": "vault.local"
             },
             "name": "app-sre-master-vault",
             "description": "Primary FedRamp Vault instance",
@@ -28925,7 +28925,7 @@
         "/services/vault/config/policies/master/app-interface-approle-policy.yml": {
             "$schema": "/vault-config/policy-1.yml",
             "labels": {
-                "service": "vault.devshift.net"
+                "service": "vault.local"
             },
             "name": "app-interface-approle-policy",
             "instance": {
@@ -28958,7 +28958,7 @@
         "/services/vault/config/policies/secondary/app-interface-approle-policy.yml": {
             "$schema": "/vault-config/policy-1.yml",
             "labels": {
-                "service": "vault.devshift.net"
+                "service": "vault.local"
             },
             "name": "app-interface-approle-policy",
             "instance": {
