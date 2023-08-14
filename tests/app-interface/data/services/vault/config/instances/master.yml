@@ -2,7 +2,7 @@
 $schema: /vault-config/instance-1.yml
 
 labels:
-  service: vault.local
+  service: vault.fedramp.devshift.net
 
 name: "app-sre-master-vault"
 description: "Primary FedRamp Vault instance"
