@@ -27,7 +27,7 @@ load ../helpers
     [[ "${output}" == *"token_num_uses"*"0"* ]]
     [[ "${output}" == *"token_ttl"*"30m"* ]]
     [[ "${output}" == *"token_max_ttl"*"30m"* ]]
-    [[ "${output}" == *"policies"*"[app-interface-approle-policy]"* ]]
+    [[ "${output}" == *"policies"*"[app-interface-approle-policy,app-sre-policy]"* ]]
     [[ "${output}" == *"period"*"0s"* ]]
     [[ "${output}" == *"secret_id_ttl"*"0s"* ]]
     [[ "${output}" == *"secret_id_num_uses"*"0"* ]]
