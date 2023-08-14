@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"sort"
@@ -191,7 +190,7 @@ func getConfig() (config, error) {
 	client := graphql.NewClient(graphqlServer)
 
 	// read graphql query from file
-	query, err := ioutil.ReadFile(graphqlQueryFile)
+	query, err := os.ReadFile(graphqlQueryFile)
 	if err != nil {
 		log.WithField("path", graphqlQueryFile).Fatal("failed to read graphql query file")
 	}
