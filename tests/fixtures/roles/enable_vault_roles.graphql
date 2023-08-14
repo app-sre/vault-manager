@@ -77,7 +77,9 @@
     vault_roles: vault_roles_v1 {
         name
         type
-        mount
+        mount {
+          _path
+        }
         instance {
             address
         }
@@ -95,8 +97,12 @@
                 token_num_uses
                 token_ttl
                 token_type
-                token_policies
-                policies
+                token_policies {
+                  name
+                }
+                policies {
+                  name
+                }
                 secret_id_bound_cidrs
                 token_bound_cidrs
             }
@@ -119,7 +125,9 @@
                 token_explicit_max_ttl
                 token_type
                 token_period
-                token_policies
+                token_policies {
+                  name
+                }
                 token_bound_cidrs
                 token_num_uses
                 token_no_default_policy
@@ -135,7 +143,9 @@
                 token_explicit_max_ttl
                 token_type
                 token_period
-                token_policies
+                token_policies {
+                  name
+                }
                 token_bound_cidrs
                 token_num_uses
                 token_no_default_policy

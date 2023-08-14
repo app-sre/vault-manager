@@ -6,7 +6,8 @@ labels:
 
 name: "vault_manager"
 type: "approle"
-mount: "approle/"
+mount: 
+  $ref: /services/vault/config/auth-backends/master/approle.yml
 instance:
   $ref: /services/vault/config/instances/master.yml
 output_path: app-interface/vault-manager-approle
@@ -24,8 +25,8 @@ options:
   token_ttl: "1800"
   token_type: "default"
   token_policies:
-    - vault-manager-policy
+    - $ref: /services/vault/config/policies/master/app-sre-vault-admin.yml
   policies:
-    - vault-manager-policy
+    - $ref: /services/vault/config/policies/master/app-sre-vault-admin.yml
   secret_id_bound_cidrs: []
   token_bound_cidrs: []
