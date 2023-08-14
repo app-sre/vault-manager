@@ -12,7 +12,6 @@ import (
 	"github.com/app-sre/vault-manager/pkg/vault"
 	"github.com/app-sre/vault-manager/toplevel"
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/vault/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -20,11 +19,15 @@ import (
 type entry struct {
 	Name        string                 `yaml:"name"`
 	Type        string                 `yaml:"type"`
-	Mount       string                 `yaml:"mount"`
+	Mount       authMount              `yaml:"mount"`
 	Instance    vault.Instance         `yaml:"instance"`
 	OutputPath  string                 `yaml:"output_path"`
 	Options     map[string]interface{} `yaml:"options"`
 	Description string                 `yaml:"description"`
+}
+
+type authMount struct {
+	Path string `yaml:"_path"`
 }
 
 const toplevelName = "vault_roles"
@@ -56,7 +59,7 @@ func (e entry) Equals(i interface{}) bool {
 }
 
 func (e entry) Save() error {
-	path := filepath.Join("auth", e.Mount, "role", e.Name)
+	path := filepath.Join("auth", e.Mount.Path, "role", e.Name)
 	options := make(map[string]interface{})
 	for k, v := range e.Options {
 		// local_secret_ids can not be changed after creation so we skip this option
@@ -80,7 +83,7 @@ func (e entry) Save() error {
 }
 
 func (e entry) Delete() error {
-	path := filepath.Join("auth", e.Mount, "role", e.Name)
+	path := filepath.Join("auth", e.Mount.Path, "role", e.Name)
 	err := vault.DeleteSecret(e.Instance.Address, path)
 	if err != nil {
 		return nil
@@ -126,7 +129,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}); !unique {
 		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
-	if err := validateDesiredRoleMounts(desiredRoles, existingAuths); err != nil {
+
+	if err := formatPolicyRefs(desiredRoles); err != nil {
 		return err
 	}
 
@@ -165,7 +169,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 						entry{
 							Name:     roles[i].(string),
 							Type:     existingAuths[authBackend].Type,
-							Mount:    authBackend,
+							Mount:    authMount{Path: authBackend},
 							Instance: vault.Instance{Address: address},
 							Options:  opts,
 						})
@@ -224,6 +228,57 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	return nil
 }
 
+// Extracts names of policies referenced within applicable attributes of desired roles
+// and updates attributes to only include the names.
+// This is necessary to support policy file references within schemas.
+func formatPolicyRefs(desiredRoles []entry) error {
+	typeToAttrs := map[string][]string{
+		"approle": {
+			"token_policies",
+			"policies",
+		},
+		"oidc": {
+			"token_policies",
+		},
+		"kubernetes": {
+			"token_policies",
+		},
+	}
+	extracted := []string{}
+	for _, role := range desiredRoles {
+		for _, attr := range typeToAttrs[role.Type] {
+			policies, ok := role.Options[attr].([]interface{})
+			if !ok {
+				return fmt.Errorf("[Vault Role] Failed to convert policy list `%s` within `%s`",
+					attr,
+					role.Name,
+				)
+			}
+			for _, policy := range policies {
+				policyMap, ok := policy.(map[interface{}]interface{})
+				if !ok {
+					return fmt.Errorf("[Vault Role] Failed to convert policy map within `%s` attribute of `%s`",
+						attr,
+						role.Name,
+					)
+				}
+				policyName, ok := policyMap["name"].(string)
+				if !ok {
+					return fmt.Errorf("[Vault Role] Failed to retrieve policy name within `%s` attribute of `%s`",
+						attr,
+						role.Name,
+					)
+				}
+				extracted = append(extracted, policyName)
+			}
+			// overwrite list of policy objs with list of policy names
+			role.Options[attr] = extracted
+			extracted = nil
+		}
+	}
+	return nil
+}
+
 func asItems(xs []entry) (items []vault.Item) {
 	items = make([]vault.Item, 0)
 	for _, x := range xs {
@@ -231,26 +286,6 @@ func asItems(xs []entry) (items []vault.Item) {
 	}
 
 	return
-}
-
-// validates existence of 'Mount' specified within each desired role
-// nonexistent mount paths are appended w/ culprit role names and returned in an error message
-func validateDesiredRoleMounts(desiredRoles []entry, existingMounts map[string]*api.AuthMount) error {
-	var errSB strings.Builder
-	for _, role := range desiredRoles {
-		if _, exists := existingMounts[role.Mount]; !exists {
-			errSB.WriteString(
-				fmt.Sprintf("Invalid desired role: %s. Specified auth mount path: %s does not exist.",
-					role.Name,
-					role.Mount,
-				),
-			)
-		}
-	}
-	if errSB.Len() > 0 {
-		return fmt.Errorf(errSB.String())
-	}
-	return nil
 }
 
 // unmarshals select options attributes which are defined within schema as objects
