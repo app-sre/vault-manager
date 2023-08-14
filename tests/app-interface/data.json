@@ -14885,13 +14885,35 @@
                                 "token_policies": {
                                     "type": "array",
                                     "items": {
-                                        "type": "string"
+                                        "$ref": "/common-1.json#/definitions/crossref",
+                                        "$schemaRef": {
+                                            "type": "object",
+                                            "properties": {
+                                                "$schema": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "/vault-config/policy-1.yml"
+                                                    ]
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 "policies": {
                                     "type": "array",
                                     "items": {
-                                        "type": "string"
+                                        "$ref": "/common-1.json#/definitions/crossref",
+                                        "$schemaRef": {
+                                            "type": "object",
+                                            "properties": {
+                                                "$schema": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "/vault-config/policy-1.yml"
+                                                    ]
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 "secret_id_bound_cidrs": {
@@ -15011,7 +15033,18 @@
                                 "token_policies": {
                                     "type": "array",
                                     "items": {
-                                        "type": "string"
+                                        "$ref": "/common-1.json#/definitions/crossref",
+                                        "$schemaRef": {
+                                            "type": "object",
+                                            "properties": {
+                                                "$schema": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "/vault-config/policy-1.yml"
+                                                    ]
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 "token_bound_cidrs": {
@@ -15097,7 +15130,18 @@
                                 "token_policies": {
                                     "type": "array",
                                     "items": {
-                                        "type": "string"
+                                        "$ref": "/common-1.json#/definitions/crossref",
+                                        "$schemaRef": {
+                                            "type": "object",
+                                            "properties": {
+                                                "$schema": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "/vault-config/policy-1.yml"
+                                                    ]
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 "token_bound_cidrs": {
@@ -16337,13 +16381,13 @@
                     },
                     {
                         "name": "token_policies",
-                        "type": "string",
+                        "type": "VaultPolicy_v1",
                         "isList": true,
                         "isRequired": true
                     },
                     {
                         "name": "policies",
-                        "type": "string",
+                        "type": "VaultPolicy_v1",
                         "isList": true,
                         "isRequired": true
                     },
@@ -16454,7 +16498,7 @@
                     },
                     {
                         "name": "token_policies",
-                        "type": "string",
+                        "type": "VaultPolicy_v1",
                         "isList": true,
                         "isRequired": true
                     },
@@ -16542,7 +16586,7 @@
                     },
                     {
                         "name": "token_policies",
-                        "type": "string",
+                        "type": "VaultPolicy_v1",
                         "isList": true,
                         "isRequired": true
                     },
@@ -28846,7 +28890,7 @@
         "/services/vault/config/instances/secondary.yml": {
             "$schema": "/vault-config/instance-1.yml",
             "labels": {
-                "service": "vault.fedramp.devshift.net"
+                "service": "vault.local"
             },
             "name": "app-sre-secondary-vault",
             "description": "Secondary FedRamp Vault instance",
@@ -28863,7 +28907,7 @@
         "/services/vault/config/instances/master.yml": {
             "$schema": "/vault-config/instance-1.yml",
             "labels": {
-                "service": "vault.fedramp.devshift.net"
+                "service": "vault.local"
             },
             "name": "app-sre-master-vault",
             "description": "Primary FedRamp Vault instance",
@@ -28881,7 +28925,7 @@
         "/services/vault/config/policies/master/app-interface-approle-policy.yml": {
             "$schema": "/vault-config/policy-1.yml",
             "labels": {
-                "service": "vault.devshift.net"
+                "service": "vault.local"
             },
             "name": "app-interface-approle-policy",
             "instance": {
@@ -28914,7 +28958,7 @@
         "/services/vault/config/policies/secondary/app-interface-approle-policy.yml": {
             "$schema": "/vault-config/policy-1.yml",
             "labels": {
-                "service": "vault.devshift.net"
+                "service": "vault.local"
             },
             "name": "app-interface-approle-policy",
             "instance": {
@@ -28971,10 +29015,20 @@
                 "token_ttl": "1800",
                 "token_type": "default",
                 "token_policies": [
-                    "app-interface-approle-policy"
+                    {
+                        "$ref": "/services/vault/config/policies/master/app-interface-approle-policy.yml"
+                    },
+                    {
+                        "$ref": "/services/vault/config/policies/master/app-sre-policy.yml"
+                    }
                 ],
                 "policies": [
-                    "app-interface-approle-policy"
+                    {
+                        "$ref": "/services/vault/config/policies/master/app-interface-approle-policy.yml"
+                    },
+                    {
+                        "$ref": "/services/vault/config/policies/master/app-sre-policy.yml"
+                    }
                 ],
                 "secret_id_bound_cidrs": [],
                 "token_bound_cidrs": []
@@ -29008,10 +29062,14 @@
                 "token_ttl": "1800",
                 "token_type": "default",
                 "token_policies": [
-                    "vault-manager-policy"
+                    {
+                        "$ref": "/services/vault/config/policies/master/app-sre-vault-admin.yml"
+                    }
                 ],
                 "policies": [
-                    "vault-manager-policy"
+                    {
+                        "$ref": "/services/vault/config/policies/master/app-sre-vault-admin.yml"
+                    }
                 ],
                 "secret_id_bound_cidrs": [],
                 "token_bound_cidrs": []
@@ -29057,7 +29115,11 @@
                 "token_explicit_max_ttl": "0",
                 "token_type": "default",
                 "token_period": "0",
-                "token_policies": [],
+                "token_policies": [
+                    {
+                        "$ref": "/services/vault/config/policies/master/app-sre-policy.yml"
+                    }
+                ],
                 "token_bound_cidrs": [],
                 "token_no_default_policy": false,
                 "token_num_uses": "0",
@@ -29089,7 +29151,11 @@
                 "token_explicit_max_ttl": "0",
                 "token_type": "default",
                 "token_period": "0",
-                "token_policies": [],
+                "token_policies": [
+                    {
+                        "$ref": "/services/vault/config/policies/master/app-sre-policy.yml"
+                    }
+                ],
                 "token_bound_cidrs": [],
                 "token_no_default_policy": false,
                 "token_num_uses": "0",
@@ -29123,9 +29189,7 @@
                 "token_explicit_max_ttl": "0",
                 "token_type": "default",
                 "token_period": "0",
-                "token_policies": [
-                    "default"
-                ],
+                "token_policies": [],
                 "token_bound_cidrs": [],
                 "token_no_default_policy": false,
                 "token_num_uses": "0"
@@ -29159,10 +29223,14 @@
                 "token_ttl": "1800",
                 "token_type": "default",
                 "token_policies": [
-                    "app-interface-approle-policy"
+                    {
+                        "$ref": "/services/vault/config/policies/secondary/app-interface-approle-policy.yml"
+                    }
                 ],
                 "policies": [
-                    "app-interface-approle-policy"
+                    {
+                        "$ref": "/services/vault/config/policies/secondary/app-interface-approle-policy.yml"
+                    }
                 ],
                 "secret_id_bound_cidrs": [],
                 "token_bound_cidrs": []
@@ -29195,10 +29263,14 @@
                 "token_ttl": "1800",
                 "token_type": "default",
                 "token_policies": [
-                    "vault-manager-policy"
+                    {
+                        "$ref": "/services/vault/config/policies/secondary/app-sre-vault-admin.yml"
+                    }
                 ],
                 "policies": [
-                    "vault-manager-policy"
+                    {
+                        "$ref": "/services/vault/config/policies/secondary/app-sre-vault-admin.yml"
+                    }
                 ],
                 "secret_id_bound_cidrs": [],
                 "token_bound_cidrs": []
@@ -29244,7 +29316,11 @@
                 "token_explicit_max_ttl": "0",
                 "token_type": "default",
                 "token_period": "0",
-                "token_policies": [],
+                "token_policies": [
+                    {
+                        "$ref": "/services/vault/config/policies/secondary/app-sre-policy.yml"
+                    }
+                ],
                 "token_bound_cidrs": [],
                 "token_no_default_policy": false,
                 "token_num_uses": "0",
@@ -29276,7 +29352,11 @@
                 "token_explicit_max_ttl": "0",
                 "token_type": "default",
                 "token_period": "0",
-                "token_policies": [],
+                "token_policies": [
+                    {
+                        "$ref": "/services/vault/config/policies/secondary/app-sre-policy.yml"
+                    }
+                ],
                 "token_bound_cidrs": [],
                 "token_no_default_policy": false,
                 "token_num_uses": "0",

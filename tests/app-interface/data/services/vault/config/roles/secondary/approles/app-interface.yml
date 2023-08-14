@@ -25,8 +25,8 @@ options:
   token_ttl: "1800"
   token_type: "default"
   token_policies:
-    - app-interface-approle-policy
+    - $ref: /services/vault/config/policies/secondary/app-interface-approle-policy.yml
   policies:
-    - app-interface-approle-policy
+    - $ref: /services/vault/config/policies/secondary/app-interface-approle-policy.yml
   secret_id_bound_cidrs: []
   token_bound_cidrs: []
