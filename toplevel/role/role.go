@@ -232,6 +232,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 // and updates attributes to only include the names.
 // This is necessary to support policy file references within schemas.
 func formatPolicyRefs(desiredRoles []entry) error {
+	// defines attribute(s) for each role type to reformat
+	// see https://github.com/app-sre/qontract-schemas/blob/main/schemas/vault-config/role-1.yml
 	typeToAttrs := map[string][]string{
 		"approle": {
 			"token_policies",
