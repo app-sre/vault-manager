@@ -228,13 +228,15 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	return nil
 }
 
-// Extracts names of policies referenced within applicable attributes of desired roles
-// and updates attributes to only include the names.
+// Extracts names of policies referenced within applicable properties of desired roles
+// and updates those properties to only include the names of policies.
 // This is necessary to support policy file references within schemas.
+// The graphql query will return nested object for policy properties but vault api
+// expects only names of policies to be included
 func formatPolicyRefs(desiredRoles []entry) error {
-	// defines attribute(s) for each role type to reformat
+	// defines applicable properties(s) for each role type to reformat
 	// see https://github.com/app-sre/qontract-schemas/blob/main/schemas/vault-config/role-1.yml
-	typeToAttrs := map[string][]string{
+	typeToProperties := map[string][]string{
 		"approle": {
 			"token_policies",
 			"policies",
@@ -248,11 +250,11 @@ func formatPolicyRefs(desiredRoles []entry) error {
 	}
 	extracted := []string{}
 	for _, role := range desiredRoles {
-		for _, attr := range typeToAttrs[role.Type] {
-			policies, ok := role.Options[attr].([]interface{})
+		for _, property := range typeToProperties[role.Type] {
+			policies, ok := role.Options[property].([]interface{})
 			if !ok {
 				return fmt.Errorf("[Vault Role] Failed to convert policy list `%s` within `%s`",
-					attr,
+					property,
 					role.Name,
 				)
 			}
@@ -260,21 +262,21 @@ func formatPolicyRefs(desiredRoles []entry) error {
 				policyMap, ok := policy.(map[interface{}]interface{})
 				if !ok {
 					return fmt.Errorf("[Vault Role] Failed to convert policy map within `%s` attribute of `%s`",
-						attr,
+						property,
 						role.Name,
 					)
 				}
 				policyName, ok := policyMap["name"].(string)
 				if !ok {
 					return fmt.Errorf("[Vault Role] Failed to retrieve policy name within `%s` attribute of `%s`",
-						attr,
+						property,
 						role.Name,
 					)
 				}
 				extracted = append(extracted, policyName)
 			}
 			// overwrite list of policy objs with list of policy names
-			role.Options[attr] = extracted
+			role.Options[property] = extracted
 			extracted = nil
 		}
 	}
