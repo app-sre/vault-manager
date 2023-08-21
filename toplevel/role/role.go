@@ -261,14 +261,14 @@ func formatPolicyRefs(desiredRoles []entry) error {
 			for _, policy := range policies {
 				policyMap, ok := policy.(map[interface{}]interface{})
 				if !ok {
-					return fmt.Errorf("Failed to convert policy map within `%s` attribute of `%s`",
+					return fmt.Errorf("Failed to convert policy map within `%s` property of `%s`",
 						property,
 						role.Name,
 					)
 				}
 				policyName, ok := policyMap["name"].(string)
 				if !ok {
-					return fmt.Errorf("Failed to retrieve policy name within `%s` attribute of `%s`",
+					return fmt.Errorf("Failed to convert `name` to string within `%s` property of `%s`",
 						property,
 						role.Name,
 					)
