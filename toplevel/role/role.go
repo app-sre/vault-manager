@@ -248,12 +248,12 @@ func formatPolicyRefs(desiredRoles []entry) error {
 			"token_policies",
 		},
 	}
-	extracted := []string{}
 	for _, role := range desiredRoles {
 		for _, property := range typeToProperties[role.Type] {
+			extracted := []string{}
 			policies, ok := role.Options[property].([]interface{})
 			if !ok {
-				return fmt.Errorf("[Vault Role] Failed to convert policy list `%s` within `%s`",
+				return fmt.Errorf("Failed to convert policy list `%s` within `%s`",
 					property,
 					role.Name,
 				)
@@ -261,14 +261,14 @@ func formatPolicyRefs(desiredRoles []entry) error {
 			for _, policy := range policies {
 				policyMap, ok := policy.(map[interface{}]interface{})
 				if !ok {
-					return fmt.Errorf("[Vault Role] Failed to convert policy map within `%s` attribute of `%s`",
+					return fmt.Errorf("Failed to convert policy map within `%s` attribute of `%s`",
 						property,
 						role.Name,
 					)
 				}
 				policyName, ok := policyMap["name"].(string)
 				if !ok {
-					return fmt.Errorf("[Vault Role] Failed to retrieve policy name within `%s` attribute of `%s`",
+					return fmt.Errorf("Failed to retrieve policy name within `%s` attribute of `%s`",
 						property,
 						role.Name,
 					)
@@ -277,7 +277,6 @@ func formatPolicyRefs(desiredRoles []entry) error {
 			}
 			// overwrite list of policy objs with list of policy names
 			role.Options[property] = extracted
-			extracted = nil
 		}
 	}
 	return nil
