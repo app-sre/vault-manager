@@ -27,6 +27,7 @@ type entry struct {
 }
 
 type authMount struct {
+	// https://github.com/app-sre/qontract-schemas/blob/895c1b9446517b5f033c09016eef0888862ee797/schemas/vault-config/auth-1.yml#L14-L16
 	Path string `yaml:"_path"`
 }
 
