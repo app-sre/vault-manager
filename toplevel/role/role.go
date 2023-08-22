@@ -19,11 +19,16 @@ import (
 type entry struct {
 	Name        string                 `yaml:"name"`
 	Type        string                 `yaml:"type"`
-	Mount       string                 `yaml:"mount"`
+	Mount       authMount              `yaml:"mount"`
 	Instance    vault.Instance         `yaml:"instance"`
 	OutputPath  string                 `yaml:"output_path"`
 	Options     map[string]interface{} `yaml:"options"`
 	Description string                 `yaml:"description"`
+}
+
+type authMount struct {
+	// https://github.com/app-sre/qontract-schemas/blob/895c1b9446517b5f033c09016eef0888862ee797/schemas/vault-config/auth-1.yml#L14-L16
+	Path string `yaml:"_path"`
 }
 
 const toplevelName = "vault_roles"
@@ -55,7 +60,7 @@ func (e entry) Equals(i interface{}) bool {
 }
 
 func (e entry) Save() error {
-	path := filepath.Join("auth", e.Mount, "role", e.Name)
+	path := filepath.Join("auth", e.Mount.Path, "role", e.Name)
 	options := make(map[string]interface{})
 	for k, v := range e.Options {
 		// local_secret_ids can not be changed after creation so we skip this option
@@ -79,7 +84,7 @@ func (e entry) Save() error {
 }
 
 func (e entry) Delete() error {
-	path := filepath.Join("auth", e.Mount, "role", e.Name)
+	path := filepath.Join("auth", e.Mount.Path, "role", e.Name)
 	err := vault.DeleteSecret(e.Instance.Address, path)
 	if err != nil {
 		return nil
@@ -114,6 +119,11 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	}
 
 	desiredRoles := instancesToDesiredRoles[address]
+	existingAuths, err := vault.ListAuthBackends(address)
+	if err != nil {
+		return err
+	}
+
 	if unique := utils.ValidKeys(desiredRoles,
 		func(e entry) string {
 			return fmt.Sprintf("%s%s", e.Mount, e.Name)
@@ -121,9 +131,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return fmt.Errorf("Duplicate key value detected within %s", toplevelName)
 	}
 
-	// Get the existing auth backends
-	existingAuths, err := vault.ListAuthBackends(address)
-	if err != nil {
+	if err := formatPolicyRefs(desiredRoles); err != nil {
 		return err
 	}
 
@@ -162,7 +170,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 						entry{
 							Name:     roles[i].(string),
 							Type:     existingAuths[authBackend].Type,
-							Mount:    authBackend,
+							Mount:    authMount{Path: authBackend},
 							Instance: vault.Instance{Address: address},
 							Options:  opts,
 						})
@@ -218,6 +226,60 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return err
 	}
 
+	return nil
+}
+
+// Extracts names of policies referenced within applicable properties of desired roles
+// and updates those properties to only include the names of policies.
+// This is necessary to support policy file references within schemas.
+// The graphql query will return nested object for policy properties but vault api
+// expects only names of policies to be included
+func formatPolicyRefs(desiredRoles []entry) error {
+	// defines applicable properties(s) for each role type to reformat
+	// see https://github.com/app-sre/qontract-schemas/blob/main/schemas/vault-config/role-1.yml
+	typeToProperties := map[string][]string{
+		"approle": {
+			"token_policies",
+			"policies",
+		},
+		"oidc": {
+			"token_policies",
+		},
+		"kubernetes": {
+			"token_policies",
+		},
+	}
+	for _, role := range desiredRoles {
+		for _, property := range typeToProperties[role.Type] {
+			extracted := []string{}
+			policies, ok := role.Options[property].([]interface{})
+			if !ok {
+				return fmt.Errorf("Failed to convert policy list `%s` within `%s`",
+					property,
+					role.Name,
+				)
+			}
+			for _, policy := range policies {
+				policyMap, ok := policy.(map[interface{}]interface{})
+				if !ok {
+					return fmt.Errorf("Failed to convert policy map within `%s` property of `%s`",
+						property,
+						role.Name,
+					)
+				}
+				policyName, ok := policyMap["name"].(string)
+				if !ok {
+					return fmt.Errorf("Failed to convert `name` to string within `%s` property of `%s`",
+						property,
+						role.Name,
+					)
+				}
+				extracted = append(extracted, policyName)
+			}
+			// overwrite list of policy objs with list of policy names
+			role.Options[property] = extracted
+		}
+	}
 	return nil
 }
 
