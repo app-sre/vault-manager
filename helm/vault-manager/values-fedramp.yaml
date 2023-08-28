@@ -7,4 +7,3 @@ fluentdResources:
     cpu: 15m
   limits:
     memory: 240Mi
-    cpu: 25m
