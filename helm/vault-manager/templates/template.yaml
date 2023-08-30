@@ -16,6 +16,7 @@ objects:
       ignore-check.kube-linter.io/minimum-three-replicas: "vault-manager design does not adequately account for multiple replicas"
       ignore-check.kube-linter.io/no-readiness-probe: "vault-manager is not getting traffic"
       ignore-check.kube-linter.io/no-liveness-probe: "vault-manager is monitored for being stuck"
+      ignore-check.kube-linter.io/unset-cpu-requirements: "no cpu limits"
     name: vault-manager
   spec:
     replicas: {{`${{REPLICAS}}`}}
@@ -44,7 +45,6 @@ objects:
               cpu: 15m
             limits:
               memory: 20Mi
-              cpu: 25m
           env:
             {{- if .Values.logs.slack }}
             - name: SLACK_WEBHOOK_URL
@@ -177,7 +177,6 @@ objects:
               cpu: ${CPU_REQUESTS}
             limits:
               memory: ${MEMORY_LIMIT}
-              cpu: ${CPU_LIMIT}
           volumeMounts:
           - name: logs
             mountPath: /fluentd/log
@@ -208,7 +207,6 @@ objects:
               cpu: ${FLUENTD_CPU_REQUEST}
             limits:
               memory: ${FLUENTD_MEMORY_LIMIT}
-              cpu: ${FLUENTD_CPU_LIMIT}
           volumeMounts:
           - name: logs
             mountPath: /fluentd/log/
@@ -239,9 +237,7 @@ parameters:
 - name: MEMORY_LIMIT
   value: 250Mi
 - name: CPU_REQUESTS
-  value: 100m
-- name: CPU_LIMIT
-  value: 200m
+  value: 50m
 - name: REPLICAS
   value: '3'
 - name: RECONCILE_SLEEP_TIME
@@ -295,8 +291,6 @@ parameters:
   value: ":bust_in_silhouette:"
 - name: INTEGRATION_NAME
   value: vault-manager
-- name: FLUENTD_CPU_LIMIT
-  value: {{ .Values.fluentdResources.limits.cpu }}
 - name: FLUENTD_MEMORY_LIMIT
   value: {{ .Values.fluentdResources.limits.memory }}
 - name: FLUENTD_CPU_REQUEST
