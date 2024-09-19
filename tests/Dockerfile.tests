@@ -3,19 +3,15 @@ COPY . .
 RUN make gobuild
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.10
-ENV PACKAGES="jq git docker unzip wget"
+ENV PACKAGES="jq git docker unzip wget ca-certificates"
 ENV BATS_VERSION="v0.4.0"
 ENV VAULT_VERSION="1.15.6"
 
-RUN yum install -y epel-release && \
-    yum install -y $PACKAGES && \
-    rpm -q --queryformat "" $PACKAGES
+RUN microdnf update -y && \
+    install -y $PACKAGES && \
+    microdnf clean all
 
-RUN yum install -y \
-      ca-certificates \
-      && \
-    yum clean all && \
-    update-ca-trust enable && \
+RUN update-ca-trust enable && \
     update-ca-trust extract
 
 RUN git clone https://github.com/sstephenson/bats.git && \
