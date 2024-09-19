@@ -8,7 +8,7 @@ ENV BATS_VERSION="v0.4.0"
 ENV VAULT_VERSION="1.15.6"
 
 RUN microdnf update -y && \
-    install -y $PACKAGES && \
+    microdnf install -y $PACKAGES && \
     microdnf clean all
 
 RUN update-ca-trust enable && \
