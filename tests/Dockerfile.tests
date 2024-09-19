@@ -2,10 +2,10 @@ FROM registry.access.redhat.com/ubi8/go-toolset:1.19 as builder
 COPY . .
 RUN make gobuild
 
-FROM quay.io/centos/centos:7
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.10
 ENV PACKAGES="jq git docker unzip wget"
 ENV BATS_VERSION="v0.4.0"
-ENV VAULT_VERSION="1.9.10"
+ENV VAULT_VERSION="1.15.6"
 
 RUN yum install -y epel-release && \
     yum install -y $PACKAGES && \
