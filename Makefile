@@ -40,3 +40,29 @@ test: build-test-container
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-e HOST_PATH=$(PWD) \
 		vault-manager-test
+
+build-podman:
+	@podman build --no-cache -t $(IMAGE_NAME):$(IMAGE_TAG) .
+
+push-podman:
+	@podman tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest
+	@podman push $(IMAGE_NAME):$(IMAGE_TAG)
+	@podman push $(IMAGE_NAME):latest
+
+
+build-test-container-podman:
+	@podman build -t vault-manager-test -f tests/Podman.tests .
+
+test-podman: build-test-container
+	@podman pull $(VAULT_IMAGE):$(VAULT_IMAGE_TAG)
+	@podman pull $(QONTRACT_SERVER_IMAGE):$(QONTRACT_SERVER_IMAGE_TAG)
+	@podman pull $(KEYCLOAK_IMAGE):$(KEYCLOAK_IMAGE_TAG)
+	@podman pull $(KEYCLOAK_CLI_IMAGE):$(KEYCLOAK_CLI_IMAGE_TAG)
+	@podman run -t \
+		--rm \
+		--net=host \
+		-v $(PWD)/.env:/tests/.env \
+		-v /var/run/podman.sock:/var/run/podman.sock \
+		-e HOST_PATH=$(PWD) \
+		vault-manager-test
+
