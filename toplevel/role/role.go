@@ -59,28 +59,62 @@ func (e entry) Equals(i interface{}) bool {
 		vault.OptionsEqual(e.Options, entry.Options)
 }
 
+// this is what appears in the logs when a role is written to vault
+// issue: keeps running reconcile even when no changes are made
 func (e entry) Save() error {
 	path := filepath.Join("auth", e.Mount.Path, "role", e.Name)
 	options := make(map[string]interface{})
 	for k, v := range e.Options {
-		// local_secret_ids can not be changed after creation so we skip this option
+		// Skip local_secret_ids as it cannot be changed after creation
 		if k == "local_secret_ids" {
 			continue
-			// initially unmarshalled as string or nil and require further processing
 		} else {
 			options[k] = v
 		}
 	}
-	err := vault.WriteSecret(e.Instance.Address, path, vault.KV_V1, options)
+
+	// Read the existing role data from Vault
+	existingData, err := vault.ReadSecret(e.Instance.Address, path, vault.KV_V1)
+	if err != nil {
+		return fmt.Errorf("error reading existing role from Vault: %w", err)
+	}
+
+	// Compare the existing data with the new options
+	// ensures that we only write to vault when there are changes
+	if isEqual(existingData, options) {
+		log.WithFields(log.Fields{
+			"path":     path,
+			"type":     e.Type,
+			"instance": e.Instance.Address,
+		}).Info("[Vault Role] role is unchanged, skipping write")
+		return nil
+	}
+
+	// Write the role data to Vault
+	err = vault.WriteSecret(e.Instance.Address, path, vault.KV_V1, options)
 	if err != nil {
 		return err
 	}
+
 	log.WithFields(log.Fields{
 		"path":     path,
 		"type":     e.Type,
 		"instance": e.Instance.Address,
 	}).Info("[Vault Role] role is successfully written to Vault instance")
 	return nil
+}
+
+// Helper function to compare two maps
+func isEqual(existing, new map[string]interface{}) bool {
+	if len(existing) != len(new) {
+		return false
+	}
+	for k, v := range new {
+		if existing[k] != v {
+			return false
+		}
+	}
+	return true
 }
 
 func (e entry) Delete() error {
