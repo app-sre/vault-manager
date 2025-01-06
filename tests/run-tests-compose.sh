@@ -10,7 +10,7 @@ cleanup () {
     echo "podman environment cleaned"
 }
 
-podman compose -f tests/compose.yml up -d
+podman-compose -f tests/compose.yml up -d
 
 # populate necessary vault access vars to primary
 vault kv put secret/master rootToken=root -address="http://127.0.0.1:8200"

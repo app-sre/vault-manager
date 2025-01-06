@@ -21,11 +21,11 @@ services:
   keycloak-cli:
     image: quay.io/app-sre/keycloak-config-cli:5.0.0-17.0.1
     environment:
-      - KEYCLOAK_URL: "http://localhost:8180/auth"
-      - KEYCLOAK_USER: $KEYCLOAK_USER
-      - KEYCLOAK_PASSWORD: $KEYCLOAK_PASSWORD
-      - KEYCLOAK_AVAILABILITYCHECK_ENABLED: true
-      - IMPORT_FILES: '/config/*'
+      - KEYCLOAK_URL="http://localhost:8180/auth"
+      - KEYCLOAK_USER=$KEYCLOAK_USER
+      - KEYCLOAK_PASSWORD=$KEYCLOAK_PASSWORD
+      - KEYCLOAK_AVAILABILITYCHECK_ENABLED=true
+      - IMPORT_FILES="/config/*"
     network_mode: host
     depends_on:
       - keycloak
@@ -54,8 +54,11 @@ services:
     ports:
       - "8202:8202"
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "root"
-      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8202
+      VAULT_DEV_ROOT_TOKEN_ID="root"
+      VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8202
     network_mode: host
     cap_add:
       - IPC_LOCK
+
+volumes:
+  tests/app-interface:
