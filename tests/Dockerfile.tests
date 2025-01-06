@@ -15,8 +15,8 @@ RUN yum install -y \
     ca-certificates \
     git \
     jq \
-    python3-pip \
     podman \
+    python3-pip \
     unzip \
     wget && \
     yum clean all && \
@@ -32,8 +32,8 @@ RUN wget https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VER
 
 RUN pip3 install podman-compose
 
-# copy vault-manager binary from builder
 COPY tests/ /tests/
+# copy vault-manager binary from builder
 COPY --from=builder /opt/app-root/src/vault-manager /bin/
 
 WORKDIR /tests

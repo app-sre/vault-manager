@@ -6,7 +6,7 @@ source .env
 
 cleanup () {
     echo "cleaning"
-    podman compose -f compose.yml down --timeout 0
+    podman compose -f tests/compose.yml down --timeout 0
     echo "podman environment cleaned"
 }
 
