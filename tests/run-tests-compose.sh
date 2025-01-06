@@ -6,13 +6,13 @@ source .env
 
 cleanup () {
     echo "cleaning"
-    podman-compose -f tests/compose.yml down --timeout 0
+    podman-compose -f compose.yml down --timeout 0
     echo "podman environment cleaned"
 }
 
 cleanup
 
-podman-compose -f tests/compose.yml up -d
+podman-compose -f compose.yml up -d
 
 # populate necessary vault access vars to primary
 podman-compose exec primary-vault kv put secret/master rootToken=root
