@@ -47,3 +47,8 @@ First, the following 4 images are pulled:
 * keycloak
 * keycloak-cli
 
+make test-with-compose
+
+-> build-test-comtainer
+-> podman run test-container-image
+-> run-tests-compose.sh runs
