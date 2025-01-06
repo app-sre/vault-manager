@@ -13,14 +13,14 @@ cleanup () {
 podman-compose -f tests/compose.yml up -d
 
 # populate necessary vault access vars to primary
-vault kv put secret/master rootToken=root -address="http://127.0.0.1:8200"
-vault kv put secret/secondary root=root -address="http://127.0.0.1:8200"
-vault kv put secret/oidc client-secret=my-special-client-secret -address="http://127.0.0.1:8200"
-vault kv put secret/kubernetes cert=very-valid-cert -address="http://127.0.0.1:8200"
+podman-compose exec primary-vault kv put secret/master rootToken=root
+podman-compose exec primary-vault kv put secret/secondary root=root
+podman-compose exec primary-vault kv put secret/oidc client-secret=my-special-client-secret
+podman-compose exec primary-vault kv put secret/kubernetes cert=very-valid-cert
 
 # populate oidc client secret in secondary
-vault kv put secret/oidc client-secret=my-special-client-secret -address="http://127.0.0.1:8202"
-vault kv put secret/kubernetes cert=very-valid-cert -address="http://127.0.0.1:8202"
+podman-compose exec secondary-vault kv put secret/oidc client-secret=my-special-client-secret
+podman-compose exec secondary-vault kv put secret/kubernetes cert=very-valid-cert
 
 # run test suite
 for test in $(find bats/ -type f | grep .bats | grep -v roles | grep -v entities | grep -v groups | grep -v errors); do
@@ -29,8 +29,8 @@ for test in $(find bats/ -type f | grep .bats | grep -v roles | grep -v entities
     # hack so flags.bats has clean slate for audit resources when testing
     if [[ $test == "bats/audit/audit-devices.bats" ]]; then
         # need to execute this for both instances
-        vault audit disable file -address="http://127.0.0.1:8200"
-        vault audit disable file -address="http://127.0.0.1:8202"
+        podman-compose exec primary-vault audit disable file
+        podman-compose exec secondary-vault audit disable file
     fi
 done
 
