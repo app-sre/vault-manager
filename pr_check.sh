@@ -9,4 +9,4 @@ make build
 
 # run e2e tests
 source .env
-make test
+make test-with-compose
