@@ -52,3 +52,6 @@ services:
     network_mode: host
     cap_add:
       - IPC_LOCK
+
+#   vault-manager:
+#     image: quay.io/app-sre/vault-manager:0.0.1

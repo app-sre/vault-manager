@@ -10,8 +10,6 @@ cleanup () {
     echo "podman environment cleaned"
 }
 
-cleanup
-
 podman-compose -f compose.yml up -d
 
 # populate necessary vault access vars to primary
