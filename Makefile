@@ -4,9 +4,14 @@ CONTAINER_ENGINE ?= $(shell command -v podman > /dev/null 2>&1 && echo podman ||
 CONTAINER_SELINUX_FLAG ?= :z
 IMAGE_NAME := quay.io/app-sre/vault-manager
 IMAGE_TAG := $(shell git rev-parse --short=7 HEAD)
-DOCKER_CONF := $(CURDIR)/.docker
 GOOS := $(shell go env GOOS)
 PWD := $(shell pwd)
+
+ifneq (,$(wildcard $(CURDIR)/.docker))
+	DOCKER_CONF := $(CURDIR)/.docker
+else
+	DOCKER_CONF := $(HOME)/.docker
+endif
 
 gotest:
 	CGO_ENABLED=0 GOOS=$(GOOS) go test ./...
