@@ -12,9 +12,13 @@ cleanup () {
     echo "podman environment cleaned"
 }
 
-cleanup
+# cleanup
 
-podman-compose -f compose.yml up -d
+# podman-compose -f compose.yml up -d
+
+# debug
+echo "RUNNING CONTAINERS:"
+podman ps --filter "name=vault-manager-test"
 
 # populate necessary vault access vars to primary
 podman-compose exec primary-vault kv put secret/master rootToken=root

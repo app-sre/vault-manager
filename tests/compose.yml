@@ -53,5 +53,10 @@ services:
     cap_add:
       - IPC_LOCK
 
-#   vault-manager:
-#     image: quay.io/app-sre/vault-manager:0.0.1
+  vault-manager-test:
+    image: quay.io/app-sre/vault-manager-test:latest
+    network_mode: host
+    environment:
+      HOST_PATH=$(pwd)
+    volumes:
+      - ./.env:/tests/.env:Z
