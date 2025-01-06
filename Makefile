@@ -1,4 +1,4 @@
-.PHONY: test build-test-container build push gotest gobuild
+.PHONY: test build-test-container test-with-compose build push gotest gobuild
 
 CONTAINER_ENGINE ?= $(shell command -v podman > /dev/null 2>&1 && echo podman || echo docker )
 CONTAINER_SELINUX_FLAG ?= :z
@@ -46,3 +46,6 @@ test: build-test-container
 		-v $(PWD)/.env:/tests/.env$(CONTAINER_SELINUX_FLAG) \
 		-e HOST_PATH=$(PWD) \
 		$(IMAGE_NAME)-test:latest
+
+test-with-compose:
+	bash tests/run-tests-compose.sh

@@ -9,8 +9,6 @@ The build sets up necessary resources to run the tests, then executes `pr_check.
 
 https://bats-core.readthedocs.io/en/stable/docker-usage.html
 
-## Podman and docker-compose
-
 ## Building images and running tests locally
 
 From the top level directory of the project, run:
