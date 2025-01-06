@@ -47,5 +47,11 @@ test: build-test-container
 		-e HOST_PATH=$(PWD) \
 		$(IMAGE_NAME)-test:latest
 
-test-with-compose:
-	bash tests/run-tests-compose.sh
+test-with-compose: build-test-container
+	@$(CONTAINER_ENGINE) run -t \
+		--rm \
+		--net=host \
+		-v $(PWD)/.env:/tests/.env$(CONTAINER_SELINUX_FLAG) \
+		-e HOST_PATH=$(PWD) \
+		$(IMAGE_NAME)-test:latest
+	# bash tests/run-tests-compose.sh

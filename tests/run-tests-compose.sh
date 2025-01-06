@@ -6,7 +6,7 @@ source .env
 
 cleanup () {
     echo "cleaning"
-    podman compose -f compose.yml down
+    podman compose -f compose.yml down --timeout 0
     echo "podman environment cleaned"
 }
 
@@ -25,7 +25,7 @@ podman-compose exec secondary-vault kv put secret/kubernetes cert=very-valid-cer
 # run test suite
 for test in $(find bats/ -type f | grep .bats | grep -v roles | grep -v entities | grep -v groups | grep -v errors); do
     echo "running $test"
-    bats --tap "$test"
+    podman-compose exec bats-testing bats --tap "$test"
     # hack so flags.bats has clean slate for audit resources when testing
     if [[ $test == "bats/audit/audit-devices.bats" ]]; then
         # need to execute this for both instances

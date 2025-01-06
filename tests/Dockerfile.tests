@@ -35,4 +35,4 @@ COPY --from=builder /opt/app-root/src/vault-manager /bin/
 
 WORKDIR /tests
 
-CMD ["bash", "run-tests.sh"]
+CMD ["bash", "run-tests-compose.sh"]
