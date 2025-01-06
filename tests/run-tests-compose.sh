@@ -4,11 +4,15 @@ set -e
 
 source .env
 
+export PODMAN_IGNORE_CGROUPSV1_WARNING=1
+
 cleanup () {
     echo "cleaning"
-    podman-compose -f compose.yml down --timeout 0
+    podman-compose -f compose.yml down --volumes --remove-orphans --timeout 0
     echo "podman environment cleaned"
 }
+
+cleanup
 
 podman-compose -f compose.yml up -d
 
