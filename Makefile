@@ -49,9 +49,3 @@ build-test-container:
 
 test-with-compose: build-test-container
 	podman-compose -f tests/compose.yml up -d --force-recreate
-	@$(CONTAINER_ENGINE) run -t \
-		--rm \
-		--net=host \
-		-v $(PWD)/.env:/tests/.env$(CONTAINER_SELINUX_FLAG) \
-		-e HOST_PATH=$(PWD) \
-		$(IMAGE_NAME)-test:latest
