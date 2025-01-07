@@ -36,4 +36,4 @@ build-test-container:
 	@$(CONTAINER_ENGINE) build -t $(IMAGE_NAME)-test -f tests/Dockerfile.tests .
 
 test-with-compose: build-test-container
-	podman-compose --porman-args="--log-level debug" -f tests/compose.yml up -d --force-recreate
+	podman-compose --podman-args="--log-level debug" -f tests/compose.yml up -d --force-recreate
