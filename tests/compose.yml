@@ -62,7 +62,4 @@ services:
       - ./.env:/tests/.env:Z
     depends_on:
       - primary-vault
-      - secondary-vault
-      - keycloak
-      - keycloak-cli
       - qontract-server
