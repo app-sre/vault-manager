@@ -18,14 +18,14 @@ echo "RUNNING CONTAINERS:"
 podman ps --filter "name=vault-manager-test"
 
 # populate necessary vault access vars to primary
-podman-compose -f tests/compose.yml exec primary-vault vault kv put secret/master rootToken=root
-podman-compose -f tests/compose.yml exec primary-vault vault kv put secret/secondary root=root
-podman-compose -f tests/compose.yml exec primary-vault vault kv put secret/oidc client-secret=my-special-client-secret
-podman-compose -f tests/compose.yml exec primary-vault vault kv put secret/kubernetes cert=very-valid-cert
+podman-compose -f tests/compose.yml exec primary-vault VAULT_ADDR=http://127.0.0.1:8200 vault kv put secret/master rootToken=root
+podman-compose -f tests/compose.yml exec primary-vault VAULT_ADDR=http://127.0.0.1:8200 vault kv put secret/secondary root=root
+podman-compose -f tests/compose.yml exec primary-vault VAULT_ADDR=http://127.0.0.1:8200 vault kv put secret/oidc client-secret=my-special-client-secret
+podman-compose -f tests/compose.yml exec primary-vault VAULT_ADDR=http://127.0.0.1:8200 vault kv put secret/kubernetes cert=very-valid-cert
 
 # populate oidc client secret in secondary
-podman-compose -f tests/compose.yml exec secondary-vault vault kv put secret/oidc client-secret=my-special-client-secret
-podman-compose -f tests/compose.yml exec secondary-vault vault kv put secret/kubernetes cert=very-valid-cert
+podman-compose -f tests/compose.yml exec secondary-vault VAULT_ADDR=http://127.0.0.1:8202 vault kv put secret/oidc client-secret=my-special-client-secret
+podman-compose -f tests/compose.yml exec secondary-vault VAULT_ADDR=http://127.0.0.1:8202 vault kv put secret/kubernetes cert=very-valid-cert
 
 # run test suit-f tests/compose.yml e
 # for test in $(find bats/ -type f | grep .bats | grep -v roles | grep -v entities | grep -v groups | grep -v errors); do
