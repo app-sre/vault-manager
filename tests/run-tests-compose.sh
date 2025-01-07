@@ -18,13 +18,13 @@ echo "RUNNING CONTAINERS:"
 podman ps --filter "name=vault-manager-test"
 
 # populate necessary vault access vars to primary
-podman-compose -f tests/compose.yml exec primary-vault vault kv put -address=http://127.0.0.1:8200 secret/master rootToken=root
-podman-compose -f tests/compose.yml exec primary-vault vault kv put -address=http://127.0.0.1:8200secret/oidc client-secret=my-special-client-secret
-podman-compose -f tests/compose.yml exec primary-vault vault kv put -address=http://127.0.0.1:8200 secret/kubernetes cert=very-valid-cert
+podman-compose -f tests/compose.yml exec primary-vault vault kv put -mount=secret master rootToken=root
+podman-compose -f tests/compose.yml exec primary-vault vault kv put -mount=secret oidc client-secret=my-special-client-secret
+podman-compose -f tests/compose.yml exec primary-vault vault kv put -mount=secret kubernetes cert=very-valid-cert
 
 # populate oidc client secret in secondary
-podman-compose -f tests/compose.yml exec secondary-vault vault kv put -address=http://127.0.0.1:8202 secret/oidc client-secret=my-special-client-secret
-podman-compose -f tests/compose.yml exec secondary-vault vault kv put -address=http://127.0.0.1:8202 secret/kubernetes cert=very-valid-cert
+podman-compose -f tests/compose.yml exec secondary-vault vault kv put -mount secret oidc client-secret=my-special-client-secret
+podman-compose -f tests/compose.yml exec secondary-vault vault kv put -mount secret kubernetes cert=very-valid-cert
 
 # run test suit-f tests/compose.yml e
 # for test in $(find bats/ -type f | grep .bats | grep -v roles | grep -v entities | grep -v groups | grep -v errors); do
@@ -33,8 +33,8 @@ podman-compose -f tests/compose.yml exec secondary-vault vault kv put -address=h
 #     # hack so flags.bats has clean slate for audit resources when testing
 #     if [[ $test == "bats/audit/audit-devices.bats" ]]; then
 #         # need to execute this for both instances
-#         podman-compose exec primary-vault audit disable file
-#         podman-compose exec secondary-vault audit disable file
+#         podman-compose exec primary-vault vault audit disable file
+#         podman-compose exec secondary-vault vault audit disable file
 #     fi
 # done
 
