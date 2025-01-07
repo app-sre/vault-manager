@@ -37,3 +37,4 @@ build-test-container:
 
 test-with-compose: build-test-container
 	podman-compose --podman-args="--log-level debug" -f tests/compose.yml up -d --force-recreate
+	# podman-compose -f tests/compose.yml up
