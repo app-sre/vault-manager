@@ -10,6 +10,12 @@ services:
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: admin
     command: start-dev --http-port 8180 --http-relative-path /auth
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://keycloak:8180/auth"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   keycloak-cli:
     image: quay.io/app-sre/keycloak-config-cli:5.0.0-17.0.1
