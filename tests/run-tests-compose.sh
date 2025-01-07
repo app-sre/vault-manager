@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 source .env
 
 export PODMAN_IGNORE_CGROUPSV1_WARNING=1
@@ -14,7 +12,6 @@ cleanup () {
 
 # cleanup
 
-# podman-compose -f compose.yml up -d
 
 # debug
 echo "RUNNING CONTAINERS:"
