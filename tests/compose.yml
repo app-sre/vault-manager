@@ -43,7 +43,7 @@ services:
     ports:
       - "8200:8200"
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "root"
+      VAULT_TOKEN: "root"
       VAULT_ADDR: http://127.0.0.1:8200
     cap_add:
       - IPC_LOCK
@@ -56,6 +56,7 @@ services:
       - "8202:8202"
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: "root"
+      VAULT_TOKEN: "root"
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8202
       VAULT_ADDR: http://127.0.0.1:8202
     cap_add:

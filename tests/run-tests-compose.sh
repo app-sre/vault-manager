@@ -23,8 +23,8 @@ podman-compose -f tests/compose.yml exec primary-vault vault kv put -mount=secre
 podman-compose -f tests/compose.yml exec primary-vault vault kv put -mount=secret kubernetes cert=very-valid-cert
 
 # populate oidc client secret in secondary
-podman-compose -f tests/compose.yml exec secondary-vault vault kv put -mount secret oidc client-secret=my-special-client-secret
-podman-compose -f tests/compose.yml exec secondary-vault vault kv put -mount secret kubernetes cert=very-valid-cert
+podman-compose -f tests/compose.yml exec secondary-vault vault kv put -mount=secret oidc client-secret=my-special-client-secret
+podman-compose -f tests/compose.yml exec secondary-vault vault kv put -mount=secret kubernetes cert=very-valid-cert
 
 # run test suit-f tests/compose.yml e
 # for test in $(find bats/ -type f | grep .bats | grep -v roles | grep -v entities | grep -v groups | grep -v errors); do
