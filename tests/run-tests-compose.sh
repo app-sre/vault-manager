@@ -6,7 +6,7 @@ export PODMAN_IGNORE_CGROUPSV1_WARNING=1
 
 cleanup () {
     echo "cleaning"
-    podman-compose -f compose.yml down --volumes --remove-orphans --timeout 0
+    podman-compose -f tests/compose.yml down --volumes --remove-orphans --timeout 0
     echo "podman environment cleaned"
 }
 
@@ -18,16 +18,16 @@ echo "RUNNING CONTAINERS:"
 podman ps --filter "name=vault-manager-test"
 
 # populate necessary vault access vars to primary
-podman-compose -f compose.yml exec primary-vault kv put secret/master rootToken=root
-podman-compose -f compose.yml exec primary-vault kv put secret/secondary root=root
-podman-compose -f compose.yml exec primary-vault kv put secret/oidc client-secret=my-special-client-secret
-podman-compose -f compose.yml exec primary-vault kv put secret/kubernetes cert=very-valid-cert
+podman-compose -f tests/compose.yml exec primary-vault kv put secret/master rootToken=root
+podman-compose -f tests/compose.yml exec primary-vault kv put secret/secondary root=root
+podman-compose -f tests/compose.yml exec primary-vault kv put secret/oidc client-secret=my-special-client-secret
+podman-compose -f tests/compose.yml exec primary-vault kv put secret/kubernetes cert=very-valid-cert
 
 # populate oidc client secret in secondary
-podman-compose -f compose.yml exec secondary-vault kv put secret/oidc client-secret=my-special-client-secret
-podman-compose -f compose.yml exec secondary-vault kv put secret/kubernetes cert=very-valid-cert
+podman-compose -f tests/compose.yml exec secondary-vault kv put secret/oidc client-secret=my-special-client-secret
+podman-compose -f tests/compose.yml exec secondary-vault kv put secret/kubernetes cert=very-valid-cert
 
-# run test suit-f compose.yml e
+# run test suit-f tests/compose.yml e
 # for test in $(find bats/ -type f | grep .bats | grep -v roles | grep -v entities | grep -v groups | grep -v errors); do
 #     echo "running $test"
 #     podman-compose exec bats-testing bats --tap "$test"
