@@ -9,6 +9,7 @@ services:
     environment:
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: admin
+    command: start-dev --http-port 8180 --http-relative-path /auth
     network_mode: host
 
   keycloak-cli:
@@ -41,6 +42,8 @@ services:
     network_mode: host
     cap_add:
       - IPC_LOCK
+    depends_on:
+      - qontract-server
 
   secondary-vault:
     image: quay.io/app-sre/vault:1.7.2
@@ -52,6 +55,9 @@ services:
     network_mode: host
     cap_add:
       - IPC_LOCK
+    depends_on:
+      - qontract-server
+      - primary-vault
 
   vault-manager-test:
     image: quay.io/app-sre/vault-manager-test:latest
@@ -60,3 +66,8 @@ services:
       HOST_PATH=$(pwd)
     volumes:
       - ./.env:/tests/.env:Z
+    depends_on:
+      - primary-vault
+      - secondary-vault
+      - keycloak-cli
+      - qontract-server

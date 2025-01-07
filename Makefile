@@ -35,17 +35,5 @@ generate:
 build-test-container:
 	@$(CONTAINER_ENGINE) build -t $(IMAGE_NAME)-test -f tests/Dockerfile.tests .
 
-# test: build-test-container
-# 	@$(CONTAINER_ENGINE) --config=$(DOCKER_CONF) pull $(VAULT_IMAGE):$(VAULT_IMAGE_TAG)
-# 	@$(CONTAINER_ENGINE) --config=$(DOCKER_CONF) pull $(QONTRACT_SERVER_IMAGE):$(QONTRACT_SERVER_IMAGE_TAG)
-# 	@$(CONTAINER_ENGINE) --config=$(DOCKER_CONF) pull $(KEYCLOAK_IMAGE):$(KEYCLOAK_IMAGE_TAG)
-# 	@$(CONTAINER_ENGINE) --config=$(DOCKER_CONF) pull $(KEYCLOAK_CLI_IMAGE):$(KEYCLOAK_CLI_IMAGE_TAG)
-# 	@$(CONTAINER_ENGINE) run -t \
-# 		--rm \
-# 		--net=host \
-# 		-v $(PWD)/.env:/tests/.env$(CONTAINER_SELINUX_FLAG) \
-# 		-e HOST_PATH=$(PWD) \
-# 		$(IMAGE_NAME)-test:latest
-
 test-with-compose: build-test-container
 	podman-compose -f tests/compose.yml up -d --force-recreate
