@@ -10,10 +10,10 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"[Vault Role] role is successfully written"*"instance=\"http://127.0.0.1:8200\""*"path=auth/approle/role/app-interface"*"type=approle"* ]]
-    [[ "${output}" == *"[Vault Role] role is successfully written"*"instance=\"http://127.0.0.1:8200\""*"path=auth/approle/role/vault_manager"*"type=approle"* ]]
-    [[ "${output}" == *"[Vault Role] role is successfully written"*"instance=\"http://127.0.0.1:8202\""*"path=auth/approle/role/app-interface"*"type=approle"* ]]
-    [[ "${output}" == *"[Vault Role] role is successfully written"*"instance=\"http://127.0.0.1:8202\""*"path=auth/approle/role/vault_manager"*"type=approle"* ]]
+    [[ "${output}" == *"[Vault Role] role is successfully written"*"instance=\"http://primary-vault:8200\""*"path=auth/approle/role/app-interface"*"type=approle"* ]]
+    [[ "${output}" == *"[Vault Role] role is successfully written"*"instance=\"http://primary-vault:8200\""*"path=auth/approle/role/vault_manager"*"type=approle"* ]]
+    [[ "${output}" == *"[Vault Role] role is successfully written"*"instance=\"http://secondary-vault:8202\""*"path=auth/approle/role/app-interface"*"type=approle"* ]]
+    [[ "${output}" == *"[Vault Role] role is successfully written"*"instance=\"http://secondary-vault:8202\""*"path=auth/approle/role/vault_manager"*"type=approle"* ]]
 
     # check approles created
     run vault list auth/approle/role
@@ -53,7 +53,7 @@ load ../helpers
     [[ "${output}" == *"token_type"*"default"* ]]
 
     # run same tests against secondary instance
-    export VAULT_ADDR=http://127.0.0.1:8202
+    export VAULT_ADDR=http://secondary-vault:8202
 
     # check approles created
     run vault list auth/approle/role
@@ -92,6 +92,6 @@ load ../helpers
     [[ "${output}" == *"secret_id_bound_cidrs"*"[]"* ]]
     [[ "${output}" == *"token_type"*"default"* ]]
 
-    export VAULT_ADDR=http://127.0.0.1:8200
+    export VAULT_ADDR=http://primary-vault:8200
     rerun_check
 }

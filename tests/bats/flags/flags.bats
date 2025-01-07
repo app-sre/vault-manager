@@ -10,8 +10,8 @@ load ../helpers
     run vault-manager -dry-run
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"[Dry Run] [Vault Audit] audit device to be enabled"*"instance=\"http://127.0.0.1:8200\""*"path=file/"* ]]
-    [[ "${output}" == *"[Dry Run] [Vault Audit] audit device to be enabled"*"instance=\"http://127.0.0.1:8202\""*"path=file/"* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Audit] audit device to be enabled"*"instance=\"http://primary-vault:8200\""*"path=file/"* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Audit] audit device to be enabled"*"instance=\"http://secondary-vault:8202\""*"path=file/"* ]]
 
     run vault audit list --detailed
     [ "$status" -eq 2 ]
@@ -21,8 +21,8 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"[Vault Audit] audit device is successfully enabled"*"instance=\"http://127.0.0.1:8200\""*"path=file/"* ]]
-    [[ "${output}" == *"[Vault Audit] audit device is successfully enabled"*"instance=\"http://127.0.0.1:8202\""*"path=file/"* ]]
+    [[ "${output}" == *"[Vault Audit] audit device is successfully enabled"*"instance=\"http://primary-vault:8200\""*"path=file/"* ]]
+    [[ "${output}" == *"[Vault Audit] audit device is successfully enabled"*"instance=\"http://secondary-vault:8202\""*"path=file/"* ]]
 
     run vault audit list --detailed
     [ "$status" -eq 0 ]
@@ -31,7 +31,7 @@ load ../helpers
     [[ "${output}" == *"file_path=/var/log/vault/vault_audit.log"* ]]
 
     # run same tests against secondary instance
-    export VAULT_ADDR=http://127.0.0.1:8202
+    export VAULT_ADDR=http://secondary-vault:8202
 
     run vault audit list --detailed
     [ "$status" -eq 0 ]
@@ -39,5 +39,5 @@ load ../helpers
     [[ "${output}" == *"file/"* ]]
     [[ "${output}" == *"file_path=/var/log/vault/vault_audit.log"* ]]
 
-    export VAULT_ADDR=http://127.0.0.1:8200
+    export VAULT_ADDR=http://primary-vault:8200
 }
