@@ -5,22 +5,20 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak
     ports:
-      - "8180:8280"
+      - "8180:8180"
     environment:
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: admin
     command: start-dev --http-port 8180 --http-relative-path /auth
-    network_mode: host
 
   keycloak-cli:
     image: quay.io/app-sre/keycloak-config-cli:5.0.0-17.0.1
     environment:
-      - KEYCLOAK_URL="http://localhost:8180/auth"
+      - KEYCLOAK_URL="http://keycloak:8180/auth"
       - KEYCLOAK_USER=$KEYCLOAK_USER
       - KEYCLOAK_PASSWORD=$KEYCLOAK_PASSWORD
       - KEYCLOAK_AVAILABILITYCHECK_ENABLED=true
       - IMPORT_FILES="/config/*"
-    network_mode: host
     depends_on:
       - keycloak
 
@@ -31,7 +29,6 @@ services:
       DATAFILES_FILE: /bundle/data.json
     volumes:
       - ./tests/app-interface:/bundle:Z
-    network_mode: host
 
   primary-vault:
     image: quay.io/app-sre/vault:1.7.2
@@ -39,7 +36,6 @@ services:
       - "8200:8200"
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: "root"
-    network_mode: host
     cap_add:
       - IPC_LOCK
     depends_on:
@@ -52,7 +48,6 @@ services:
     environment:
       VAULT_DEV_ROOT_TOKEN_ID="root"
       VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8202
-    network_mode: host
     cap_add:
       - IPC_LOCK
     depends_on:
@@ -61,7 +56,6 @@ services:
 
   vault-manager-test:
     image: quay.io/app-sre/vault-manager-test:latest
-    network_mode: host
     environment:
       HOST_PATH=$(pwd)
     volumes:
@@ -69,5 +63,6 @@ services:
     depends_on:
       - primary-vault
       - secondary-vault
+      - keycloak
       - keycloak-cli
       - qontract-server
