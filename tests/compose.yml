@@ -39,7 +39,7 @@ services:
       - ../tests/app-interface:/bundle:Z
 
   primary-vault:
-    image: quay.io/app-sre/vault:1.17.1
+    image: registry.connect.redhat.com/hashicorp/vault:1.17.1-ubi
     ports:
       - "8200:8200"
     environment:
@@ -53,7 +53,7 @@ services:
       - qontract-server
 
   secondary-vault:
-    image: quay.io/app-sre/vault:1.17.1
+    image: registry.connect.redhat.com/hashicorp/vault:1.17.1-ubi
     ports:
       - "8202:8202"
     environment:

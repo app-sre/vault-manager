@@ -30,7 +30,7 @@ for test in $(find tests/bats/ -type f | grep .bats | grep -v roles | grep -v en
     echo "running $test"
     podman-compose -f tests/compose.yml exec vault-manager-test bats --tap "$test"
     # hack so flags.bats has clean slate for audit resources when testing
-    if [[ $test == "bats/audit/audit-devices.bats" ]]; then
+    if [[ $test == "tests/bats/audit/audit-devices.bats" ]]; then
         # need to execute this for both instances
         podman-compose -f tests/compose.yml exec primary-vault vault audit disable file
         podman-compose -f tests/compose.yml exec secondary-vault vault audit disable file
