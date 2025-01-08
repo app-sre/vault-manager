@@ -2,12 +2,13 @@
 $schema: /vault-config/instance-1.yml
 
 labels:
-  service: vault.fedramp.devshift.net
+  service: vault.appsre.devshiftusgov.com
 
 name: "app-sre-secondary-vault"
 description: "Secondary FedRamp Vault instance"
 
-address: "http://127.0.0.1:8202"
+# hostname fom podman-compose service
+address: "http://secondary-vault:8202"
 auth:
   provider: token
   secretEngine: "kv_v2"

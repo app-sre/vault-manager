@@ -4,7 +4,7 @@ $schema: /access/oidc-permission-1.yml
 labels:
   service: vault.local
 
-name: app-sre-vault-admin
+name: app-sre-vault-admin-primary
 service: vault
 description: app-sre vault administrator permission
 instance:

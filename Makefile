@@ -36,6 +36,6 @@ build-test-container:
 	@$(CONTAINER_ENGINE) build -t $(IMAGE_NAME)-test -f tests/Dockerfile.tests .
 
 test-with-compose: build-test-container
-	@podman-compose -f tests/compose.yml up -d --force-recreate
-	@podman-compose -f tests/compose.yml logs vault-manager-test
-	@podman-compose -f tests/compose.yml down
+	@podman-compose -f tests/compose.yml up --force-recreate
+	# @podman-compose -f tests/compose.yml logs vault-manager-test
+	# @podman-compose -f tests/compose.yml down

@@ -6,27 +6,29 @@ load ../helpers
     #
     # CASE: enable auth backends and apply policies mappings
     #
+    # export VAULT_ADDR="${PRIMARY_VAULT_URL}"
     export GRAPHQL_QUERY_FILE=/tests/fixtures/auth/enable_auth_backends_with_policy_mappings.graphql
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://primary-vault:8200\""*"path=approle/"*"type=approle"* ]]
-    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://primary-vault:8200\""*"path=github/"*"type=github"* ]]
-    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://primary-vault:8200\""*"path=oidc/"*"type=oidc"* ]]
-    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://primary-vault:8200\""*"path=kubernetes-main/"*"type=kubernetes"* ]]
-    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"http://primary-vault:8200\""*"path=auth/github/config"*"type=github"* ]]
-    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"http://primary-vault:8200\""*"path=auth/oidc/config"*"type=oidc"* ]]
-    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"http://primary-vault:8200\""*"path=auth/kubernetes-main/config"*"type=kubernetes"* ]]
-    [[ "${output}" == *"[Vault Auth] policies mapping is successfully applied"*"instance=\"http://primary-vault:8200\""*"path=/auth/github/map/teams/vault-app-sre"*"policies"*"app-sre-policy"* ]]
-    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://secondary-vault:8202\""*"path=approle/"*"type=approle"* ]]
-    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://secondary-vault:8202\""*"path=github/"*"type=github"* ]]
-    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://secondary-vault:8202\""*"path=oidc/"*"type=oidc"* ]]
-    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"http://secondary-vault:8202\""*"path=kubernetes-secondary/"*"type=kubernetes"* ]]
-    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"http://secondary-vault:8202\""*"path=auth/github/config"*"type=github"* ]]
-    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"http://secondary-vault:8202\""*"path=auth/oidc/config"*"type=oidc"* ]]
-    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"http://secondary-vault:8202\""*"path=auth/kubernetes-secondary/config"*"type=kubernetes"* ]]
-    [[ "${output}" == *"[Vault Auth] policies mapping is successfully applied"*"instance=\"http://secondary-vault:8202\""*"path=/auth/github/map/teams/vault-app-sre"*"policies"*"app-sre-policy"* ]]
+    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=approle/"*"type=approle"* ]]
+    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=github/"*"type=github"* ]]
+    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=oidc/"*"type=oidc"* ]]
+    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=kubernetes-main/"*"type=kubernetes"* ]]
+    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=auth/github/config"*"type=github"* ]]
+    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=auth/oidc/config"*"type=oidc"* ]]
+    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=auth/kubernetes-main/config"*"type=kubernetes"* ]]
+    [[ "${output}" == *"[Vault Auth] policies mapping is successfully applied"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=/auth/github/map/teams/vault-app-sre"*"policies"*"app-sre-policy"* ]]
+    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=approle/"*"type=approle"* ]]
+    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=github/"*"type=github"* ]]
+    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=oidc/"*"type=oidc"* ]]
+    [[ "${output}" == *"[Vault Auth] successfully enabled auth backend"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=kubernetes-secondary/"*"type=kubernetes"* ]]
+    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=auth/github/config"*"type=github"* ]]
+    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=auth/oidc/config"*"type=oidc"* ]]
+    [[ "${output}" == *"[Vault Auth] auth backend successfully configured"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=auth/kubernetes-secondary/config"*"type=kubernetes"* ]]
+    [[ "${output}" == *"[Vault Auth] policies mapping is successfully applied"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=/auth/github/map/teams/vault-app-sre"*"policies"*"app-sre-policy"* ]]
 
+    export VAULT_ADDR=${PRIMARY_VAULT_URL}
     # check auth backends created
     run vault auth list
     [ "$status" -eq 0 ]
@@ -45,7 +47,7 @@ load ../helpers
     # check oidc auth configuration
     run vault read auth/oidc/config
     [ "$status" -eq 0 ]
-    [[ "${output}" == *"oidc_discovery_url"*"http://localhost:8180/auth/realms/test"* ]]
+    [[ "${output}" == *"oidc_discovery_url"*"http://keycloak:8180/auth/realms/test"* ]]
     [[ "${output}" == *"oidc_client_id"*"vault"* ]]
     [[ "${output}" == *"default_role"*"default"* ]]
 
@@ -56,7 +58,7 @@ load ../helpers
     [[ "${output}" == *"value"*"app-sre-policy"* ]]
 
     # run same tests against secondary instance
-    export VAULT_ADDR=http://secondary-vault:8202
+    export VAULT_ADDR=${SECONDARY_VAULT_URL}
 
     # check auth backends created
     run vault auth list
@@ -76,7 +78,7 @@ load ../helpers
     # check oidc auth configuration
     run vault read auth/oidc/config
     [ "$status" -eq 0 ]
-    [[ "${output}" == *"oidc_discovery_url"*"http://localhost:8180/auth/realms/test"* ]]
+    [[ "${output}" == *"oidc_discovery_url"*"${KEYCLOAK_URL}/auth/realms/test"* ]]
     [[ "${output}" == *"oidc_client_id"*"vault"* ]]
     [[ "${output}" == *"default_role"*"default"* ]]
 
@@ -86,6 +88,6 @@ load ../helpers
     [[ "${output}" == *"key"*"vault-app-sre"* ]]
     [[ "${output}" == *"value"*"app-sre-policy"* ]]
 
-    export VAULT_ADDR=http://primary-vault:8200
+    export VAULT_ADDR=${PRIMARY_VAULT_URL}
     rerun_check
 }
