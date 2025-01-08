@@ -1,8 +1,8 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.22 AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.22.9 AS builder
 COPY . .
 RUN make gobuild
 
-FROM registry.access.redhat.com/ubi9-minimal:9.4
+FROM registry.access.redhat.com/ubi9-minimal:9.5
 RUN microdnf update -y && \
     microdnf install -y ca-certificates && \
     rm -rf /var/cache/yum
