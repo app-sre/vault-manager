@@ -37,5 +37,5 @@ build-test-container:
 
 test-with-compose: build-test-container
 	@podman-compose -f tests/compose.yml up -d --force-recreate
-	@podman-compose logs --no-log-prefix vault-manager-test
-	@podman-compose down
+	@podman-compose logs vault-manager-test
+	@podman-compose -f tests/compose.yml down
