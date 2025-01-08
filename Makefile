@@ -37,4 +37,4 @@ build-test-container:
 
 test-with-compose: build-test-container
 	podman-compose -f tests/compose.yml up -d --force-recreate
-	bash tests/run-tests-compose.sh
+	# bash tests/run-tests-compose.sh

@@ -26,7 +26,8 @@ podman-compose -f tests/compose.yml exec secondary-vault vault kv put -mount=sec
 # run test suite
 for test in $(find tests/bats/ -type f | grep .bats | grep -v roles | grep -v entities | grep -v groups | grep -v errors); do
     echo "running $test"
-    podman-compose -f tests/compose.yml exec vault-manager-test bats --tap "$test"
+    # podman-compose -f tests/compose.yml exec vault-manager-test bats --tap "$test"
+    bats --tap "$test"
     # hack so flags.bats has clean slate for audit resources when testing
     if [[ $test == "tests/bats/audit/audit-devices.bats" ]]; then
         # need to execute this for both instances
