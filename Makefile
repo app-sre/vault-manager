@@ -1,4 +1,4 @@
-.PHONY: test build-test-container test-with-compose build push gotest gobuild
+.PHONY: build-test-container test-with-compose build push gotest gobuild
 
 CONTAINER_ENGINE ?= $(shell command -v podman > /dev/null 2>&1 && echo podman || echo docker )
 CONTAINER_SELINUX_FLAG ?= :z

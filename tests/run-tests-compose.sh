@@ -10,8 +10,6 @@ cleanup () {
     echo "podman environment cleaned"
 }
 
-# cleanup
-
 # debug
 echo "RUNNING CONTAINERS:"
 podman ps --filter "name=vault-manager-test"
@@ -25,7 +23,7 @@ podman-compose -f tests/compose.yml exec primary-vault vault kv put -mount=secre
 podman-compose -f tests/compose.yml exec secondary-vault vault kv put -mount=secret oidc client-secret=my-special-client-secret
 podman-compose -f tests/compose.yml exec secondary-vault vault kv put -mount=secret kubernetes cert=very-valid-cert
 
-# run test suit
+# run test suite
 for test in $(find tests/bats/ -type f | grep .bats | grep -v roles | grep -v entities | grep -v groups | grep -v errors); do
     echo "running $test"
     podman-compose -f tests/compose.yml exec vault-manager-test bats --tap "$test"

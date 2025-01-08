@@ -26,7 +26,7 @@ RUN git clone https://github.com/bats-core/bats-core.git && \
     git --git-dir=bats-core/.git checkout -b $BATS_VERSION $BATS_VERSION >/dev/null && \
     bats-core/install.sh /usr/local
 
-RUN wget https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip && \
+RUN wget -q https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip && \
     unzip vault_${VAULT_VERSION}_linux_amd64.zip && \
     mv vault /usr/bin
 
