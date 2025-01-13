@@ -11,10 +11,10 @@ load ../helpers
     run vault-manager
     [ "$status" -eq 0 ]
     # check vault-manager output
-    [[ "${output}" == *"[Vault Identity] entity successfully written"*instance=\"${PRIMARY_VAULT_URL}\"*path=identity/entity/name/tester*type=entity* ]]
-    [[ "${output}" == *"[Vault Identity] entity alias successfully written"*instance=\"${PRIMARY_VAULT_URL}\"*path=identity/entity-alias/tester*type=oidc* ]]
-    [[ "${output}" == *"[Vault Identity] entity successfully written"*instance=\"${SECONDARY_VAULT_URL}\"*path=identity/entity/name/tester*type=entity* ]]
-    [[ "${output}" == *"[Vault Identity] entity alias successfully written"*instance=\"${SECONDARY_VAULT_URL}\"*path=identity/entity-alias/tester*type=oidc* ]]
+    [[ "${output}" == *"[Vault Identity] entity successfully written"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=identity/entity/name/tester*type=entity"* ]]
+    [[ "${output}" == *"[Vault Identity] entity alias successfully written"*"instance=\"${PRIMARY_VAULT_URL}\""*"path=identity/entity-alias/tester*type=oidc"* ]]
+    [[ "${output}" == *"[Vault Identity] entity successfully written"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=identity/entity/name/tester*type=entity"* ]]
+    [[ "${output}" == *"[Vault Identity] entity alias successfully written"*"instance=\"${SECONDARY_VAULT_URL}\""*"path=identity/entity-alias/tester*type=oidc"* ]]
 
     # check entities created
     run vault list identity/entity/name
