@@ -37,8 +37,9 @@ build-test-container:
 	@$(CONTAINER_ENGINE) build -t $(IMAGE_NAME)-test -f tests/Dockerfile.tests .
 
 test-with-compose: build-test-container
-	@podman-compose -f $(COMPOSE_FILE) up --force-recreate
-	# @podman-compose -f $(COMPOSE_FILE) down --volumes --remove-orphans
+	@podman-compose -f $(COMPOSE_FILE) up -d --force-recreate
+	@podman exec vault-manager-test_vault-manager-test_1 /tests/run-tests-compose.sh
+	@podman-compose -f $(COMPOSE_FILE) down --volumes --remove-orphans
 
 down:
 	@podman-compose -f $(COMPOSE_FILE) down --volumes --remove-orphans

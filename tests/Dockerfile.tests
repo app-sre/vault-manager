@@ -8,6 +8,11 @@ RUN make gobuild
 # Setup prerequisites for testing
 FROM registry.access.redhat.com/ubi9/ubi:9.5
 
+# Add Tini
+ENV TINI_VERSION v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
+
 ENV BATS_VERSION="v1.11.1"
 ENV VAULT_VERSION="1.17.1"
 
@@ -38,4 +43,7 @@ COPY --from=builder /opt/app-root/src/vault-manager /bin/
 
 WORKDIR /tests
 
-CMD ["./run-tests-compose.sh"]
+ENTRYPOINT ["/tini", "--"]
+
+# Keep the container running by default
+CMD ["sh", "-c", "while true; do sleep 10; done"]

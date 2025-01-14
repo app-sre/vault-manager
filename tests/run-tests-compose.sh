@@ -61,3 +61,5 @@ bats --tap /tests/bats/groups/groups.bats
 # run error handling test now that vaults are fully configured
 echo "running bats/errors/errors.bats"
 bats --tap /tests/bats/errors/errors.bats
+
+echo "All tests have completed."
