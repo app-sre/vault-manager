@@ -37,7 +37,6 @@ load ../helpers
     export GRAPHQL_QUERY_FILE=/tests/fixtures/errors/missing_oidc_secret.graphql
 
     # fix credential from prior test
-    # export VAULT_ADDR=${PRIMARY_VAULT_URL}
     vault kv put -address="${PRIMARY_VAULT_URL}" secret/secondary root=root
 
     # remove a dependency for auth reconciliation (intentionally cause an error)

@@ -1,5 +1,6 @@
-.PHONY: build-test-container test-with-compose build push gotest gobuild
+.PHONY: build-test-container test-with-compose build push gotest gobuild down
 
+COMPOSE_FILE ?= tests/compose.yml
 CONTAINER_ENGINE ?= $(shell command -v podman > /dev/null 2>&1 && echo podman || echo docker )
 CONTAINER_SELINUX_FLAG ?= :z
 IMAGE_NAME := quay.io/app-sre/vault-manager
@@ -36,6 +37,8 @@ build-test-container:
 	@$(CONTAINER_ENGINE) build -t $(IMAGE_NAME)-test -f tests/Dockerfile.tests .
 
 test-with-compose: build-test-container
-	@podman-compose -f tests/compose.yml up --force-recreate
-	# @podman-compose -f tests/compose.yml logs vault-manager-test
-	# @podman-compose -f tests/compose.yml down
+	@podman-compose -f $(COMPOSE_FILE) up --force-recreate
+	# @podman-compose -f $(COMPOSE_FILE) down --volumes --remove-orphans
+
+down:
+	@podman-compose -f $(COMPOSE_FILE) down --volumes --remove-orphans

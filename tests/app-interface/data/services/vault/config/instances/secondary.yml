@@ -7,7 +7,7 @@ labels:
 name: "app-sre-secondary-vault"
 description: "Secondary FedRamp Vault instance"
 
-# hostname fom podman-compose service
+# hostname from podman-compose service
 address: "http://secondary-vault:8202"
 auth:
   provider: token
