@@ -1,6 +1,9 @@
 # vault-manager
 
-vault-manager is an automation tool for managing [hashicorp vault](https://github.com/hashicorp/vault) configurations based on [Vault GO API Client](https://github.com/hashicorp/vault/tree/master/api)
+vault-manager is an automation tool for managing [Hashicorp Vault](https://github.com/hashicorp/vault) configurations based on [Vault GO API Client](https://github.com/hashicorp/vault/tree/master/api)
+
+The vault-manager binary runs in a reconciliation loop, ensuring that the vault instances (or instances) being managed are in the desired state based on the configuration files in the app-interface directory.  This is done by querying a graphql server for the desired state and then making the necessary changes to the vault instances.
+
 
 ## Usage
 
@@ -52,7 +55,7 @@ so `-thread-pool-size` determine how many threads can be utilized
 
 ## Changing data.json used for testing
 
-`data.json` within `tests/app-interface` is utilized by the qontract-server created for testing. If schema / query changes are made, this data bundle must be re-generated and committed with the PR. To re-generate: update `SCHEMAS_IMAGE_TAG` within `.env` (make sure to commit this change as well) and execute `make data` within `/tests/app-interface`
+`data.json` within `tests/app-interface` is utilized by the qontract-server created for testing. If schema and/or query changes are made, this data bundle must be re-generated and committed with the PR. To re-generate: update `SCHEMAS_IMAGE_TAG` within `.env` (make sure to commit this change as well) and execute `make data` within `/tests/app-interface`
 
 ## Local Development
 
@@ -102,7 +105,7 @@ Note: `--net=host` isn't supported for Mac([doc](https://docs.docker.com/network
 
 ## Testing
 
-This project use BATS for integration test, using mentioned primary and secondary vault instance. You can debug them by point environment variable `GRAPHQL_QUERY_FILE` to the .graphql under /fixtures.
+This project use BATS for integration test, using mentioned primary and secondary vault instances. You can debug them by pointing the environment variable `GRAPHQL_QUERY_FILE` to the .graphql under /fixtures.
 
 See [the test documentation](tests/README.md) for information on running tests.
 
