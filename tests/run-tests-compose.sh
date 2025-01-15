@@ -35,7 +35,9 @@ vault kv put -address="${SECONDARY_VAULT_URL}" -mount=secret oidc client-secret=
 vault kv put -address="${SECONDARY_VAULT_URL}" -mount=secret kubernetes cert=very-valid-cert
 
 # run test suite
-for test in $(find /tests/bats/ -type f | grep .bats | grep -v roles | grep -v entities | grep -v groups | grep -v errors); do
+# roles, entities, groups, and errors are dependent on other tests.
+# once these tests are run, the necessary data is available for the other tests to run.
+for test in $(find /tests/bats/ -type f | grep '\.bats' | grep -vE 'roles|entities|groups|errors'); do
     echo "running $test"
     bats --tap "$test"
     # hack so flags.bats has clean slate for audit resources when testing
