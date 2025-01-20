@@ -9,7 +9,7 @@ OUTPUT_DIR := $(shell realpath $(OUTPUT_DIR))
 BUNDLE_FILENAME ?= data.json
 PWD := $(shell pwd)
 VALIDATOR_CONTAINER_NAME ?= qontract-validator
-VALIDATOR_IMAGE_NAME ?= quay.io/app-sre/qontract-validator
+VALIDATOR_IMAGE_NAME ?= quay.io/redhat-services-prod/app-sre-tenant/qontract-validator-master/qontract-validator-master
 
 schemas:
 	@rm -rf schemas graphql-schemas
