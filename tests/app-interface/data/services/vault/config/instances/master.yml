@@ -2,12 +2,13 @@
 $schema: /vault-config/instance-1.yml
 
 labels:
-  service: vault.fedramp.devshift.net
+  service: vault.appsre.devshiftusgov.com
 
 name: "app-sre-master-vault"
 description: "Primary FedRamp Vault instance"
 
-address: "http://127.0.0.1:8200"
+# hostname from podman-compose service
+address: "http://primary-vault:8200"
 auth:
   provider: "token"
   kubeRoleName: "vault-manager"

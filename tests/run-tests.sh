@@ -8,22 +8,22 @@ CONTAINER_HEALTH_TIMEOUT_DEFAULT=60
 
 cleanup () {
   echo "cleaning"
-  if docker ps -a --format "table {{.Names}}" | grep -qw $KEYCLOAK_CLI_NAME; then
-    docker rm -f $KEYCLOAK_CLI_NAME
+  if podman ps -a --format "table {{.Names}}" | grep -qw $KEYCLOAK_CLI_NAME; then
+    podman rm -f $KEYCLOAK_CLI_NAME
   fi
-  if docker ps -a --format "table {{.Names}}" | grep -qw $KEYCLOAK_NAME; then
-    docker rm -f $KEYCLOAK_NAME
+  if podman ps -a --format "table {{.Names}}" | grep -qw $KEYCLOAK_NAME; then
+    podman rm -f $KEYCLOAK_NAME
   fi
-  if docker ps -a --format "table {{.Names}}" | grep -qw $QONTRACT_SERVER_NAME; then
-    docker rm -f $QONTRACT_SERVER_NAME
+  if podman ps -a --format "table {{.Names}}" | grep -qw $QONTRACT_SERVER_NAME; then
+    podman rm -f $QONTRACT_SERVER_NAME
   fi
-  if docker ps -a --format "table {{.Names}}" | grep -qw $VAULT_NAME; then
-    docker rm -f $VAULT_NAME
+  if podman ps -a --format "table {{.Names}}" | grep -qw $VAULT_NAME; then
+    podman rm -f $VAULT_NAME
   fi
-  if docker ps -a --format "table {{.Names}}" | grep -qw $VAULT_NAME_SECONDARY; then
-    docker rm -f $VAULT_NAME_SECONDARY
+  if podman ps -a --format "table {{.Names}}" | grep -qw $VAULT_NAME_SECONDARY; then
+    podman rm -f $VAULT_NAME_SECONDARY
   fi
-  echo "Docker environment cleaned"
+  echo "podman environment cleaned"
 }
 
 container_alive () {
@@ -50,7 +50,7 @@ container_alive () {
 cleanup
 
 # spin up keycloak server
-docker run -d --name=$KEYCLOAK_NAME \
+podman run -d --name=$KEYCLOAK_NAME \
   --net=host \
   --cap-add=IPC_LOCK \
   -e KEYCLOAK_ADMIN=$KEYCLOAK_USER -e KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_PASSWORD \
@@ -62,7 +62,7 @@ docker run -d --name=$KEYCLOAK_NAME \
 container_alive "http://127.0.0.1:8180/auth" 120 $KEYCLOAK_NAME
 
 # run keycloak-cli container to apply realm, client, and user config to keycloak server
-docker run --name $KEYCLOAK_CLI_NAME \
+podman run --name $KEYCLOAK_CLI_NAME \
   --net=host \
   -e KEYCLOAK_URL="http://localhost:8180/auth" \
   -e KEYCLOAK_USER=$KEYCLOAK_USER \
@@ -73,7 +73,7 @@ docker run --name $KEYCLOAK_CLI_NAME \
   $KEYCLOAK_CLI_IMAGE:$KEYCLOAK_CLI_IMAGE_TAG
 
 # spin up qontract-server, using existing data.json file
-docker run -d --rm \
+podman run -d --rm \
   --net=host \
   --name=$QONTRACT_SERVER_NAME \
   -v $HOST_PATH/$(pwd)/app-interface:/bundle:z \
@@ -84,7 +84,7 @@ docker run -d --rm \
 container_alive "http://127.0.0.1:4000" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $QONTRACT_SERVER_NAME
 
 # spin up primary vault server
-docker run -d --name=$VAULT_NAME \
+podman run -d --name=$VAULT_NAME \
   --net=host \
   --cap-add=IPC_LOCK \
   -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
@@ -100,7 +100,7 @@ vault kv put secret/oidc client-secret=my-special-client-secret
 vault kv put secret/kubernetes cert=very-valid-cert
 
 # spin up secondary vault server
-docker run -d --name=$VAULT_NAME_SECONDARY \
+podman run -d --name=$VAULT_NAME_SECONDARY \
   --net=host \
   --cap-add=IPC_LOCK \
   -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \

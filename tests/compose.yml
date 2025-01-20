@@ -1,0 +1,107 @@
+name: vault-manager-test
+
+services:
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.4
+    ports:
+      - "8180:8180"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev --http-port 8180
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://keycloak:8180/realms/master"]
+      interval: 10s
+      timeout: 30s
+      retries: 10
+      start_period: 30s
+
+  keycloak-cli:
+    image: quay.io/app-sre/keycloak-config-cli:5.11.0-22.0.4
+    environment:
+      KEYCLOAK_URL: http://keycloak:8180/
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: true
+      IMPORT_FILES: /config/*.json
+    volumes:
+      - ../tests/keycloak:/config:Z
+    restart: "no"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  qontract-server:
+    image: quay.io/app-sre/qontract-server:ed1f3d5
+    ports:
+      - "4000:4000"
+    environment:
+      LOAD_METHOD: fs
+      DATAFILES_FILE: /bundle/data.json
+    volumes:
+      - ../tests/app-interface:/bundle:Z
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://qontract-server:4000/healthz"]
+      interval: 10s
+      timeout: 20s
+      retries: 5
+      start_period: 20s
+
+  primary-vault:
+    image: quay.io/app-sre/vault:1.17.1
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+      VAULT_TOKEN: "root"
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_ADDR: http://primary-vault:8200
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://primary-vault:8200/v1/sys/health"]
+      interval: 10s
+      timeout: 20s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      qontract-server:
+        condition: service_healthy
+
+  secondary-vault:
+    image: quay.io/app-sre/vault:1.17.1
+    ports:
+      - "8202:8202"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+      VAULT_TOKEN: "root"
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8202
+      VAULT_ADDR: http://secondary-vault:8202
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://secondary-vault:8202/v1/sys/health"]
+      interval: 10s
+      timeout: 20s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      primary-vault:
+        condition: service_healthy
+
+  vault-manager-test:
+    image: quay.io/app-sre/vault-manager-test:latest
+    environment:
+      HOST_PATH: ${PWD}
+    volumes:
+      - ../.env:/tests/.env:Z
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      qontract-server:
+        condition: service_healthy
+      primary-vault:
+        condition: service_healthy
+      secondary-vault:
+        condition: service_healthy

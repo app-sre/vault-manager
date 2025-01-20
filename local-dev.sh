@@ -24,8 +24,8 @@ cleanup () {
   if docker ps -a --format "table {{.Names}}" | grep -qw $QONTRACT_SERVER_NAME; then
     docker rm -f $QONTRACT_SERVER_NAME
   fi
-  if docker ps -a --format "table {{.Names}}" | grep -qw $VAULT_NAME; then
-    docker rm -f $VAULT_NAME
+  if docker ps -a --format "table {{.Names}}" | grep -qw $VAULT_NAME_PRIMARY; then
+    docker rm -f $VAULT_NAME_PRIMARY
   fi
   if docker ps -a --format "table {{.Names}}" | grep -qw $VAULT_NAME_SECONDARY; then
     docker rm -f $VAULT_NAME_SECONDARY
@@ -102,15 +102,15 @@ docker run -d --rm \
 container_alive "http://127.0.0.1:4000" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $QONTRACT_SERVER_NAME
 
 # spin up primary vault server
-docker run -d --name=$VAULT_NAME \
+docker run -d --name=$VAULT_NAME_PRIMARY \
   --net=host \
   --cap-add=IPC_LOCK \
   -e 'VAULT_DEV_ROOT_TOKEN_ID=root' \
   -p 8200:8200 \
   $VAULT_IMAGE:$VAULT_IMAGE_TAG
-container_alive "http://127.0.0.1:8200" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME
+container_alive "http://127.0.0.1:8200" $CONTAINER_HEALTH_TIMEOUT_DEFAULT $VAULT_NAME_PRIMARY
 
-audit_perms $VAULT_NAME
+audit_perms $VAULT_NAME_PRIMARY
 
 # populate necessary vault access vars to master
 vault kv put secret/master rootToken=root
