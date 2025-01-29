@@ -135,7 +135,10 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return err
 	}
 
-	// build list of all existing roles
+	// Add optional defaults for Kubernetes roles
+	addOptionalKubernetesDefaults(desiredRoles)
+
+	// Build list of all existing roles
 	existingRoles := []entry{}
 	for authBackend := range existingAuths {
 		// Get the secret with the existing App Roles.
@@ -150,7 +153,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 			var mutex = &sync.Mutex{}
 			bwg := utils.NewBoundedWaitGroup(threadPoolSize)
 
-			// fill existing policies array in parallel
+			// Fill existing policies array in parallel
 			for i := range roles {
 				bwg.Add(1)
 
@@ -163,7 +166,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 					opts, err := vault.ReadSecret(address, path, vault.KV_V1)
 					if err != nil {
-						// reading of existing policies config failed
+						// Reading of existing policies config failed
 						log.WithError(err).Fatal()
 					}
 					existingRoles = append(existingRoles,
@@ -364,6 +367,20 @@ func addOptionalOidcDefaults(instance string, roles []entry) {
 				if role.Options[k] == nil {
 					role.Options[k] = v
 				}
+			}
+		}
+	}
+}
+
+func addOptionalKubernetesDefaults(roles []entry) {
+	for _, role := range roles {
+		// Only process Kubernetes roles
+		if strings.ToLower(role.Type) == "kubernetes" {
+			// Vault includes the attribute 'bound_service_account_namespace_selector'
+			// in role definitions by default, even if it is not modified, which causes
+			// vault-manager to think it needs to perform a reconcile.
+			if _, exists := role.Options["bound_service_account_namespace_selector"]; !exists {
+				role.Options["bound_service_account_namespace_selector"] = "" // Default to an empty string
 			}
 		}
 	}
