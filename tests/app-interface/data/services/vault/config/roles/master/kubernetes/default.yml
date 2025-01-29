@@ -6,7 +6,7 @@ labels:
 
 name: "kube-default"
 type: "kubernetes"
-mount: 
+mount:
   $ref: /services/vault/config/auth-backends/master/kubernetes.yml
 instance:
   $ref: /services/vault/config/instances/master.yml
@@ -17,9 +17,9 @@ options:
     - vault
   bound_service_account_namespaces:
     - vault-prod
-  token_ttl: "1800"
-  token_max_ttl: "3600"
-  token_explicit_max_ttl: "0"
+  token_ttl: 1800
+  token_max_ttl: 3600
+  token_explicit_max_ttl: 0
   token_type: "default"
   token_period: "0"
   token_policies: []
