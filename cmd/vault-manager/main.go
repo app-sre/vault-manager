@@ -41,8 +41,9 @@ var logFile *os.File
 
 func init() {
 	log.SetFormatter(&log.TextFormatter{
-		DisableTimestamp: true,
-		DisableColors:    true,
+		DisableColors:   true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		FullTimestamp:   true,
 	})
 	// optionally log to a file so that fluentd can ingest logs
 	logFileLocation, _ := os.LookupEnv("LOG_FILE_LOCATION")
@@ -83,6 +84,8 @@ func main() {
 	flag.BoolVar(&runOnce, "run-once", true, "If true, program will skip loop and exit after first reconcile attempt")
 	flag.BoolVar(&kubeAuth, "kube-auth", false, "If true, will attempt to utilize kubernetes authentication where applicable")
 	flag.Parse()
+
+	log.Info("Starting.")
 
 	var sleepDuration time.Duration
 	if !runOnce {
@@ -158,6 +161,8 @@ func main() {
 			}
 			toplevel.ClearPolicies()
 		}
+
+		log.Info("Ending.")
 
 		if runOnce {
 			if hasErrors {
