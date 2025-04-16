@@ -85,7 +85,6 @@ func main() {
 	flag.BoolVar(&kubeAuth, "kube-auth", false, "If true, will attempt to utilize kubernetes authentication where applicable")
 	flag.Parse()
 
-	log.Info("Starting.")
 
 	var sleepDuration time.Duration
 	if !runOnce {
@@ -114,6 +113,7 @@ func main() {
 	}
 
 	for {
+		log.Info("Starting loop run.")
 		cfg, err := getConfig()
 		if err != nil {
 			log.WithError(err).Fatal("failed to parse config")
@@ -162,7 +162,7 @@ func main() {
 			toplevel.ClearPolicies()
 		}
 
-		log.Info("Ending.")
+		log.Info("Ending loop run.")
 
 		if runOnce {
 			if hasErrors {
