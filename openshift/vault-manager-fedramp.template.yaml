@@ -80,7 +80,7 @@ objects:
               @type grep
               <exclude>
                 key message
-                pattern /^(Starting|Ending) loop run\.$/
+                pattern /(Starting|Ending) loop run/
               </exclude>
             </filter>
             <match integration>
