@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/app-sre/vault-manager/pkg/utils"
 	"github.com/app-sre/vault-manager/pkg/vault"
@@ -27,7 +26,6 @@ type entry struct {
 }
 
 type policyMapping struct {
-	GithubTeam  map[string]interface{}   `yaml:"github_team"`
 	Policies    []map[string]interface{} `yaml:"policies"`
 	Type        string                   `yaml:"type"`
 	Description string                   `yaml:"description"`
@@ -61,12 +59,13 @@ func (e entry) Equals(i interface{}) bool {
 		e.Type == entry.Type
 }
 
-func (p policyMapping) Key() string {
-	return p.GithubTeam["team"].(string)
-}
-
 func (p policyMapping) KeyForType() string {
 	return p.Type
+}
+
+func (p policyMapping) Key() string {
+	// Implement a unique key for policyMapping, e.g., based on its type and description
+	return fmt.Sprintf("%s:%s", p.Type, p.Description)
 }
 
 func (p policyMapping) KeyForDescription() string {
@@ -78,8 +77,7 @@ func (p policyMapping) Equals(i interface{}) bool {
 	if !ok {
 		return false
 	}
-	return p.GithubTeam["team"] == policyMapping.GithubTeam["team"] &&
-		comparePolicies(p.Policies, policyMapping.Policies)
+	return comparePolicies(p.Policies, policyMapping.Policies)
 }
 
 func comparePolicies(xpolicies, ypolicies []map[string]interface{}) bool {
@@ -111,7 +109,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	if err := yaml.Unmarshal(entriesBytes, &entries); err != nil {
 		log.WithError(err).Fatal("[Vault Auth] failed to decode auth backend configuration")
 	}
-	// organize by instance
+
+	// Organize by instance
 	instancesToDesired := make(map[string][]entry)
 	for _, e := range entries {
 		instancesToDesired[e.Instance.Address] = append(instancesToDesired[e.Instance.Address], e)
@@ -131,9 +130,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		return err
 	}
 
-	// Build a array of all the existing entries.
+	// Build an array of all the existing entries.
 	existingBackends := make([]entry, 0)
-
 	if existingAuthMounts != nil {
 		for path, backend := range existingAuthMounts {
 			existingBackends = append(existingBackends, entry{
@@ -145,7 +143,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 		}
 	}
 
-	// perform auth reconcile
+	// Perform auth reconcile
 	toBeWritten, toBeDeleted, _ :=
 		vault.DiffItems(asItems(instancesToDesired[address]), asItems(existingBackends))
 	err = enableAuth(address, toBeWritten, dryRun)
@@ -159,113 +157,6 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	err = disableAuth(address, toBeDeleted, dryRun)
 	if err != nil {
 		return err
-	}
-
-	// apply github policy mappings
-	for _, e := range instancesToDesired[address] {
-		if e.Type == "github" {
-			//Build a array of existing policy mappings for current auth mount
-			existingPolicyMappings := make([]policyMapping, 0)
-			teamsList, err := vault.ListSecrets(address, filepath.Join("/auth", e.Path, "map/teams"))
-			if err != nil {
-				return err
-			}
-			if teamsList != nil {
-
-				var mutex = &sync.Mutex{}
-
-				teams := teamsList.Data["keys"].([]interface{})
-
-				bwg := utils.NewBoundedWaitGroup(threadPoolSize)
-				ch := make(chan error)
-
-				// fill existing policy mappings array in parallel
-				for team := range teams {
-					bwg.Add(1)
-
-					go func(team int, ch chan<- error) {
-						defer bwg.Done()
-
-						policyMappingPath := filepath.Join("/auth/", e.Path, "map/teams", teams[team].(string))
-
-						policiesMappedToEntity, err := vault.ReadSecret(address, policyMappingPath, vault.KV_V1)
-						if err != nil {
-							ch <- err
-							return
-						}
-
-						policies := make([]map[string]interface{}, 0)
-						for _, policy := range strings.Split(policiesMappedToEntity["value"].(string), ",") {
-							policies = append(policies, map[string]interface{}{"name": policy})
-						}
-
-						mutex.Lock()
-
-						existingPolicyMappings = append(existingPolicyMappings,
-							policyMapping{GithubTeam: map[string]interface{}{"team": teams[team]}, Policies: policies})
-
-						defer mutex.Unlock()
-					}(team, ch)
-				}
-
-				go func() {
-					bwg.Wait()
-					close(ch)
-				}()
-
-				for e := range ch {
-					if e != nil {
-						return e
-					}
-				}
-			}
-
-			// remove all gh user policy mappings from vault
-			usersList, err := vault.ListSecrets(address, filepath.Join("/auth", e.Path, "map/users"))
-			if usersList != nil {
-
-				users := usersList.Data["keys"].([]interface{})
-
-				bwg := utils.NewBoundedWaitGroup(threadPoolSize)
-				// remove existing gh user policy mappings in parallel
-				for user := range users {
-
-					bwg.Add(1)
-
-					go func(user int) {
-
-						policyMappingPath := filepath.Join("/auth/", e.Path, "map/users", users[user].(string))
-
-						deletePolicyMapping(address, policyMappingPath, dryRun)
-
-						defer bwg.Done()
-
-					}(user)
-				}
-				bwg.Wait()
-			}
-
-			policiesMappingsToBeApplied, policiesMappingsToBeDeleted, _ :=
-				vault.DiffItems(policyMappingsAsItems(e.PolicyMappings), policyMappingsAsItems(existingPolicyMappings))
-
-			// apply policy mappings
-			for _, pm := range policiesMappingsToBeApplied {
-				var policies []string
-				for _, policy := range pm.(policyMapping).Policies {
-					policies = append(policies, policy["name"].(string))
-				}
-				ghTeamName := pm.(policyMapping).GithubTeam["team"].(string)
-				path := filepath.Join("/auth", e.Path, "map/teams", ghTeamName)
-				data := map[string]interface{}{"key": ghTeamName, "value": strings.Join(policies, ",")}
-				writePolicyMapping(address, path, data, dryRun)
-			}
-
-			// delete policy mappings
-			for _, pm := range policiesMappingsToBeDeleted {
-				path := filepath.Join("/auth", e.Path, "map/teams", pm.(policyMapping).GithubTeam["team"].(string))
-				deletePolicyMapping(address, path, dryRun)
-			}
-		}
 	}
 
 	return nil
@@ -378,41 +269,7 @@ func disableAuth(instanceAddr string, toBeDeleted []vault.Item, dryRun bool) err
 	return nil
 }
 
-func writePolicyMapping(instanceAddr string, path string, data map[string]interface{}, dryRun bool) error {
-	if dryRun == true {
-		log.WithField("path", path).WithField("policies", data["value"]).WithField("instance", instanceAddr).Info(
-			"[Dry Run] [Vault Auth] policies mapping to be applied")
-	} else {
-		err := vault.WriteSecret(instanceAddr, path, vault.KV_V1, data)
-		if err != nil {
-			return err
-		}
-		log.WithField("path", path).WithField("policies", data["value"]).WithField("instance", instanceAddr).Info(
-			"[Vault Auth] policies mapping is successfully applied")
-	}
-	return nil
-}
-
 func asItems(xs []entry) (items []vault.Item) {
-	items = make([]vault.Item, 0)
-	for _, x := range xs {
-		items = append(items, x)
-	}
-	return items
-}
-
-func deletePolicyMapping(instanceAddr string, path string, dryRun bool) {
-	if dryRun == true {
-		log.WithField("path", path).WithField("instance", instanceAddr).Info(
-			"[Dry Run] [Vault Auth] policies mapping to be deleted")
-	} else {
-		vault.DeleteSecret(instanceAddr, path)
-		log.WithField("path", path).WithField("instance", instanceAddr).Info(
-			"[Vault Auth] policies mapping is successfully deleted")
-	}
-}
-
-func policyMappingsAsItems(xs []policyMapping) (items []vault.Item) {
 	items = make([]vault.Item, 0)
 	for _, x := range xs {
 		items = append(items, x)
