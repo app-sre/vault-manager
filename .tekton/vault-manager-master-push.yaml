@@ -1,0 +1,169 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/app-sre/vault-manager?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "master"
+  creationTimestamp: null
+  labels:
+    appstudio.openshift.io/application: vault-manager-master
+    appstudio.openshift.io/component: vault-manager-master
+    pipelines.appstudio.openshift.io/type: build
+  name: vault-manager-master-on-push
+  namespace: app-sre-tenant
+spec:
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/redhat-user-workloads/app-sre-tenant/vault-manager-master/vault-manager-master:{{revision}}
+  - name: dockerfile
+    value: Dockerfile
+  - name: path-context
+    value: .
+  - name: target-stage
+    value: prod
+  pipelineSpec:
+    tasks:
+    - name: build
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      params:
+        - name: IMAGE
+          value: $(params.output-image)
+        - name: DOCKERFILE
+          value: $(params.dockerfile)
+        - name: CONTEXT
+          value: $(params.path-context)
+    - name: test
+      runAfter:
+        - build
+      taskSpec:
+        steps:
+        - name: setup-keycloak
+          image: quay.io/keycloak/keycloak:22.0.4
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: "admin"
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              value: "admin"
+          command:
+            - /opt/keycloak/bin/kc.sh
+            - start-dev
+            - --http-port=8180
+          readinessProbe:
+            httpGet:
+              path: /realms/master
+              port: 8180
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 30
+            failureThreshold: 10
+        - name: setup-keycloak-config
+          image: quay.io/app-sre/keycloak-config-cli:5.11.0-22.0.4
+          env:
+            - name: KEYCLOAK_URL
+              value: "http://localhost:8180/"
+            - name: KEYCLOAK_USER
+              value: "admin"
+            - name: KEYCLOAK_PASSWORD
+              value: "admin"
+            - name: KEYCLOAK_AVAILABILITYCHECK_ENABLED
+              value: "true"
+            - name: IMPORT_FILES
+              value: "/workspace/source/tests/keycloak/*.json"
+        - name: setup-qontract
+          image: quay.io/app-sre/qontract-server:ed1f3d5
+          env:
+            - name: LOAD_METHOD
+              value: "fs"
+            - name: DATAFILES_FILE
+              value: "/workspace/source/tests/app-interface/data.json"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 4000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 20
+            failureThreshold: 5
+        - name: setup-primary-vault
+          image: quay.io/app-sre/vault:1.17.2
+          env:
+            - name: VAULT_DEV_ROOT_TOKEN_ID
+              value: "root"
+            - name: VAULT_TOKEN
+              value: "root"
+            - name: VAULT_DEV_LISTEN_ADDRESS
+              value: "0.0.0.0:8200"
+            - name: VAULT_ADDR
+              value: "http://localhost:8200"
+          securityContext:
+            capabilities:
+              add: ["IPC_LOCK"]
+          readinessProbe:
+            httpGet:
+              path: /v1/sys/health
+              port: 8200
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 20
+            failureThreshold: 5
+        - name: setup-secondary-vault
+          image: quay.io/app-sre/vault:1.17.2
+          env:
+            - name: VAULT_DEV_ROOT_TOKEN_ID
+              value: "root"
+            - name: VAULT_TOKEN
+              value: "root"
+            - name: VAULT_DEV_LISTEN_ADDRESS
+              value: "0.0.0.0:8202"
+            - name: VAULT_ADDR
+              value: "http://localhost:8202"
+          securityContext:
+            capabilities:
+              add: ["IPC_LOCK"]
+          readinessProbe:
+            httpGet:
+              path: /v1/sys/health
+              port: 8202
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 20
+            failureThreshold: 5
+        - name: run-tests
+          image: $(params.output-image)
+          env:
+            - name: HOST_PATH
+              value: "/workspace/source"
+          volumeMounts:
+            - name: env-file
+              mountPath: /tests/.env
+              subPath: .env
+        volumes:
+        - name: env-file
+          configMap:
+            name: vault-manager-env
+        workspaces:
+        - name: source
+          workspace: shared-workspace
+      workspaces:
+      - name: source
+        workspace: shared-workspace
+  workspaces:
+  - name: shared-workspace
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
