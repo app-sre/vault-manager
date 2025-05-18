@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/vault/api v1.10.0
-	github.com/hashicorp/vault/api/auth/approle v0.4.0
+	github.com/hashicorp/vault/api/auth/approle v0.9.0
 	github.com/hashicorp/vault/api/auth/kubernetes v0.4.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/pkg/errors v0.9.1
