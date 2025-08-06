@@ -7,8 +7,8 @@ labels:
 name: "app-sre-master-vault"
 description: "Primary FedRamp Vault instance"
 
-# hostname from podman-compose service
-address: "http://primary-vault:8200"
+# pod localhost address for primary vault
+address: "http://localhost:8200"
 auth:
   provider: "token"
   kubeRoleName: "vault-manager"

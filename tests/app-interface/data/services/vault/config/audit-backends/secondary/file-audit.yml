@@ -11,7 +11,7 @@ instance:
 description: ""
 options:
   _type: "file"
-  file_path: "/var/log/vault/vault_audit.log"
+  file_path: "/tmp/vault_audit.log"
   format: "json"
   log_raw: "false"
   hmac_accessor: "true"

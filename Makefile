@@ -1,6 +1,5 @@
-.PHONY: build-test-container test-with-compose build push gotest gobuild down
+.PHONY: build push gotest gobuild test-testcontainers test-testcontainers-pod test-testcontainers-shared
 
-COMPOSE_FILE ?= tests/compose.yml
 CONTAINER_ENGINE ?= $(shell command -v podman > /dev/null 2>&1 && echo podman || echo docker )
 CONTAINER_SELINUX_FLAG ?= :z
 IMAGE_NAME := quay.io/app-sre/vault-manager
@@ -33,13 +32,16 @@ generate:
 	@helm template helm/vault-manager -n vault-manager -f helm/vault-manager/values-commercial.yaml > openshift/vault-manager.template.yaml
 	@helm template helm/vault-manager -n vault-manager -f helm/vault-manager/values-fedramp.yaml > openshift/vault-manager-fedramp.template.yaml
 
-build-test-container:
-	@$(CONTAINER_ENGINE) build -t $(IMAGE_NAME)-test -f tests/Dockerfile.tests .
 
-test-with-compose: build-test-container
-	@podman-compose -f $(COMPOSE_FILE) up -d --force-recreate
-	@podman exec vault-manager-test_vault-manager-test_1 /tests/run-tests-compose.sh
-	@podman-compose -f $(COMPOSE_FILE) down --volumes --remove-orphans
+# Testcontainers-based tests
+test-testcontainers:
+	@echo "Running all testcontainers tests..."
+	@cd tests/testcontainers && go test -v ./...
 
-down:
-	@podman-compose -f $(COMPOSE_FILE) down --volumes --remove-orphans
+test-testcontainers-pod:
+	@echo "Running pod-based testcontainers tests..."
+	@cd tests/testcontainers && go test -v -run ".*Pod$$"
+
+test-testcontainers-shared:
+	@echo "Running shared container testcontainers tests..."
+	@cd tests/testcontainers && go test -v -run ".*Shared$$"

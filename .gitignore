@@ -11,6 +11,12 @@ vault-manager
 # Test binary, build with `go test -c`
 *.test
 
+# Compiled testcontainers test binaries
+tests/testcontainers/integration_test
+tests/testcontainers/keycloak_test
+tests/testcontainers/qontract_test
+tests/testcontainers/vault_manager_test
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
@@ -21,3 +27,5 @@ tests/app-interface/resources/*
 
 # VS code related files
 *.vscode/*
+.claude/*
+CLAUDE.md

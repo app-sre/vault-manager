@@ -105,7 +105,7 @@ Note: `--net=host` isn't supported for Mac([doc](https://docs.docker.com/network
 
 ## Testing
 
-This project use BATS for integration test, using mentioned primary and secondary vault instances. You can debug them by pointing the environment variable `GRAPHQL_QUERY_FILE` to the .graphql under /fixtures.
+This project uses Go-based integration tests using testcontainers, with primary and secondary vault instances. You can debug them by pointing the environment variable `GRAPHQL_QUERY_FILE` to the .graphql under /fixtures.
 
 See [the test documentation](tests/README.md) for information on running tests.
 

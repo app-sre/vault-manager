@@ -1,51 +1,80 @@
 # vault-manager integration testing
 
-This project uses BATS (Bash Automated Testing System) for integration testing.
+This project uses Go-based integration tests with testcontainers for reliable, containerized testing.
 
 Upon commit, a build is triggered in the CI pipeline which runs the tests.
-The build sets up necessary resources to run the tests, then executes `pr_check.sh`.
+The tests automatically manage their own container lifecycle using testcontainers-go.
 
-## Bats Core
+## Testcontainers
 
-[Bats Core](https://bats-core.readthedocs.io/en/stable/docker-usage.html) is a fork of Bats with the goal of providing a more maintainable and extensible platform for development of testing tools. Bats is a TAP-compliant testing framework for Bash. It provides a simple way to verify that the UNIX programs you write behave as expected.
+[Testcontainers](https://testcontainers.com/) is a library that provides easy and clean APIs to start throwaway containers for testing. The vault-manager project uses testcontainers-go to spin up:
 
-This project uses Bats Core for integration testing.
+- Primary and Secondary Vault instances
+- Keycloak for OIDC authentication
+- qontract-server for GraphQL data
+- All dependencies in isolated container environments
 
-## Building images and running tests locally
+## Running tests locally
 
-From the top level directory of the project, run:
+From the top level directory of the project, you have several options:
 
+### Run all testcontainers tests
 ```bash
-make test-with-compose
+make test-testcontainers
 ```
 
-This first runs the target `build-test-container` which builds the test container.
-
-```make
-build-test-container:
-	@docker build -t vault-manager-test -f tests/Dockerfile.tests .
+### Run only pod-based tests (individual containers per test)
+```bash
+make test-testcontainers-pod
 ```
 
-Then, the target `test-with-compose` is executed, which runs the container `vault-manager-test` built from the `build-test-container` target.
-
-```make
-test-with-compose: build-test-container
-	@podman-compose -f tests/docker-compose.yml up --force-recreate
+### Run only shared container tests (optimized performance)
+```bash
+make test-testcontainers-shared
 ```
 
-The test container image WORKDIR is set to `/tests` and the entrypoint is set to `/tests/run-tests-compose.sh`.
+### Run specific tests
+```bash
+cd tests/testcontainers
+go test -v -run TestVaultManagerSecretEnginesShared
+```
 
-Refer to the script `run-tests-compose.sh` for the commands executed within the container.
+## Test Architecture
 
-## Test cases
+The tests use two approaches:
 
-The following test cases are executed:
-* audit-devices.bats
-* auth-backends-with-policies.bats
-* entities.bats
-* errors.bats
-* flags.bats
-* groups.bats
-* policies.bats
-* roles.bats
-* secret-engines.bats
+### Pod-based Tests (Individual Containers)
+- Each test creates its own isolated pod with all required services
+- Tests ending with `Pod` (e.g., `TestVaultManagerSecretEnginesPod`)
+- Complete isolation but slower execution (~95 seconds per test)
+
+### Shared Container Tests (Optimized Performance)
+- One-time container setup shared across all tests in the suite
+- Tests ending with `Shared` (e.g., `TestVaultManagerSecretEnginesShared`)
+- Vault state reset between tests for isolation
+- Faster execution (~15 seconds per test after ~90 second setup)
+
+## Test Cases
+
+The following test cases are implemented:
+
+* **Secret Engines**: Tests KV secret engines configuration (app-interface/, app-sre/)
+* **Entities**: Tests Vault identity entities and OIDC aliases creation
+* **Groups**: Tests identity groups with policy mappings
+* **Roles**: Tests AppRole creation and configuration
+* **Auth Backends**: Tests authentication backend configuration with policy mappings
+* **Audit Devices**: Tests audit device enablement and configuration
+* **Policies**: Tests Vault policy creation and management
+* **Flags**: Tests dry-run flag functionality and error handling
+* **Errors**: Tests error handling and instance isolation
+
+## Performance
+
+The shared container approach provides significant performance improvements:
+- Individual tests: ~95 seconds each
+- Shared container tests: ~15 seconds each (after one-time ~90 second setup)
+- Overall test suite improvement: ~50% faster execution
+
+## Container Requirements
+
+Tests require either Docker or Podman to be available on the system. The testcontainers library will automatically detect and use the available container runtime.
