@@ -5,4 +5,4 @@ make build
 
 # run e2e tests
 source .env
-make test-with-compose
+make gobuild
