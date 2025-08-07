@@ -190,7 +190,7 @@ func TestVaultManagerPoliciesPod(t *testing.T) {
 		"-e", fmt.Sprintf("VAULT_ADDR=%s", internalPrimaryVaultURL),
 		"-e", "VAULT_TOKEN=root",
 		"-e", "VAULT_AUTHTYPE=token",
-		"docker.io/golang:1.23-alpine",
+		"registry.access.redhat.com/ubi9/go-toolset:1.22.9",
 		"sh", "-c", `
 			# Debug: show current directory and files
 			echo "Current directory: $(pwd)"

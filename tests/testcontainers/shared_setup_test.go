@@ -327,7 +327,7 @@ func runSharedVaultManager(t *testing.T, queryFile string, extraArgs ...string) 
 		"-e", fmt.Sprintf("VAULT_ADDR=%s", sharedInternalPrimaryURL),
 		"-e", "VAULT_TOKEN=root",
 		"-e", "VAULT_AUTHTYPE=token",
-		"docker.io/golang:1.23-alpine",
+		"registry.access.redhat.com/ubi9/go-toolset:1.22.9",
 		"sh", "-c",
 	}
 
