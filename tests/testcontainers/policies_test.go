@@ -159,7 +159,7 @@ func TestVaultManagerPolicies(t *testing.T) {
 
 	// Create vault-manager container that can access other containers by IP
 	vaultManagerReq := testcontainers.ContainerRequest{
-		Image: "registry.access.redhat.com/ubi9/go-toolset:1.22.9",
+		Image: "registry.access.redhat.com/ubi9/go-toolset:1.23",
 		Cmd: []string{"sh", "-c", `
 			# Copy and build vault-manager
 			cd /vault-manager && 

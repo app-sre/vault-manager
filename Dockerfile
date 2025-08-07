@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.22.9 AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.23 AS builder
 COPY . .
 RUN make gobuild
 LABEL konflux.additional-tags="1.0.0"

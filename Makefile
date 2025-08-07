@@ -1,4 +1,4 @@
-.PHONY: build push gotest gobuild test-testcontainers test-testcontainers-pod test-testcontainers-shared
+.PHONY: build push gotest gotest-all gobuild test-testcontainers test-testcontainers-pod test-testcontainers-shared
 
 CONTAINER_ENGINE ?= $(shell command -v podman > /dev/null 2>&1 && echo podman || echo docker )
 CONTAINER_SELINUX_FLAG ?= :z
@@ -15,6 +15,8 @@ endif
 
 gotest:
 	CGO_ENABLED=0 GOOS=$(GOOS) go test ./pkg/... ./cmd/... ./toplevel/...
+
+gotest-all: gotest test-testcontainers
 
 gobuild: gotest
 	CGO_ENABLED=0 GOOS=$(GOOS) go build -a -buildvcs=false -installsuffix cgo ./cmd/vault-manager
