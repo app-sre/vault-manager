@@ -332,7 +332,7 @@ func runSharedVaultManager(t *testing.T, queryFile string, extraArgs ...string) 
 	}
 
 	// Build command with extra args
-	buildCmd := "go build -o /tmp/vault-manager ./cmd/vault-manager && /tmp/vault-manager"
+	buildCmd := "go build -buildvcs=false -o /tmp/vault-manager ./cmd/vault-manager && /tmp/vault-manager"
 	if len(extraArgs) > 0 {
 		buildCmd += " " + extraArgs[0] // Add flags like -dry-run
 	}

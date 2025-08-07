@@ -14,7 +14,7 @@ else
 endif
 
 gotest:
-	CGO_ENABLED=0 GOOS=$(GOOS) go test ./...
+	CGO_ENABLED=0 GOOS=$(GOOS) go test ./pkg/... ./cmd/... ./toplevel/...
 
 gobuild: gotest
 	CGO_ENABLED=0 GOOS=$(GOOS) go build -a -buildvcs=false -installsuffix cgo ./cmd/vault-manager
@@ -36,12 +36,12 @@ generate:
 # Testcontainers-based tests
 test-testcontainers:
 	@echo "Running all testcontainers tests..."
-	@cd tests/testcontainers && go test -v ./...
+	@cd tests/testcontainers && go test -v -tags testcontainers ./...
 
 test-testcontainers-pod:
 	@echo "Running pod-based testcontainers tests..."
-	@cd tests/testcontainers && go test -v -run ".*Pod$$"
+	@cd tests/testcontainers && go test -v -tags testcontainers -run ".*Pod$$"
 
 test-testcontainers-shared:
 	@echo "Running shared container testcontainers tests..."
-	@cd tests/testcontainers && go test -v -run ".*Shared$$"
+	@cd tests/testcontainers && go test -v -tags testcontainers -run ".*Shared$$"
