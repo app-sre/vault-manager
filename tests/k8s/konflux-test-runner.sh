@@ -45,9 +45,15 @@ echo "3. Deploying qontract-server..."
 # Create ConfigMap with app-interface data from the cloned repository
 # In Konflux, the source code is available in the workspace
 if [ -f "${SCRIPT_DIR}/../app-interface/data.json" ]; then
+  echo "   Found app-interface data at ${SCRIPT_DIR}/../app-interface/data.json"
+  echo "   File size: $(stat -f%z "${SCRIPT_DIR}/../app-interface/data.json" 2>/dev/null || stat -c%s "${SCRIPT_DIR}/../app-interface/data.json") bytes"
   echo "   Creating app-interface-data ConfigMap from repository..."
   oc create configmap app-interface-data \
-    --from-file=data.json="${SCRIPT_DIR}/../app-interface/data.json"
+    --from-file=data.json="${SCRIPT_DIR}/../app-interface/data.json" || {
+      echo "   ERROR: Failed to create ConfigMap"
+      ls -lh "${SCRIPT_DIR}/../app-interface/"
+      exit 1
+    }
 
   # Update qontract-server manifest to use ConfigMap instead of emptyDir
   cat > /tmp/qontract-server-konflux.yaml <<EOF
@@ -61,7 +67,7 @@ metadata:
 spec:
   containers:
   - name: qontract-server
-    image: quay.io/app-sre/qontract-server:latest
+    image: quay.io/app-sre/qontract-server:ed1f3d5
     ports:
     - containerPort: 4000
       name: http
@@ -117,17 +123,27 @@ EOF
 
   oc apply -f /tmp/qontract-server-konflux.yaml
   echo "   Waiting for qontract-server to be ready..."
-  oc wait --for=condition=Ready pod -l app=qontract-server --timeout=2m || {
-    echo "   qontract-server failed to become ready. Checking status..."
+  oc wait --for=condition=Ready pod -l app=qontract-server --timeout=3m || {
+    echo "   ERROR: qontract-server failed to become ready"
+    echo "   Pod status:"
     oc get pod -l app=qontract-server
-    oc describe pod -l app=qontract-server | tail -30
-    echo "   Pod logs:"
-    oc logs -l app=qontract-server --tail=30 || echo "No logs available"
-    echo "   WARNING: qontract-server failed, tests may not have GraphQL data available"
+    echo ""
+    echo "   Pod events:"
+    oc describe pod -l app=qontract-server | tail -40
+    echo ""
+    echo "   Container logs:"
+    oc logs -l app=qontract-server --all-containers=true --tail=50 || echo "No logs available"
+    echo ""
+    echo "   ConfigMap info:"
+    oc get configmap app-interface-data
+    exit 1
   }
 else
-  echo "   (Skipping - app-interface data not found)"
-  echo "   WARNING: Tests will not have qontract-server available"
+  echo "   ERROR: app-interface/data.json not found at ${SCRIPT_DIR}/../app-interface/data.json"
+  echo "   Available files in source:"
+  ls -la "${SCRIPT_DIR}/../" || true
+  ls -la "${SCRIPT_DIR}/../app-interface/" || true
+  exit 1
 fi
 
 echo ""
