@@ -38,7 +38,7 @@ kubectl create configmap keycloak-config-files \
 
 kubectl apply -f "${SCRIPT_DIR}/keycloak-config-job.yaml"
 echo "   Waiting for Keycloak configuration to complete..."
-kubectl wait --for=condition=Complete job/keycloak-config --timeout=2m
+kubectl wait --for=condition=Complete job/keycloak-config --timeout=3m
 
 echo "3. Deploying qontract-server..."
 echo "   (Skipping - requires valid app-interface data bundle)"

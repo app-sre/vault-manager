@@ -25,16 +25,20 @@ oc wait --for=condition=Ready pod -l app=keycloak --timeout=10m
 
 echo ""
 echo "2. Configuring Keycloak..."
-echo "   (Skipping - keycloak-config-cli image requires authentication)"
-echo "   Keycloak is running with default configuration"
-# Note: The keycloak-config-cli image (quay.io/app-sre/keycloak-config-cli:5.11.0-22.0.4)
-# requires authentication in Konflux. For testing purposes, we can use Keycloak's
-# default configuration which includes the 'master' realm.
-#
-# If Keycloak realm configuration is required for tests, consider:
-# 1. Using a public keycloak-config-cli image
-# 2. Configuring image pull secrets in the namespace
-# 3. Using Keycloak REST API to configure realms programmatically
+# Create ConfigMap from keycloak config files
+oc create configmap keycloak-config-files \
+  --from-file="${SCRIPT_DIR}/../keycloak/"
+
+oc apply -f "${SCRIPT_DIR}/keycloak-config-job.yaml"
+echo "   Waiting for Keycloak configuration to complete..."
+oc wait --for=condition=Complete job/keycloak-config --timeout=3m || {
+  echo "   Keycloak config job failed or timed out. Checking status..."
+  oc get job keycloak-config
+  oc get pods -l job-name=keycloak-config
+  echo "   Job logs:"
+  oc logs -l job-name=keycloak-config --tail=50 || echo "No logs available"
+  echo "   WARNING: Keycloak configuration failed, continuing with default config..."
+}
 
 echo ""
 echo "3. Deploying qontract-server..."
@@ -113,10 +117,17 @@ EOF
 
   oc apply -f /tmp/qontract-server-konflux.yaml
   echo "   Waiting for qontract-server to be ready..."
-  oc wait --for=condition=Ready pod -l app=qontract-server --timeout=2m
+  oc wait --for=condition=Ready pod -l app=qontract-server --timeout=2m || {
+    echo "   qontract-server failed to become ready. Checking status..."
+    oc get pod -l app=qontract-server
+    oc describe pod -l app=qontract-server | tail -30
+    echo "   Pod logs:"
+    oc logs -l app=qontract-server --tail=30 || echo "No logs available"
+    echo "   WARNING: qontract-server failed, tests may not have GraphQL data available"
+  }
 else
-  echo "   (Skipping - app-interface data not found, will use placeholder)"
-  oc apply -f "${SCRIPT_DIR}/qontract-server.yaml"
+  echo "   (Skipping - app-interface data not found)"
+  echo "   WARNING: Tests will not have qontract-server available"
 fi
 
 echo ""
