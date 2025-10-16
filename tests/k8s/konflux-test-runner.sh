@@ -245,23 +245,23 @@ spec:
       echo "All services ready. Running BATS tests..."
       cd /tests
 
-      # Run test suite
+      # Run test suite with verbose output
       for test in \$(find /tests/bats/ -type f | grep '\\.bats' | grep -vE 'roles|entities|groups|errors'); do
         echo "Running \$test"
-        bats --tap "\$test"
+        bats --tap --print-output-on-failure "\$test"
       done
 
       echo "Running roles tests"
-      bats --tap /tests/bats/roles/roles.bats
+      bats --tap --print-output-on-failure /tests/bats/roles/roles.bats
 
       echo "Running entities tests"
-      bats --tap /tests/bats/entities/entities.bats
+      bats --tap --print-output-on-failure /tests/bats/entities/entities.bats
 
       echo "Running groups tests"
-      bats --tap /tests/bats/groups/groups.bats
+      bats --tap --print-output-on-failure /tests/bats/groups/groups.bats
 
       echo "Running error handling tests"
-      bats --tap /tests/bats/errors/errors.bats
+      bats --tap --print-output-on-failure /tests/bats/errors/errors.bats
 
       echo "All tests completed successfully!"
     resources:

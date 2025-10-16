@@ -4,7 +4,6 @@ vault-manager is an automation tool for managing [Hashicorp Vault](https://githu
 
 The vault-manager binary runs in a reconciliation loop, ensuring that the vault instances (or instances) being managed are in the desired state based on the configuration files in the app-interface directory.  This is done by querying a graphql server for the desired state and then making the necessary changes to the vault instances.
 
-
 ## Usage
 
 ```bash
