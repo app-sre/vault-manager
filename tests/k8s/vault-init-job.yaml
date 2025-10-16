@@ -1,0 +1,52 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init
+  labels:
+    app: vault-init
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: vault-init
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: vault-init
+        image: hashicorp/vault:1.17.1
+        env:
+        - name: VAULT_TOKEN
+          value: root
+        - name: PRIMARY_VAULT_URL
+          value: http://primary-vault:8200
+        - name: SECONDARY_VAULT_URL
+          value: http://secondary-vault:8202
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -e
+          echo "Initializing Vault secrets..."
+
+          # Wait for vaults to be available
+          until vault status -address="${PRIMARY_VAULT_URL}" > /dev/null 2>&1; do
+            echo "Waiting for primary vault..."
+            sleep 2
+          done
+
+          until vault status -address="${SECONDARY_VAULT_URL}" > /dev/null 2>&1; do
+            echo "Waiting for secondary vault..."
+            sleep 2
+          done
+
+          # Populate necessary vault access vars to primary
+          vault kv put -address="${PRIMARY_VAULT_URL}" -mount=secret master rootToken=root
+          vault kv put -address="${PRIMARY_VAULT_URL}" -mount=secret oidc client-secret=my-special-client-secret
+          vault kv put -address="${PRIMARY_VAULT_URL}" -mount=secret kubernetes cert=very-valid-cert
+
+          # Populate oidc client secret in secondary
+          vault kv put -address="${SECONDARY_VAULT_URL}" -mount=secret oidc client-secret=my-special-client-secret
+          vault kv put -address="${SECONDARY_VAULT_URL}" -mount=secret kubernetes cert=very-valid-cert
+
+          echo "Vault initialization complete!"
