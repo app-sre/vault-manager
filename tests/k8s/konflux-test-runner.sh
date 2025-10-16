@@ -67,7 +67,7 @@ metadata:
 spec:
   containers:
   - name: qontract-server
-    image: quay.io/app-sre/qontract-server:ed1f3d5
+    image: quay.io/redhat-services-prod/app-sre-tenant/qontract-server-master/qontract-server-master:latest
     ports:
     - containerPort: 4000
       name: http
@@ -151,8 +151,30 @@ echo "4. Deploying Vault instances..."
 oc apply -f "${SCRIPT_DIR}/vault-primary.yaml"
 oc apply -f "${SCRIPT_DIR}/vault-secondary.yaml"
 echo "   Waiting for Vault instances to be ready..."
-oc wait --for=condition=Ready pod -l app=primary-vault --timeout=2m
-oc wait --for=condition=Ready pod -l app=secondary-vault --timeout=2m
+oc wait --for=condition=Ready pod -l app=primary-vault --timeout=3m || {
+  echo "   ERROR: primary-vault failed to become ready"
+  echo "   Pod status:"
+  oc get pod -l app=primary-vault
+  echo ""
+  echo "   Pod events:"
+  oc describe pod -l app=primary-vault | tail -40
+  echo ""
+  echo "   Container logs:"
+  oc logs -l app=primary-vault --tail=50 || echo "No logs available"
+  exit 1
+}
+oc wait --for=condition=Ready pod -l app=secondary-vault --timeout=3m || {
+  echo "   ERROR: secondary-vault failed to become ready"
+  echo "   Pod status:"
+  oc get pod -l app=secondary-vault
+  echo ""
+  echo "   Pod events:"
+  oc describe pod -l app=secondary-vault | tail -40
+  echo ""
+  echo "   Container logs:"
+  oc logs -l app=secondary-vault --tail=50 || echo "No logs available"
+  exit 1
+}
 
 echo ""
 echo "5. Initializing Vault secrets..."
@@ -257,6 +279,11 @@ echo "Waiting for tests to complete (timeout: 8 minutes)..."
 oc wait --for=condition=Ready pod/vault-manager-test --timeout=8m || {
   echo "Test pod failed to become ready. Checking status..."
   oc get pod vault-manager-test
+  echo ""
+  echo "Container logs:"
+  oc logs vault-manager-test || echo "No logs available"
+  echo ""
+  echo "Pod details:"
   oc describe pod vault-manager-test | tail -20
   exit 1
 }

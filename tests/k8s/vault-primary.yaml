@@ -22,9 +22,13 @@ spec:
       value: 0.0.0.0:8200
     - name: VAULT_ADDR
       value: http://localhost:8200
-    securityContext:
-      capabilities:
-        add: ["IPC_LOCK"]
+    - name: SKIP_SETCAP
+      value: "true"
+    - name: HOME
+      value: /tmp
+    volumeMounts:
+    - name: tmp
+      mountPath: /tmp
     livenessProbe:
       httpGet:
         path: /v1/sys/health
@@ -46,6 +50,9 @@ spec:
       limits:
         memory: "512Mi"
         cpu: "200m"
+  volumes:
+  - name: tmp
+    emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
