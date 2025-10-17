@@ -13,7 +13,7 @@ settings:
   config:
     _type: "oidc"
     default_role: "default"
-    oidc_discovery_url: "http://localhost:8180/auth/realms/test"
+    oidc_discovery_url: "http://keycloak:8180/realms/master"
     oidc_client_id: "vault"
     oidc_client_secret_kv_version: "kv_v2"
     oidc_client_secret: 
