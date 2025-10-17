@@ -2,7 +2,7 @@
 
 This document summarizes the Konflux integration for vault-manager using shared-pipelines.
 
-## ✅ What's Been Created
+## What's Been Created
 
 ### 1. Tekton Pipeline Configurations (`.tekton/`)
 
@@ -26,7 +26,7 @@ This document summarizes the Konflux integration for vault-manager using shared-
 
 - **konflux-test-runner.sh** - Deploys infrastructure and runs BATS tests in Konflux ephemeral namespaces
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -59,7 +59,7 @@ This document summarizes the Konflux integration for vault-manager using shared-
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🔄 Test Flow
+## Test Flow
 
 1. **Trigger**: Git push or PR creation
 2. **Build**: Shared pipeline builds container image
@@ -69,7 +69,7 @@ This document summarizes the Konflux integration for vault-manager using shared-
 6. **Report**: Results sent back to pipeline
 7. **Cleanup**: Ephemeral namespace automatically deleted
 
-## 📝 Key Differences: Local vs Konflux
+## Key Differences: Local vs Konflux
 
 | Aspect | Local (kind) | Konflux |
 |--------|--------------|---------|
@@ -79,7 +79,7 @@ This document summarizes the Konflux integration for vault-manager using shared-
 | **Persistence** | Manual cleanup needed | Auto-deleted after tests |
 | **Execution** | `./deploy-services.sh` | `konflux-test-runner.sh` |
 
-## 🧪 Local Testing Validated
+## Local Testing Validated
 
 Successfully tested locally with kind:
 
@@ -96,7 +96,7 @@ Successfully tested locally with kind:
 - primary-vault:8200
 - secondary-vault:8202
 
-## 🚀 Next Steps
+## Next Steps
 
 ### To Deploy in Konflux:
 
@@ -124,7 +124,7 @@ Successfully tested locally with kind:
    oc logs <pipelinerun-pod> -n app-sre-tenant -f
    ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Issue: qontract-server not starting in local tests
 
@@ -145,32 +145,10 @@ Successfully tested locally with kind:
 2. Network connectivity between pods
 3. Resource limits (memory/CPU)
 
-## 📚 References
+## References
 
 - **Shared Pipelines**: https://github.com/app-sre/shared-pipelines
 - **Konflux Docs**: https://konflux.pages.redhat.com/docs/
 - **Local Testing**: `tests/k8s/README.md`
 - **Pipeline Config**: `.tekton/README.md`
 
-## ✨ Benefits of This Approach
-
-1. **Validated Locally**: All K8s manifests tested with kind
-2. **Reusable**: Same manifests work locally and in Konflux
-3. **Isolated**: Each test run gets clean ephemeral namespace
-4. **Automated**: No manual infrastructure setup needed
-5. **Integrated**: Uses shared-pipelines for consistency across app-sre
-
-## 🎯 Success Criteria
-
-- [x] K8s manifests created and validated
-- [x] Local deployment script works end-to-end
-- [x] Tekton PipelineRun configurations created
-- [x] Test runner script implements full flow
-- [x] Documentation complete
-- [ ] First successful Konflux pipeline run
-- [ ] Integration tests passing in Konflux
-
----
-
-**Created:** 2025-10-16
-**Status:** Ready for Konflux deployment

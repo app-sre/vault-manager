@@ -163,11 +163,11 @@ TEST_EXIT_CODE=$(oc get pod vault-manager-test -o jsonpath='{.status.containerSt
 echo ""
 echo "=========================================="
 if [ "$TEST_EXIT_CODE" = "0" ]; then
-  echo "✅ All tests passed successfully!"
+  echo " All tests passed successfully!"
   echo "=========================================="
   exit 0
 else
-  echo "❌ Tests failed with exit code: $TEST_EXIT_CODE"
+  echo " Tests failed with exit code: $TEST_EXIT_CODE"
   echo "=========================================="
   exit 1
 fi

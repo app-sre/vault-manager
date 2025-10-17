@@ -31,7 +31,7 @@ This setup uses publicly available images where possible:
 
 If you have access to the app-sre Quay organization, you can authenticate:
 ```bash
-docker login quay.io
+podman login quay.io
 kubectl create secret docker-registry quay-auth \
   --docker-server=quay.io \
   --docker-username=YOUR_USERNAME \
@@ -121,7 +121,7 @@ To test with a locally built image:
 
 ```bash
 # Build and load into kind
-docker build -t vault-manager-test:local -f tests/Dockerfile.tests .
+podman build -t vault-manager-test:local -f tests/Dockerfile.tests .
 kind load docker-image vault-manager-test:local --name vault-manager-test
 
 # Update test-runner-pod.yaml to use vault-manager-test:local

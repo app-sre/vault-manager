@@ -24,3 +24,6 @@ tests/app-interface/resources/*
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Vim backup files
+*~
