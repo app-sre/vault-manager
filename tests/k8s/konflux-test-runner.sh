@@ -55,73 +55,8 @@ if [ -f "${SCRIPT_DIR}/../app-interface/data.json" ]; then
       exit 1
     }
 
-  # Update qontract-server manifest to use ConfigMap instead of emptyDir
-  cat > /tmp/qontract-server-konflux.yaml <<EOF
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: qontract-server
-  labels:
-    app: qontract-server
-spec:
-  containers:
-  - name: qontract-server
-    image: quay.io/redhat-services-prod/app-sre-tenant/qontract-server-master/qontract-server-master:latest
-    ports:
-    - containerPort: 4000
-      name: http
-    env:
-    - name: LOAD_METHOD
-      value: fs
-    - name: DATAFILES_FILE
-      value: /bundle/data.json
-    volumeMounts:
-    - name: data
-      mountPath: /bundle
-      readOnly: true
-    livenessProbe:
-      httpGet:
-        path: /healthz
-        port: 4000
-      initialDelaySeconds: 10
-      periodSeconds: 10
-    readinessProbe:
-      httpGet:
-        path: /healthz
-        port: 4000
-      initialDelaySeconds: 5
-      periodSeconds: 5
-    resources:
-      requests:
-        memory: "256Mi"
-        cpu: "100m"
-      limits:
-        memory: "512Mi"
-        cpu: "200m"
-  volumes:
-  - name: data
-    configMap:
-      name: app-interface-data
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: qontract-server
-  labels:
-    app: qontract-server
-spec:
-  selector:
-    app: qontract-server
-  ports:
-  - name: http
-    port: 4000
-    targetPort: 4000
-    protocol: TCP
-  type: ClusterIP
-EOF
-
-  oc apply -f /tmp/qontract-server-konflux.yaml
+  # Deploy qontract-server using ConfigMap
+  oc apply -f "${SCRIPT_DIR}/qontract-server-konflux.yaml"
   echo "   Waiting for qontract-server to be ready..."
   oc wait --for=condition=Ready pod -l app=qontract-server --timeout=3m || {
     echo "   ERROR: qontract-server failed to become ready"
@@ -202,86 +137,8 @@ echo "=========================================="
 echo ""
 
 # Deploy the test runner pod with the built image
-cat > /tmp/test-runner-konflux.yaml <<EOF
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: vault-manager-test
-  labels:
-    app: vault-manager-test
-spec:
-  restartPolicy: Never
-  containers:
-  - name: test
-    image: ${IMAGE_URL}@${IMAGE_DIGEST}
-    env:
-    - name: PRIMARY_VAULT_URL
-      value: http://primary-vault:8200
-    - name: SECONDARY_VAULT_URL
-      value: http://secondary-vault:8202
-    - name: KEYCLOAK_URL
-      value: http://keycloak:8180
-    - name: GRAPHQL_SERVER
-      value: http://qontract-server:4000/graphql
-    - name: VAULT_ADDR
-      value: http://primary-vault:8200
-    - name: VAULT_TOKEN
-      value: root
-    - name: VAULT_AUTHTYPE
-      value: token
-    - name: LOG_FILE_LOCATION
-      value: /tmp/vault-manager.log
-    - name: PODMAN_IGNORE_CGROUPSV1_WARNING
-      value: "1"
-    command: ["/bin/bash", "-c"]
-    args:
-    - |
-      set -e
-
-      echo "Waiting for services to be ready..."
-      for url in "\${KEYCLOAK_URL}/realms/master" \
-                 "http://qontract-server:4000/healthz" \
-                 "\${PRIMARY_VAULT_URL}/v1/sys/health" \
-                 "\${SECONDARY_VAULT_URL}/v1/sys/health"; do
-        until curl -s -f -o /dev/null "\$url"; do
-          echo "Waiting for \$url..."
-          sleep 5
-        done
-      done
-
-      echo "All services ready. Running BATS tests..."
-      cd /tests
-
-      # Run test suite with verbose output
-      for test in \$(find /tests/bats/ -type f | grep '\\.bats' | grep -vE 'roles|entities|groups|errors'); do
-        echo "Running \$test"
-        bats --tap --print-output-on-failure "\$test"
-      done
-
-      echo "Running roles tests"
-      bats --tap --print-output-on-failure /tests/bats/roles/roles.bats
-
-      echo "Running entities tests"
-      bats --tap --print-output-on-failure /tests/bats/entities/entities.bats
-
-      echo "Running groups tests"
-      bats --tap --print-output-on-failure /tests/bats/groups/groups.bats
-
-      echo "Running error handling tests"
-      bats --tap --print-output-on-failure /tests/bats/errors/errors.bats
-
-      echo "All tests completed successfully!"
-    resources:
-      requests:
-        memory: "512Mi"
-        cpu: "200m"
-      limits:
-        memory: "1Gi"
-        cpu: "500m"
-EOF
-
-oc apply -f /tmp/test-runner-konflux.yaml
+# Replace IMAGE_PLACEHOLDER with the actual image
+sed "s|IMAGE_PLACEHOLDER|${IMAGE_URL}@${IMAGE_DIGEST}|g" "${SCRIPT_DIR}/test-runner-konflux.yaml" | oc apply -f -
 
 echo "Waiting for tests to complete (timeout: 8 minutes)..."
 oc wait --for=condition=Ready pod/vault-manager-test --timeout=8m || {

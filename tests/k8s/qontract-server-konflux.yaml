@@ -1,0 +1,62 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: qontract-server
+  labels:
+    app: qontract-server
+spec:
+  containers:
+  - name: qontract-server
+    image: quay.io/redhat-services-prod/app-sre-tenant/qontract-server-master/qontract-server-master:latest
+    ports:
+    - containerPort: 4000
+      name: http
+    env:
+    - name: LOAD_METHOD
+      value: fs
+    - name: DATAFILES_FILE
+      value: /bundle/data.json
+    volumeMounts:
+    - name: data
+      mountPath: /bundle
+      readOnly: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 4000
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /healthz
+        port: 4000
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+  volumes:
+  - name: data
+    configMap:
+      name: app-interface-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qontract-server
+  labels:
+    app: qontract-server
+spec:
+  selector:
+    app: qontract-server
+  ports:
+  - name: http
+    port: 4000
+    targetPort: 4000
+    protocol: TCP
+  type: ClusterIP
