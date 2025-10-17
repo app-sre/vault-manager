@@ -42,6 +42,7 @@ spec:
 
           # Populate necessary vault access vars to primary
           vault kv put -address="${PRIMARY_VAULT_URL}" -mount=secret master rootToken=root
+          vault kv put -address="${PRIMARY_VAULT_URL}" -mount=secret secondary root=root
           vault kv put -address="${PRIMARY_VAULT_URL}" -mount=secret oidc client-secret=my-special-client-secret
           vault kv put -address="${PRIMARY_VAULT_URL}" -mount=secret kubernetes cert=very-valid-cert
 

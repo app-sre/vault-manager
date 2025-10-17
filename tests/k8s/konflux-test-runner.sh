@@ -224,6 +224,14 @@ spec:
       value: http://keycloak:8180
     - name: GRAPHQL_SERVER
       value: http://qontract-server:4000/graphql
+    - name: VAULT_ADDR
+      value: http://primary-vault:8200
+    - name: VAULT_TOKEN
+      value: root
+    - name: VAULT_AUTHTYPE
+      value: token
+    - name: LOG_FILE_LOCATION
+      value: /tmp/vault-manager.log
     - name: PODMAN_IGNORE_CGROUPSV1_WARNING
       value: "1"
     command: ["/bin/bash", "-c"]
