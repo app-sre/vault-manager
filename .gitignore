@@ -21,3 +21,6 @@ tests/app-interface/resources/*
 
 # VS code related files
 *.vscode/*
+
+# Claude Code local settings
+.claude/settings.local.json
