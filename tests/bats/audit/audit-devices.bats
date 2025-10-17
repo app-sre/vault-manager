@@ -19,7 +19,7 @@ load ../helpers
     [ "$status" -eq 0 ]
     # check file/ is enabled
     [[ "${output}" == *"file/"* ]]
-    [[ "${output}" == *"file_path=/var/log/vault/vault_audit.log"* ]]
+    [[ "${output}" == *"file_path=/tmp/vault_audit.log"* ]]
 
     # run same tests against secondary instance
     # export VAULT_ADDR=${SECONDARY_VAULT_URL}
@@ -28,7 +28,7 @@ load ../helpers
     [ "$status" -eq 0 ]
     # check file/ is enabled
     [[ "${output}" == *"file/"* ]]
-    [[ "${output}" == *"file_path=/var/log/vault/vault_audit.log"* ]]
+    [[ "${output}" == *"file_path=/tmp/vault_audit.log"* ]]
 
     rerun_check
 }
