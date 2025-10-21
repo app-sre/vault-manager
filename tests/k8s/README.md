@@ -26,8 +26,7 @@ This setup uses publicly available images where possible:
 - **Vault**:
   - Local/DockerHub: `hashicorp/vault:1.17.1` (public)
   - Red Hat Catalog: `registry.connect.redhat.com/hashicorp/vault:1.17.1` (certified)
-  - App-SRE (Konflux): `quay.io/app-sre/vault:1.17.1` (internal, used in production)
-- **qontract-server**: `quay.io/app-sre/qontract-server:ed1f3d5` (requires app-sre access)
+- **qontract-server**: `quay.io/app-sre/qontract-server:latest` (requires app-sre access)
 - **keycloak-config-cli**: `quay.io/app-sre/keycloak-config-cli:5.11.0-22.0.4` (requires app-sre access)
 
 ### Image Selection by Environment
@@ -37,7 +36,6 @@ This setup uses publicly available images where possible:
 - qontract-server won't work without app-sre access (use placeholder)
 
 **Konflux/Production:**
-- Use `quay.io/app-sre/vault:1.17.1` (available in Konflux environment)
 - All app-sre images will be accessible
 
 If you have access to the app-sre Quay organization, you can authenticate:
