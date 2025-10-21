@@ -1,3 +1,16 @@
+# Docker Compose configuration for Local/Jenkins Testing
+#
+# This compose file is used for local development and Jenkins CI testing.
+# It orchestrates vault-manager integration tests using podman-compose/docker-compose.
+#
+# Usage:
+#   make test-with-compose   # Run full test suite
+#   make build-test-container # Build test container only
+#   make down                 # Clean up environment
+#
+# For Konflux CI testing, see: tests/k8s/konflux-test-runner.sh
+# For local Kubernetes testing, see: tests/k8s/deploy-services.sh
+
 name: vault-manager-test
 
 services:
