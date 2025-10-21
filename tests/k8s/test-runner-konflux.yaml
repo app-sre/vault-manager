@@ -49,8 +49,12 @@ spec:
       echo "All services ready. Running BATS tests..."
       cd /tests
 
-      # Run test suite with verbose output
-      for test in $(find /tests/bats/ -type f | grep '\.bats' | grep -vE 'roles|entities|groups|errors'); do
+      # Run flags test FIRST (requires clean Vault state)
+      echo "Running flags tests"
+      bats --tap --print-output-on-failure /tests/bats/flags/flags.bats
+
+      # Run other test suite with verbose output (excluding flags since we just ran it)
+      for test in $(find /tests/bats/ -type f | grep '\.bats' | grep -vE 'roles|entities|groups|errors|flags'); do
         echo "Running $test"
         bats --tap --print-output-on-failure "$test"
       done
