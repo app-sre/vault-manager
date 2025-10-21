@@ -20,7 +20,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/app-sre/vault-manager:{{revision}}
+    value: quay.io/redhat-user-workloads/app-sre-tenant/vault-manager-master/vault-manager-master:{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
