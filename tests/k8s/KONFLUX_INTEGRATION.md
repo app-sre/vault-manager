@@ -96,34 +96,6 @@ Successfully tested locally with kind:
 - primary-vault:8200
 - secondary-vault:8202
 
-## Next Steps
-
-### To Deploy in Konflux:
-
-1. **Commit the changes:**
-   ```bash
-   git add .tekton/ tests/k8s/
-   git commit -m "Add Konflux integration with shared-pipelines"
-   git push origin master
-   ```
-
-2. **Configure Konflux:**
-   - Ensure namespace `app-sre-tenant` exists
-   - Service account `build-pipeline-vault-manager-master` has correct permissions
-   - Git auth secret is configured
-   - Quay.io push access is set up
-
-3. **Create a test PR:**
-   - Pipeline will automatically trigger
-   - Watch progress in Konflux UI
-   - Ephemeral namespace tests will run
-
-4. **Monitor:**
-   ```bash
-   oc get pipelineruns -n app-sre-tenant | grep vault-manager
-   oc logs <pipelinerun-pod> -n app-sre-tenant -f
-   ```
-
 ## Troubleshooting
 
 ### Issue: qontract-server not starting in local tests
