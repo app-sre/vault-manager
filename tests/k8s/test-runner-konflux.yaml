@@ -49,12 +49,12 @@ spec:
       echo "All services ready. Running BATS tests..."
       cd /tests
 
-      # Run flags test FIRST (requires clean Vault state, also enables audit devices)
+      # Run flags test FIRST (requires clean Vault state, only tests dry-run)
       echo "Running flags tests"
       bats --tap --print-output-on-failure /tests/bats/flags/flags.bats
 
-      # Run other tests (excluding flags and audit since flags already tests audit functionality)
-      for test in $(find /tests/bats/ -type f | grep '\.bats' | grep -vE 'roles|entities|groups|errors|flags|audit'); do
+      # Run other tests (excluding flags, roles, entities, groups, errors which run separately)
+      for test in $(find /tests/bats/ -type f | grep '\.bats' | grep -vE 'roles|entities|groups|errors|flags'); do
         echo "Running $test"
         bats --tap --print-output-on-failure "$test"
       done
