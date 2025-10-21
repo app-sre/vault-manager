@@ -14,5 +14,14 @@ load ../helpers
     [[ "${output}" == *"[Dry Run] [Vault Audit] audit device to be enabled"* ]]
     [[ "${output}" == *"instance=\"${PRIMARY_VAULT_URL}\""* ]]
     [[ "${output}" == *"instance=\"${SECONDARY_VAULT_URL}\""* ]]
+ 
+    # Verify nothing was actually enabled on either instance.
+    run vault audit list -address="${PRIMARY_VAULT_URL}" --detailed
+    [ "$status" -eq 2 ]        # no audit devices -> exit 2 expected
+    [[ "${output}" != *"file/"* ]]
+ 
+    run vault audit list -address="${SECONDARY_VAULT_URL}" --detailed
+    [ "$status" -eq 2 ]
+    [[ "${output}" != *"file/"* ]]
 
 }

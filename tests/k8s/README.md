@@ -9,15 +9,9 @@ vault-manager supports multiple test environments with different orchestration m
 | Environment | Orchestration | Test Files | Documentation |
 |-------------|---------------|------------|---------------|
 | **Konflux CI** | Kubernetes (OpenShift) | `konflux-test-runner.sh`<br>`*.yaml` manifests | This README<br>`.tekton/README.md` |
-| **Local/Jenkins** | podman-compose | `../run-tests.sh`<br>`../compose.yml`<br>`Makefile` targets | `../compose.yml` |
 | **Local Kubernetes** | kubectl/kind | `deploy-services.sh`<br>`*.yaml` manifests | This README |
 
 **This README focuses on Kubernetes-based testing (Konflux and local kind/minikube).**
-
-For podman-compose testing (Jenkins/local development), see:
-- `tests/run-tests.sh` - Legacy podman-based test runner
-- `tests/compose.yml` - Docker Compose configuration
-- `Makefile` targets: `test-with-compose`, `build-test-container`
 
 ## Prerequisites
 
