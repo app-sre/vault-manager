@@ -26,7 +26,7 @@ This setup uses publicly available images where possible:
 - **Vault**:
   - Local/DockerHub: `hashicorp/vault:1.17.1` (public)
   - Red Hat Catalog: `registry.connect.redhat.com/hashicorp/vault:1.17.1` (certified)
-- **qontract-server**: `quay.io/app-sre/qontract-server:latest` (requires app-sre access)
+- **qontract-server**: `quay.io/redhat-services-prod/app-sre-tenant/qontract-server-master/qontract-server-master:latest` (requires app-sre access)
 - **keycloak-config-cli**: `quay.io/app-sre/keycloak-config-cli:5.11.0-22.0.4` (requires app-sre access)
 
 ### Image Selection by Environment
