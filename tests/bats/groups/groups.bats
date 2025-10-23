@@ -14,7 +14,7 @@ load ../helpers
     [ "$status" -eq 0 ]
 
     [[ "${output}" == *"[Dry Run] [Vault Identity] 2 user(s) are in the group to be created"*"group=app-sre-vault-oidc"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"${PRIMARY_VAULT_URL}\""* ]]
-    [[ "${output}" == *"[Dry Run] [Vault Identity] 2 user(s) are in the group to be created"*"group=app-interface-vault-oidc"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"${PROMARY_VAUL_URL}\""* ]]
+    [[ "${output}" == *"[Dry Run] [Vault Identity] 2 user(s) are in the group to be created"*"group=app-interface-vault-oidc"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"${PRIMARY_VAULT_URL}\""* ]]
     [[ "${output}" == *"[Dry Run] [Vault Identity] 2 user(s) are in the group to be created"*"group=app-sre-vault-oidc-secondary"*"groupPolicies=\"[vault-oidc-app-sre-policy]\""*"instance=\"${SECONDARY_VAULT_URL}\""* ]]
 
     run vault-manager
@@ -40,7 +40,7 @@ load ../helpers
     [[ "${output}" == *"type"*"internal"* ]]
     [[ "${output}" == *"policies"*"[vault-oidc-app-sre-policy]"* ]]
     [[ "${output}" == *"member_entity_ids"*"$entity_id"* ]]
-    [[ "${output}" == *"metadata"*"map[app-sre-vault-admin:app-sre vault administrator permission]"* ]]
+    [[ "${output}" == *"metadata"*"map[app-sre-vault-admin-primary:app-sre vault administrator permission]"* ]]
 
     # run same tests against secondary instance
     export VAULT_ADDR=${SECONDARY_VAULT_URL}

@@ -1,4 +1,13 @@
 #!/bin/bash
+#
+# Local/Jenkins Test Runner (podman-based)
+#
+# This script runs vault-manager integration tests using direct podman container orchestration.
+# It is used for local development and Jenkins CI.
+#
+# For Konflux CI testing, see: tests/k8s/konflux-test-runner.sh
+# For local Kubernetes testing, see: tests/k8s/deploy-services.sh
+#
 
 set -e
 

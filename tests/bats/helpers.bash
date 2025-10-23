@@ -2,8 +2,10 @@
 rerun_check() {
     run vault-manager
     [ "$status" -eq 0 ]
-    # check vault-manager output
-    [[ "${output}" == "" ]]
+    # check vault-manager output - should only have start/end messages, no actual changes
+    # Filter out the standard start/end log messages
+    filtered_output=$(echo "${output}" | grep -v "Starting loop run\|Ending loop run" || true)
+    [[ "${filtered_output}" == "" ]]
 }
 
 # write the given string to the console.

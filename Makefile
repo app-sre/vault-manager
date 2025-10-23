@@ -1,3 +1,11 @@
+# Makefile for vault-manager
+#
+# Test Environments:
+#   - Konflux CI: Uses .tekton/ pipelines and tests/k8s/konflux-test-runner.sh
+#   - Local/Jenkins: Uses targets below (build-test-container, test-with-compose)
+#
+# For Konflux testing, see: .tekton/README.md and tests/k8s/README.md
+
 .PHONY: build-test-container test-with-compose build push gotest gobuild down
 
 COMPOSE_FILE ?= tests/compose.yml
@@ -32,6 +40,9 @@ generate:
 	@helm lint helm/vault-manager
 	@helm template helm/vault-manager -n vault-manager -f helm/vault-manager/values-commercial.yaml > openshift/vault-manager.template.yaml
 	@helm template helm/vault-manager -n vault-manager -f helm/vault-manager/values-fedramp.yaml > openshift/vault-manager-fedramp.template.yaml
+
+# Local/Jenkins testing targets (NOT used by Konflux)
+# For Konflux testing, see tests/k8s/konflux-test-runner.sh
 
 build-test-container:
 	@$(CONTAINER_ENGINE) build -t $(IMAGE_NAME)-test -f tests/Dockerfile.tests .

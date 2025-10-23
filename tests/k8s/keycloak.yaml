@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  containers:
+  - name: keycloak
+    image: quay.io/keycloak/keycloak:22.0.4
+    ports:
+    - containerPort: 8180
+      name: http
+    env:
+    - name: KEYCLOAK_ADMIN
+      value: admin
+    - name: KEYCLOAK_ADMIN_PASSWORD
+      value: admin
+    - name: KC_HEALTH_ENABLED
+      value: "true"
+    - name: KC_METRICS_ENABLED
+      value: "false"
+    - name: KC_CACHE
+      value: local
+    - name: JAVA_OPTS_APPEND
+      value: "-Djava.awt.headless=true -Xms256m -Xmx512m"
+    args:
+    - "start-dev"
+    - "--http-port=8180"
+    - "--cache=local"
+    - "--features=preview"
+    # Startup probe - allows plenty of time for initial startup
+    startupProbe:
+      httpGet:
+        path: /realms/master
+        port: 8180
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 30  # 30 * 10 = 300 seconds (5 minutes) max startup time
+    livenessProbe:
+      httpGet:
+        path: /realms/master
+        port: 8180
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /realms/master
+        port: 8180
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  selector:
+    app: keycloak
+  ports:
+  - name: http
+    port: 8180
+    targetPort: 8180
+    protocol: TCP
+  type: ClusterIP

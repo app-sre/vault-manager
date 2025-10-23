@@ -1,0 +1,58 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/app-sre/vault-manager?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "master"
+  labels:
+    appstudio.openshift.io/application: vault-manager-master
+    appstudio.openshift.io/component: vault-manager-master
+    pipelines.appstudio.openshift.io/type: build
+  name: vault-manager-on-pull-request
+  namespace: app-sre-tenant
+spec:
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/redhat-user-workloads/app-sre-tenant/vault-manager-master/vault-manager-master:on-pr-{{revision}}
+  - name: image-expires-after
+    value: 5d
+  - name: dockerfile
+    value: tests/Dockerfile.tests
+  - name: path-context
+    value: .
+  - name: ephemeral-namespace-run-script
+    value: tests/k8s/konflux-test-runner.sh
+  - name: ephemeral-pod-wait-timeout
+    value: "10m"
+  pipelineRef:
+    params:
+    - name: url
+      value: https://github.com/app-sre/shared-pipelines
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: pipelines/multi-arch-build-pipeline.yaml
+    resolver: git
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-vault-manager-master
+  workspaces:
+  - name: workspace
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
+status: {}
