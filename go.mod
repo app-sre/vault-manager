@@ -2,8 +2,6 @@ module github.com/app-sre/vault-manager
 
 go 1.23
 
-toolchain go1.24.6
-
 require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/vault/api v1.10.0
