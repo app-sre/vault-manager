@@ -1,6 +1,8 @@
 module github.com/app-sre/vault-manager
 
-go 1.23
+go 1.24.0
+
+toolchain go1.24.6
 
 require (
 	github.com/hashicorp/go-version v1.7.0
@@ -44,7 +46,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
