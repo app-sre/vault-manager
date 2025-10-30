@@ -25,10 +25,6 @@ spec:
     value: Dockerfile
   - name: path-context
     value: .
-  - name: ephemeral-namespace-run-script
-    value: tests/k8s/konflux-test-runner.sh
-  - name: ephemeral-pod-wait-timeout
-    value: "10m"
   pipelineRef:
     params:
     - name: url
