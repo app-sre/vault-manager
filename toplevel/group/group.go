@@ -12,7 +12,7 @@ import (
 	"github.com/app-sre/vault-manager/toplevel"
 	log "github.com/sirupsen/logrus"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type config struct{}
