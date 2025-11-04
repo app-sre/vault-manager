@@ -208,9 +208,9 @@ objects:
                 path: token
 parameters:
 - name: IMAGE
-  value: quay.io/app-sre/vault-manager
+  value: quay.io/redhat-services-prod/app-sre-tenant/vault-manager-master/vault-manager-master
   displayName: vault-manager image
-  description: vault-manager docker image. Defaults to quay.io/app-sre/vault-manager
+  description: vault-manager docker image. Defaults to quay.io/redhat-services-prod/app-sre-tenant/vault-manager-master/vault-manager-master
 - name: IMAGE_TAG
   value: latest
   displayName: vault-manager version
