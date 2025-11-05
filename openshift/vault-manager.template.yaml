@@ -39,8 +39,8 @@ objects:
         serviceAccountName: vault-manager
         initContainers:
         - name: config
-          image: ${BUSYBOX_IMAGE}:${BUSYBOX_IMAGE_TAG}
-          imagePullPolicy: ${BUSYBOX_IMAGE_PULL_POLICY}
+          image: ${INIT_IMAGE}:${INIT_IMAGE_TAG}
+          imagePullPolicy: ${INIT_IMAGE_PULL_POLICY}
           resources:
             requests:
               memory: 10Mi
@@ -260,11 +260,11 @@ parameters:
 - name: VAULT_ADDR
   description: vault endpoint URL
   value: ''
-- name: BUSYBOX_IMAGE
+- name: INIT_IMAGE
   value: quay.io/app-sre/ubi8-ubi-minimal
-- name: BUSYBOX_IMAGE_TAG
+- name: INIT_IMAGE_TAG
   value: latest
-- name: BUSYBOX_IMAGE_PULL_POLICY
+- name: INIT_IMAGE_PULL_POLICY
   value: Always
 - name: FLUENTD_IMAGE
   value: quay.io/app-sre/fluentd
