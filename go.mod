@@ -46,7 +46,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
