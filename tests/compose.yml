@@ -62,7 +62,7 @@ services:
       start_period: 20s
 
   primary-vault:
-    image: quay.io/app-sre/vault:1.17.1
+    image: registry.connect.redhat.com/hashicorp/vault:1.19.5-ubi
     ports:
       - "8200:8200"
     environment:
@@ -83,7 +83,7 @@ services:
         condition: service_healthy
 
   secondary-vault:
-    image: quay.io/app-sre/vault:1.17.1
+    image: registry.connect.redhat.com/hashicorp/vault:1.19.5-ubi
     ports:
       - "8202:8202"
     environment:

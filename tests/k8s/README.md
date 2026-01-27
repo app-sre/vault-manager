@@ -24,15 +24,15 @@ vault-manager supports multiple test environments with different orchestration m
 This setup uses publicly available images where possible:
 - **Keycloak**: `quay.io/keycloak/keycloak:22.0.4` (public)
 - **Vault**:
-  - Local/DockerHub: `hashicorp/vault:1.17.1` (public)
-  - Red Hat Catalog: `registry.connect.redhat.com/hashicorp/vault:1.17.1` (certified)
+  - Local/DockerHub: `hashicorp/vault:1.19.5` (public)
+  - Red Hat Catalog: `registry.connect.redhat.com/hashicorp/vault:1.19.5` (certified)
 - **qontract-server**: `quay.io/redhat-services-prod/app-sre-tenant/qontract-server-master/qontract-server-master:latest` (requires app-sre access)
 - **keycloak-config-cli**: `quay.io/app-sre/keycloak-config-cli:5.11.0-22.0.4` (requires app-sre access)
 
 ### Image Selection by Environment
 
 **Local testing (kind/minikube):**
-- Use `hashicorp/vault:1.17.1` from DockerHub (no auth needed)
+- Use `hashicorp/vault:1.19.5` from DockerHub (no auth needed)
 - qontract-server won't work without app-sre access (use placeholder)
 
 **Konflux/Production:**

@@ -30,7 +30,7 @@ RUN chmod +x /tini
 
 # Version pinning for reproducible builds
 ENV BATS_VERSION="v1.11.1"
-ENV VAULT_VERSION="1.17.1"
+ENV VAULT_VERSION="1.19.5"
 
 # Install test dependencies
 RUN yum install -y \
