@@ -45,7 +45,7 @@ generate:
 # For Konflux testing, see tests/k8s/konflux-test-runner.sh
 
 build-test-container:
-	@$(CONTAINER_ENGINE) build -t $(IMAGE_NAME)-test -f tests/Dockerfile.tests .
+	@$(CONTAINER_ENGINE) build --target=test -t $(IMAGE_NAME)-test .
 
 test-with-compose: build-test-container
 	@podman-compose -f $(COMPOSE_FILE) up -d --force-recreate

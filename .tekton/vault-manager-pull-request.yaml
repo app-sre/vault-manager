@@ -25,7 +25,9 @@ spec:
   - name: image-expires-after
     value: 5d
   - name: dockerfile
-    value: tests/Dockerfile.tests
+    value: Dockerfile
+  - name: target-stage
+    value: test
   - name: path-context
     value: .
   - name: ephemeral-namespace-run-script

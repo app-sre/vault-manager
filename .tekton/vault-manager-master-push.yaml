@@ -23,6 +23,8 @@ spec:
     value: quay.io/redhat-user-workloads/app-sre-tenant/vault-manager-master/vault-manager-master:{{revision}}
   - name: dockerfile
     value: Dockerfile
+  - name: target-stage
+    value: production
   - name: path-context
     value: .
   pipelineRef:
