@@ -18,7 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	// Register top-level configurations.
 	_ "github.com/app-sre/vault-manager/toplevel/audit"
@@ -84,7 +84,6 @@ func main() {
 	flag.BoolVar(&runOnce, "run-once", true, "If true, program will skip loop and exit after first reconcile attempt")
 	flag.BoolVar(&kubeAuth, "kube-auth", false, "If true, will attempt to utilize kubernetes authentication where applicable")
 	flag.Parse()
-
 
 	var sleepDuration time.Duration
 	if !runOnce {
