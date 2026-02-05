@@ -64,11 +64,11 @@ const (
 
 const (
 	// How long before a client login attempt to Vault is timed out.
-	defaultClientLoginTimeout = 5 * time.Second
+	defaultClientLoginTimeout = 60 * time.Second
 
 	// How many times attempt to retry when failing
 	// to retrieve a valid client token.
-	defaultTokenRetryAttempts = 5
+	defaultTokenRetryAttempts = 10
 
 	// How long to sleep in between each retry attempt.
 	defaultTokenRetrySleep = 250 * time.Millisecond
@@ -179,6 +179,9 @@ func initClients(instanceCreds map[string]AuthBundle, threadPoolSize int) {
 func configureMaster(instanceCreds map[string]AuthBundle) string {
 	masterVaultCFG := api.DefaultConfig()
 	masterVaultCFG.Address = mustGetenv("VAULT_ADDR")
+	masterVaultCFG.MaxRetries = 10
+	masterVaultCFG.MinRetryWait = 1 * time.Second
+	masterVaultCFG.MaxRetryWait = 30 * time.Second
 
 	client, err := api.NewClient(masterVaultCFG)
 	if err != nil {
@@ -207,8 +210,7 @@ func configureMaster(instanceCreds map[string]AuthBundle) string {
 				log.WithError(err).Fatal("[Vault Client] failed to login to master Vault with AppRole")
 			}
 		case TOKEN_AUTH:
-			clientToken := mustGetenv("VAULT_TOKEN")
-			client.SetToken(clientToken)
+			client.SetToken(mustGetenv("VAULT_TOKEN"))
 		default:
 			log.WithField("authType", authType).Fatal("[Vault Client] unsupported authentication type")
 		}
@@ -279,6 +281,9 @@ func createClient(addr string, masterAddress string, bundle AuthBundle, bwg *uti
 
 	config := api.DefaultConfig()
 	config.Address = addr
+	config.MaxRetries = 10
+	config.MinRetryWait = 1 * time.Second
+	config.MaxRetryWait = 30 * time.Second
 	client, err := api.NewClient(config)
 	if err != nil {
 		log.WithError(err).Errorf("[Vault Client] failed to initialize Vault client for `%s`", addr)
