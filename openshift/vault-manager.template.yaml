@@ -144,10 +144,7 @@ objects:
           - name: VAULT_ADDR
             value: ${VAULT_ADDR}
           - name: VAULT_AUTHTYPE
-            valueFrom:
-              secretKeyRef:
-                key: auth_type
-                name: ${VAULT_SECRET_NAME}
+            value: ${VAULT_AUTHTYPE}
           - name: VAULT_ROLE_ID
             valueFrom:
               secretKeyRef:
@@ -260,6 +257,9 @@ parameters:
 - name: VAULT_ADDR
   description: vault endpoint URL
   value: ''
+- name: VAULT_AUTHTYPE
+  description: vault authentication type (e.g. approle, token)
+  value: 'approle'
 - name: INIT_IMAGE
   value: quay.io/app-sre/ubi8-ubi-minimal
 - name: INIT_IMAGE_TAG
