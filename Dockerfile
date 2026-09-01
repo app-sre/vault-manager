@@ -8,7 +8,7 @@ RUN make gobuild
 # ============================================================================
 # Stage 2: Production - Minimal runtime image (DEFAULT TARGET)
 # ============================================================================
-FROM registry.access.redhat.com/ubi9-minimal:9.5 AS production
+FROM registry.access.redhat.com/ubi9-minimal:9.8-1788166357 AS production
 RUN microdnf update -y && \
     microdnf install -y ca-certificates && \
     rm -rf /var/cache/yum
