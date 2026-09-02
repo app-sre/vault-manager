@@ -21,7 +21,7 @@ LABEL konflux.additional-tags="1.0.0"
 # ============================================================================
 # Stage 3: Test - Full test environment with BATS and dependencies
 # ============================================================================
-FROM registry.access.redhat.com/ubi9/ubi:9.5 AS test
+FROM registry.access.redhat.com/ubi9/ubi:9.8-1788245065 AS test
 
 # Add Tini init system
 ENV TINI_VERSION=v0.19.0
