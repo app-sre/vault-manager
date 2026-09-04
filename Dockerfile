@@ -1,7 +1,7 @@
 # ============================================================================
 # Stage 1: Builder - Compile the vault-manager binary
 # ============================================================================
-FROM registry.access.redhat.com/ubi9/go-toolset:1.24.6 AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.26.7-1788409979 AS builder
 COPY --chown=1001:0 . .
 RUN make gobuild
 
