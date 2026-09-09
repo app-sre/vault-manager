@@ -156,7 +156,7 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 }
 
 func isDefaultPolicy(name string) bool {
-	return name == "root" || name == "default"
+	return name == "root" || name == "default" || name == "default-ceiling"
 }
 
 func asItems(xs []entry) (items []vault.Item) {
