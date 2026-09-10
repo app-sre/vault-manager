@@ -172,7 +172,8 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 
 func isDefaultMount(path string) bool {
 	switch {
-	case strings.HasPrefix(path, "cubbyhole/"),
+	case strings.HasPrefix(path, "agent-registry/"),
+		strings.HasPrefix(path, "cubbyhole/"),
 		strings.HasPrefix(path, "identity/"),
 		strings.HasPrefix(path, "secret/"),
 		strings.HasPrefix(path, "sys/"):
