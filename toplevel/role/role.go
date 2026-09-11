@@ -138,6 +138,9 @@ func (c config) Apply(address string, entriesBytes []byte, dryRun bool, threadPo
 	// Add optional defaults for Kubernetes roles
 	addOptionalKubernetesDefaults(desiredRoles)
 
+	// Add alias_metadata default for Vault 2.x compatibility
+	addAliasMetadataDefault(address, desiredRoles)
+
 	// Build list of all existing roles
 	existingRoles := []entry{}
 	for authBackend := range existingAuths {
@@ -382,6 +385,32 @@ func addOptionalKubernetesDefaults(roles []entry) {
 			if _, exists := role.Options["bound_service_account_namespace_selector"]; !exists {
 				role.Options["bound_service_account_namespace_selector"] = "" // Default to an empty string
 			}
+		}
+	}
+}
+
+// addAliasMetadataDefault adds the alias_metadata field to all desired roles.
+// Vault 2.x returns this field on all auth role types (approle, kubernetes,
+// oidc) even when not explicitly set, defaulting to an empty map.
+func addAliasMetadataDefault(address string, roles []entry) {
+	ver, err := vault.GetVaultVersion(address)
+	if err != nil {
+		return
+	}
+	current, err := version.NewVersion(ver)
+	if err != nil {
+		return
+	}
+	threshold, err := version.NewVersion("2.0.0")
+	if err != nil {
+		return
+	}
+	if !current.GreaterThanOrEqual(threshold) {
+		return
+	}
+	for _, role := range roles {
+		if _, exists := role.Options["alias_metadata"]; !exists {
+			role.Options["alias_metadata"] = map[string]interface{}{}
 		}
 	}
 }
